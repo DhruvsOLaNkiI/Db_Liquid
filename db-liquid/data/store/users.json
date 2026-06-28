@@ -1,0 +1,13 @@
+[
+  {
+    "id": "test",
+    "email": "a@b.com",
+    "phone": "1",
+    "name": "Test",
+    "password": "x",
+    "roles": [
+      "buyer"
+    ],
+    "createdAt": "2026-01-01"
+  }
+]

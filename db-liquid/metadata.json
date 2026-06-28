@@ -1,0 +1,6 @@
+{
+  "name": "DB Liquid",
+  "description": "The Smart Way to Buy & Sell Properties Through Competitive Bidding",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
