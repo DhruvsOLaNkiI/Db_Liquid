@@ -1,0 +1,6 @@
+# Coolify / Nixpacks — run Express API + React build (not static-only)
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

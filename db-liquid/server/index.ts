@@ -85,7 +85,7 @@ async function start() {
   await connectMongo();
   await migrateLegacyJsonIfNeeded();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     const info = getMongoInfo();
     console.log(`DB Liquid running on port ${PORT}`);
     console.log(`Storage: MongoDB (${info.db})`);
