@@ -1,5 +1,6 @@
 import type { CreditTransaction } from '../types/credits';
 import type { User } from '../types/user';
+import { randomId } from './randomId';
 
 const MAX_HISTORY = 50;
 
@@ -17,7 +18,7 @@ export function appendCreditHistory(
 ): CreditTransaction[] {
   const tx: CreditTransaction = {
     ...entry,
-    id: crypto.randomUUID(),
+    id: randomId(),
     createdAt: new Date().toISOString(),
   };
   const history = [tx, ...(user.creditHistory ?? [])].slice(0, MAX_HISTORY);

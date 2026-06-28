@@ -1,6 +1,7 @@
 import type { AuthSession, User, UserRole } from '../types/user';
 import { getSharedUsers, persistUsers } from '../utils/sharedStore';
 import { normalizeUser } from '../utils/buyerCredits';
+import { randomId } from '../utils/randomId';
 
 /** Shared users table — stored in MongoDB (all users see the same accounts). */
 export const USERS_TABLE_KEY = 'db-liquid-users';
@@ -80,7 +81,7 @@ export function createUser(input: {
   }
 
   const user: User = {
-    id: crypto.randomUUID(),
+    id: randomId(),
     email,
     phone,
     name,

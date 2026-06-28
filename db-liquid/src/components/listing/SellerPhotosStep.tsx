@@ -2,6 +2,7 @@ import { Camera, ImagePlus, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { PropertyPhoto } from '../../types/listing';
 import { readImageFileAsDataUrl } from '../../utils/fileUpload';
+import { randomId } from '../../utils/randomId';
 
 type Props = {
   photos: PropertyPhoto[];
@@ -23,7 +24,7 @@ export function SellerPhotosStep({ photos, photoNote, onPhotosChange, onPhotoNot
       for (const file of Array.from(files)) {
         const dataUrl = await readImageFileAsDataUrl(file);
         next.push({
-          id: crypto.randomUUID(),
+          id: randomId(),
           fileName: file.name,
           mimeType: file.type,
           dataUrl,

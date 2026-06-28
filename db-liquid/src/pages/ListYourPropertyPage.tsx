@@ -18,6 +18,7 @@ import type { ListingVerifications, PropertyListing, PropertyPhoto, Verification
 import { useAuth } from '../context/AuthContext';
 import { getSellerName, getSellerPhone, resolveSellerId, setSellerName, setSellerPhone } from '../utils/seller';
 import { buildListingDetailsSummary, buildListingLocation, getVerificationBadgeLabels, VERIFICATION_FIELDS } from '../utils/listingDisplay';
+import { randomId } from '../utils/randomId';
 
 const STEPS = ['You', 'Type', 'Location', 'Details', 'Pricing', 'Photos', 'Verify', 'Publish'] as const;
 
@@ -115,7 +116,7 @@ export function ListYourPropertyPage() {
       .map(({ key }) => {
         const upload = verificationUploads[key]!;
         return {
-          id: crypto.randomUUID(),
+          id: randomId(),
           type: key,
           fileName: upload.fileName,
           mimeType: upload.mimeType,

@@ -32,8 +32,8 @@ export function PropertyBidPage() {
   const { user, isAuthenticated, hasRole, syncCreditWallet, buyerCredits } = useAuth();
   const listing = id ? getListingById(id) : undefined;
 
-  const sellerId = resolveSellerId(hasRole('seller') ? user?.id : null);
-  const isListingOwner = Boolean(listing && listing.sellerId === sellerId);
+  const sellerId = hasRole('seller') && user ? resolveSellerId(user.id) : '';
+  const isListingOwner = Boolean(listing && sellerId && listing.sellerId === sellerId);
   const loggedInBuyer = isAuthenticated && hasRole('buyer') && user && !isListingOwner;
   const [bidAmount, setBidAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

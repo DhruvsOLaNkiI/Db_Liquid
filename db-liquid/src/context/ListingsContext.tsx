@@ -9,6 +9,7 @@ import {
   saveListingsToStorage,
   sortListingsByNewest,
 } from '../utils/listingsStorage';
+import { randomId } from '../utils/randomId';
 import { spendBidCredit } from '../utils/buyerCredits';
 
 export { LISTINGS_STORAGE_KEY } from '../utils/listingsStorage';
@@ -152,7 +153,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     if (!creditResult.ok) return creditResult;
 
     const bid: Bid = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       bidderName: name,
       bidderPhone: phone,
       bidderUserId: buyerUserId,
@@ -311,7 +312,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       senderRole === 'seller' ? listing.chatSellerName : listing.chatBuyerName;
 
     const message = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       senderRole,
       senderName,
       text: trimmed,
