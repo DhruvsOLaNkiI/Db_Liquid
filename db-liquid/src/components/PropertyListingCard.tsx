@@ -3,6 +3,8 @@ import { MapPin } from 'lucide-react';
 import type { PropertyListing } from '../types/listing';
 import {
   formatPrice,
+  formatPriceShort,
+  getBidCount,
   getBidTotal,
   getHighestBidPerSqFt,
   getListingStatus,
@@ -20,42 +22,47 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
   const imageIndex = listing.id.charCodeAt(0) % PLACEHOLDER_IMAGES.length;
   const status = getListingStatus(listing);
   const highestBid = getHighestBidPerSqFt(listing);
-  const hasBids = listing.bids.length > 0;
+  const bidCount = getBidCount(listing);
+  const hasBids = bidCount > 0;
+  const bidTotal = getBidTotal(highestBid, listing.areaSqFt);
 
   const statusLabel =
-    status === 'accepted' ? 'Hold' : status === 'active' ? 'Active Bid' : 'Closed';
+    status === 'accepted' ? 'On Hold' : status === 'active' ? 'Active Bid' : 'Closed';
 
   return (
-    <Link to={`/browse-property/${listing.id}`} className="block group">
-      <article className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+    <Link to={`/browse-property/${listing.id}`} className="block group h-full">
+      <article className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm group-hover:shadow-md transition-shadow h-full">
         <div className="aspect-[4/3] relative overflow-hidden bg-gray-100">
           <img
             src={listing.propertyPhotos?.[0]?.dataUrl ?? PLACEHOLDER_IMAGES[imageIndex]}
             alt={listing.propertyType}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
+          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-primary">
             {statusLabel}
           </div>
         </div>
-        <div className="p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+        <div className="p-3.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5 truncate">
             {listing.propertyType}
           </p>
-          <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-1.5">
-            <MapPin size={16} className="text-gray-400 shrink-0" />
+          <h3 className="font-bold text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+            <MapPin size={13} className="text-gray-400 shrink-0" />
             <span className="truncate">{listing.location}</span>
           </h3>
-          <p className="text-sm text-gray-500 mb-4">{formatBuyerConfiguration(listing)}</p>
-          <div className="flex items-end justify-between pt-4 border-t border-gray-100">
-            <div>
-              <p className="text-xs text-gray-400 mb-0.5">{hasBids ? 'Highest bid' : 'Starting at'}</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatPrice(getBidTotal(highestBid, listing.areaSqFt))}
+          <p className="text-xs text-gray-500 mb-3 truncate">{formatBuyerConfiguration(listing)}</p>
+          <div className="flex items-end justify-between pt-3 border-t border-gray-100 gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-gray-400 mb-0.5">{hasBids ? 'Highest bid' : 'Starting at'}</p>
+              <p className="text-lg font-bold text-gray-900 truncate">{formatPrice(bidTotal)}</p>
+              <p className="text-[11px] text-gray-500 truncate">{formatPriceShort(bidTotal)}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                {bidCount} bid{bidCount === 1 ? '' : 's'}
               </p>
-              <p className="text-sm text-gray-500">₹{highestBid.toLocaleString('en-IN')}/sq.ft</p>
             </div>
-            <span className="text-xs font-medium text-gray-400">{getTimeRemaining(listing)}</span>
+            <span className="text-[10px] font-medium text-gray-400 shrink-0 text-right leading-tight">
+              {getTimeRemaining(listing)}
+            </span>
           </div>
         </div>
       </article>

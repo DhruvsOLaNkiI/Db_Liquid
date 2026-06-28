@@ -4,7 +4,7 @@ import { Check, Clock, Loader2, MessageCircle, Zap } from 'lucide-react';
 import { BidAmountSlider } from './BidAmountSlider';
 import { BuyerTokenPanel } from './BuyerTokenPanel';
 import type { PropertyListing } from '../../types/listing';
-import { formatPrice } from '../../types/listing';
+import { formatPrice, formatPriceShort } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
 
 type Props = {
@@ -85,28 +85,27 @@ export function StickyBidSidebar({
           <div>
             <p className="text-[15px] font-medium text-gray-500 mb-1">Ask Bid</p>
             <p className="text-2xl font-bold text-[#0F172A]">{formatPrice(listedTotal)}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              ₹{listing.pricePerSqFt.toLocaleString('en-IN')}/sq.ft
-            </p>
+            <p className="text-xs text-gray-400 mt-1">{formatPriceShort(listedTotal)}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500 mb-0.5">Current Bid</p>
             <p className="text-lg font-semibold text-gray-600">{formatPrice(currentBidTotal)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{formatPriceShort(currentBidTotal)}</p>
           </div>
         </div>
 
         {!loggedInBuyer && open && (
           <div className="space-y-3 mb-4">
-            <p className="text-sm text-gray-600">Log in as a buyer to place a bid.</p>
+            <p className="text-sm text-gray-600">Log in to place a bid.</p>
             <div className="flex gap-2">
               <Link
-                to={`/login?role=buyer&next=/browse-property/${listing.id}`}
+                to={`/login?next=${encodeURIComponent(`/browse-property/${listing.id}`)}`}
                 className="flex-1 text-center py-2.5 bg-[#0F172A] text-white rounded-[14px] text-sm font-semibold hover:bg-slate-800 transition-colors"
               >
                 Log in
               </Link>
               <Link
-                to={`/signup?role=buyer&next=/browse-property/${listing.id}`}
+                to={`/signup?next=${encodeURIComponent(`/browse-property/${listing.id}`)}`}
                 className="flex-1 text-center py-2.5 border border-[#E5E7EB] rounded-[14px] text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Sign up

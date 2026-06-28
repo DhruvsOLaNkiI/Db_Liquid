@@ -6,15 +6,15 @@ import { getOrCreateSellerId } from '../utils/seller';
 
 export function ListPropertyLoginPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, hasRole } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && hasRole('seller')) {
+    if (isAuthenticated) {
       navigate('/list-your-property/create', { replace: true });
     }
-  }, [isAuthenticated, hasRole, navigate]);
+  }, [isAuthenticated, navigate]);
 
-  if (isAuthenticated && hasRole('seller')) {
+  if (isAuthenticated) {
     return null;
   }
 
@@ -31,37 +31,23 @@ export function ListPropertyLoginPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">List your property</h1>
             <p className="text-gray-600">
-              Create a seller account to manage listings, or continue as a guest.
+              Log in or sign up to publish and manage listings. One account for buying and selling.
             </p>
           </div>
 
-          {isAuthenticated && hasRole('buyer') && !hasRole('seller') && (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              You are logged in as a buyer. To list property,{' '}
-              <button type="button" onClick={goToListingAsGuest} className="font-semibold underline">
-                continue as guest seller
-              </button>{' '}
-              or{' '}
-              <Link to="/login?role=seller&next=/list-your-property/create" className="font-semibold underline">
-                log in as seller
-              </Link>
-              .
-            </div>
-          )}
-
           <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 space-y-4">
             <Link
-              to="/login?role=seller&next=/list-your-property/create"
+              to="/login?next=/list-your-property/create"
               className="block w-full py-4 bg-primary text-white rounded-full font-medium text-lg text-center hover:bg-gray-800 transition-colors"
             >
-              Log in as seller
+              Log in
             </Link>
 
             <Link
-              to="/signup?role=seller&next=/list-your-property/create"
+              to="/signup?next=/list-your-property/create"
               className="block w-full py-4 bg-white text-gray-900 border border-gray-200 rounded-full font-medium text-lg text-center hover:bg-gray-50 transition-colors"
             >
-              Create seller account
+              Create account
             </Link>
 
             <button

@@ -9,12 +9,10 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [creditPanelOpen, setCreditPanelOpen] = useState(false);
   const creditButtonRef = useRef<HTMLButtonElement>(null);
-  const { user, activeRole, isAuthenticated, logout, hasRole, buyerCredits } = useAuth();
+  const { user, isAuthenticated, logout, buyerCredits } = useAuth();
 
-  const loginHref =
-    activeRole === 'buyer' ? '/login?role=buyer' : '/login?role=seller';
-  const signupHref =
-    activeRole === 'buyer' ? '/signup?role=buyer' : '/signup?role=seller';
+  const loginHref = '/login';
+  const signupHref = '/signup';
 
   useEffect(() => {
     if (!creditPanelOpen) return;
@@ -51,13 +49,11 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">How It Works</a>
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Features</a>
-            <a href="#ecosystem" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Ecosystem</a>
-            <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">FAQ</a>
-            <Link to="/prototype" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Prototype</Link>
-            <Link to="/browse-property" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Browse</Link>
+            <a href="/home#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">How It Works</a>
+            <a href="/home#faq" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">FAQ</a>
+            <Link to="/" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">My Bid</Link>
             <Link to="/seller/dashboard" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">My Listings</Link>
+            <Link to="/home#ecosystem" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">DB Asset / DB Expo</Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -65,12 +61,9 @@ export function Header() {
               <>
                 <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <User size={16} className="text-gray-400" />
-                  <span>
-                    {user.name}
-                    <span className="text-xs text-gray-400 capitalize"> ({activeRole})</span>
-                  </span>
+                  <span>{user.name}</span>
                 </span>
-                {activeRole === 'buyer' && hasRole('buyer') && (
+                {isAuthenticated && (
                   <div className="relative">
                     <button
                       ref={creditButtonRef}
@@ -145,13 +138,11 @@ export function Header() {
 
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 px-4 py-4 space-y-4">
-          <a href="#how-it-works" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>How It Works</a>
-          <a href="#features" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>Features</a>
-          <a href="#ecosystem" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>Ecosystem</a>
-          <a href="#faq" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>FAQ</a>
-          <Link to="/prototype" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>Prototype</Link>
-          <Link to="/browse-property" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>Browse</Link>
+          <a href="/home#how-it-works" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>How It Works</a>
+          <a href="/home#faq" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>FAQ</a>
+          <Link to="/" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>My Bid</Link>
           <Link to="/seller/dashboard" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>My Listings</Link>
+          <Link to="/home#ecosystem" className="block text-base font-medium text-gray-900" onClick={() => setIsMenuOpen(false)}>DB Asset / DB Expo</Link>
           <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
             {isAuthenticated && user ? (
               <>
@@ -161,7 +152,7 @@ export function Header() {
                 <p className="text-[10px] font-mono text-gray-400 text-center break-all px-2">
                   ID: {user.id}
                 </p>
-                {activeRole === 'buyer' && hasRole('buyer') && (
+                {isAuthenticated && (
                   <div className="px-2">
                     <BuyerCreditsPanel compact />
                   </div>

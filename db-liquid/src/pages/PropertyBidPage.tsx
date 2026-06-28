@@ -47,7 +47,7 @@ export function PropertyBidPage() {
         <Header />
         <main className="pt-24 pb-20 px-4 text-center">
           <h1 className="text-2xl font-bold mb-4">Listing not found</h1>
-          <Link to="/browse-property" className="text-[#0F172A] font-medium hover:underline">
+          <Link to="/" className="text-[#0F172A] font-medium hover:underline">
             ← Back to listings
           </Link>
         </main>
@@ -144,15 +144,12 @@ export function PropertyBidPage() {
         <div className="max-w-[1400px] mx-auto">
           <div className="mb-5">
             <Link
-              to={isListingOwner ? '/seller/dashboard' : '/browse-property'}
-              className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#0F172A] transition-colors mb-2"
+              to={isListingOwner ? '/seller/dashboard' : '/'}
+              className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#0F172A] transition-colors"
             >
               <ArrowLeft size={16} />
               {isListingOwner ? 'Back to my listings' : 'Back to listings'}
             </Link>
-            <h1 className="text-[22px] font-bold text-[#0F172A]">
-              {isListingOwner ? 'Manage listing' : 'Property Details'}
-            </h1>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-8">

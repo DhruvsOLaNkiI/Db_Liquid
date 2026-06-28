@@ -23,7 +23,7 @@ export function UsersPage() {
 
           <h1 className="text-3xl font-bold tracking-tight mb-2">Registered users</h1>
           <p className="text-gray-600 mb-8">
-            Buyer and seller accounts are stored in <strong>MongoDB</strong> — shared for all users.
+            Buyer and seller access on one account — stored in <strong>MongoDB</strong>.
           </p>
 
           {users.length === 0 ? (
@@ -32,16 +32,10 @@ export function UsersPage() {
               <p className="text-gray-500 mb-6">No users yet. Create an account to see it here.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
-                  to="/signup?role=buyer"
+                  to="/signup"
                   className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
                 >
-                  Sign up as buyer
-                </Link>
-                <Link
-                  to="/signup?role=seller"
-                  className="px-6 py-3 bg-white border border-gray-200 rounded-full font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Sign up as seller
+                  Create account
                 </Link>
               </div>
             </div>

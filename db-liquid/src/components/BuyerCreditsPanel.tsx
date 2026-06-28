@@ -12,10 +12,10 @@ type Props = {
 };
 
 export function BuyerCreditsPanel({ listing, compact }: Props) {
-  const { user, activeRole, hasRole, buyerCredits } = useAuth();
+  const { user, hasRole, buyerCredits } = useAuth();
   const [showTopUp, setShowTopUp] = useState(false);
 
-  if (!user || activeRole !== 'buyer' || !hasRole('buyer')) return null;
+  if (!user || !hasRole('buyer')) return null;
 
   const bidsOnThisProperty = listing && user ? countUserBidsOnListing(listing.bids, user.id) : 0;
 

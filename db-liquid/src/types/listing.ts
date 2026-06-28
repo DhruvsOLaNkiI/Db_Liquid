@@ -103,6 +103,31 @@ export function formatPrice(amount: number) {
   }).format(amount);
 }
 
+/** Compact Indian price: ₹2.5 Cr, ₹45 Lakh, ₹12 K */
+export function formatPriceShort(amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) return '₹0';
+
+  if (amount >= 1_00_00_000) {
+    const cr = amount / 1_00_00_000;
+    const value = cr >= 100 ? Math.round(cr) : Math.round(cr * 10) / 10;
+    return `₹${value.toLocaleString('en-IN')} Cr`;
+  }
+  if (amount >= 1_00_000) {
+    const lakh = amount / 1_00_000;
+    const value = lakh >= 100 ? Math.round(lakh) : Math.round(lakh * 10) / 10;
+    return `₹${value.toLocaleString('en-IN')} Lakh`;
+  }
+  if (amount >= 1_000) {
+    const k = amount / 1_000;
+    const value = k >= 100 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `₹${value.toLocaleString('en-IN')} K`;
+  }
+  if (amount >= 100) {
+    return `₹${amount.toLocaleString('en-IN')}`;
+  }
+  return formatPrice(amount);
+}
+
 export function getAreaSqFt(isPlot: boolean, builtUpArea: string, landSqFt: string) {
   const area = isPlot ? landSqFt : builtUpArea;
   return Number(area) || 0;

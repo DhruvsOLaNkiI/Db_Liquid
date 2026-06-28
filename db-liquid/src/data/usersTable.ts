@@ -57,7 +57,6 @@ export function createUser(input: {
   phone: string;
   name: string;
   password: string;
-  role: UserRole;
 }): { ok: true; user: User } | { ok: false; error: string } {
   const email = input.email.trim().toLowerCase();
   const phone = input.phone.trim();
@@ -86,9 +85,9 @@ export function createUser(input: {
     phone,
     name,
     password,
-    roles: [input.role],
+    roles: ['buyer', 'seller'],
     createdAt: new Date().toISOString(),
-    credits: input.role === 'buyer' ? 0 : undefined,
+    credits: 0,
   };
 
   const users = loadTable();
@@ -114,22 +113,27 @@ export function addRoleToUser(userId: string, role: UserRole): User | undefined 
   return user;
 }
 
+/** Ensures legacy single-role accounts can buy and list after login. */
+export function ensureDualRole(user: User): User {
+  let current = user;
+  if (!current.roles.includes('buyer')) {
+    current = addRoleToUser(current.id, 'buyer') ?? current;
+  }
+  if (!current.roles.includes('seller')) {
+    current = addRoleToUser(current.id, 'seller') ?? current;
+  }
+  return findUserById(current.id) ?? current;
+}
+
 export function validateLogin(
   email: string,
   password: string,
-  role: UserRole,
 ): { ok: true; user: User } | { ok: false; error: string } {
   const user = findUserByEmail(email);
   if (!user || user.password !== password) {
     return { ok: false, error: 'Invalid email or password.' };
   }
-  if (!user.roles.includes(role)) {
-    return {
-      ok: false,
-      error: `This account is not registered as a ${role}. Sign up as a ${role} first.`,
-    };
-  }
-  return { ok: true, user };
+  return { ok: true, user: ensureDualRole(user) };
 }
 
 export function getSession(): AuthSession | null {

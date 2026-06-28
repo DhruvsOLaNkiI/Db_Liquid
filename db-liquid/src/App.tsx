@@ -20,7 +20,8 @@ export default function App() {
       <ListingsProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<BrowsePropertyPage />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/prototype" element={<PrototypePage />} />
             <Route path="/prototype/users" element={<UsersPage />} />
             <Route path="/login" element={<LoginPage />} />

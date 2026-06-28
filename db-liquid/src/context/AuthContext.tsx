@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CreditTransaction } from '../types/credits';
-import type { User, UserRole } from '../types/user';
+import type { User } from '../types/user';
 import {
   clearSession,
   createUser,
@@ -18,18 +18,16 @@ import { setSellerName, setSellerPhone } from '../utils/seller';
 
 interface AuthContextValue {
   user: User | null;
-  activeRole: UserRole | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => { ok: true } | { ok: false; error: string };
+  login: (email: string, password: string) => { ok: true } | { ok: false; error: string };
   signup: (input: {
     email: string;
     phone: string;
     name: string;
     password: string;
-    role: UserRole;
   }) => { ok: true } | { ok: false; error: string };
   logout: () => void;
-  hasRole: (role: UserRole) => boolean;
+  hasRole: (role: 'buyer' | 'seller') => boolean;
   buyerCredits: number;
   creditHistory: CreditTransaction[];
   topUpCredits: (
@@ -42,20 +40,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function syncIdentityForRole(user: User, role: UserRole) {
-  if (role === 'seller') {
-    const previousSellerId = sessionStorage.getItem('db-liquid-seller-id');
-    if (previousSellerId && previousSellerId !== user.id) {
-      migrateListingsSellerId(previousSellerId, user.id, user.name, user.phone);
-    }
-    sessionStorage.setItem('db-liquid-seller-id', user.id);
-    setSellerName(user.name);
-    setSellerPhone(user.phone);
+function syncIdentityForUser(user: User) {
+  const previousSellerId = sessionStorage.getItem('db-liquid-seller-id');
+  if (previousSellerId && previousSellerId !== user.id) {
+    migrateListingsSellerId(previousSellerId, user.id, user.name, user.phone);
   }
-  if (role === 'buyer') {
-    setBuyerName(user.name);
-    setBuyerPhone(user.phone);
-  }
+  sessionStorage.setItem('db-liquid-seller-id', user.id);
+  setSellerName(user.name);
+  setSellerPhone(user.phone);
+  setBuyerName(user.name);
+  setBuyerPhone(user.phone);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -63,37 +57,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const session = getSession();
     return session ? findUserById(session.userId) ?? null : null;
   });
-  const [activeRole, setActiveRole] = useState<UserRole | null>(() => getSession()?.activeRole ?? null);
 
   useEffect(() => {
-    if (user && activeRole) {
-      syncIdentityForRole(user, activeRole);
+    if (user) {
+      syncIdentityForUser(user);
     }
-  }, [user, activeRole]);
+  }, [user]);
 
-  const login = useCallback((email: string, password: string, role: UserRole) => {
-    const result = validateLogin(email, password, role);
+  const login = useCallback((email: string, password: string) => {
+    const result = validateLogin(email, password);
     if (!result.ok) return result;
 
-    setSession({ userId: result.user.id, activeRole: role });
+    setSession({ userId: result.user.id, activeRole: 'buyer' });
     setUser(result.user);
-    setActiveRole(role);
-    syncIdentityForRole(result.user, role);
+    syncIdentityForUser(result.user);
     return { ok: true as const };
   }, []);
 
   const signup = useCallback(
-    (input: { email: string; phone: string; name: string; password: string; role: UserRole }) => {
+    (input: { email: string; phone: string; name: string; password: string }) => {
       const result = createUser(input);
       if (!result.ok) return result;
 
-      setSession({ userId: result.user.id, activeRole: input.role });
+      setSession({ userId: result.user.id, activeRole: 'buyer' });
       setUser(result.user);
-      setActiveRole(input.role);
-      syncIdentityForRole(result.user, input.role);
+      syncIdentityForUser(result.user);
       return { ok: true as const };
     },
-    []
+    [],
   );
 
   const refreshUser = useCallback(async () => {
@@ -116,8 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const topUpCredits = useCallback(async (creditAmount: number) => {
-    if (!user?.id || !user.roles.includes('buyer')) {
-      return { ok: false as const, error: 'Log in as a buyer to top up credits.' };
+    if (!user?.id) {
+      return { ok: false as const, error: 'Log in to top up credits.' };
     }
     const result = await topUpCreditsForUser(user.id, creditAmount);
     if (result.ok) {
@@ -129,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
-    setActiveRole(null);
     sessionStorage.removeItem('db-liquid-seller-id');
     sessionStorage.removeItem('db-liquid-seller-name');
     sessionStorage.removeItem('db-liquid-seller-phone');
@@ -138,17 +128,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasRole = useCallback(
-    (role: UserRole) => Boolean(user?.roles.includes(role)),
-    [user]
+    (role: 'buyer' | 'seller') => Boolean(user?.roles.includes(role)),
+    [user],
   );
 
-  const buyerCredits = user?.roles.includes('buyer') ? (user.credits ?? 0) : 0;
+  const buyerCredits = user ? (user.credits ?? 0) : 0;
   const creditHistory = user?.creditHistory ?? [];
 
   const value = useMemo(
     () => ({
       user,
-      activeRole,
       isAuthenticated: Boolean(user),
       login,
       signup,
@@ -163,7 +152,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [
       user,
-      activeRole,
       login,
       signup,
       logout,
