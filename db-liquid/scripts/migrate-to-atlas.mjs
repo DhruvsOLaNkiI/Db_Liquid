@@ -50,7 +50,7 @@ try {
   }
 
   console.log(`\nDone! ${docs.length} document(s) copied to Atlas database "${DB_NAME}".`);
-  console.log('Update .env MONGODB_URI to your Atlas string, then restart: npm run dev');
+  console.log('Atlas is ready. Restart the app: npm run dev');
 } catch (error) {
   console.error('Migration failed:', error.message);
   process.exit(1);

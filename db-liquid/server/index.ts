@@ -1,4 +1,7 @@
 import express from 'express';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 import { connectMongo, getMongoInfo } from './db';
 import {
@@ -9,7 +12,9 @@ import {
   saveUsers,
 } from './mongoStore';
 
-const PORT = Number(process.env.API_PORT) || 3001;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distPath = path.join(__dirname, '../dist');
+const PORT = Number(process.env.PORT || process.env.API_PORT) || 3001;
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
@@ -69,19 +74,29 @@ app.put('/api/listings', async (req, res) => {
   }
 });
 
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 async function start() {
   await connectMongo();
   await migrateLegacyJsonIfNeeded();
 
   app.listen(PORT, () => {
     const info = getMongoInfo();
-    console.log(`DB Liquid API running at http://localhost:${PORT}`);
+    console.log(`DB Liquid running on port ${PORT}`);
     console.log(`Storage: MongoDB (${info.db})`);
+    if (existsSync(distPath)) {
+      console.log('Serving frontend from dist/');
+    }
   });
 }
 
 start().catch((error) => {
   console.error('Failed to start API server:', error.message);
-  console.error('Set MONGODB_URI in .env or start MongoDB locally on port 27017');
+  console.error('Set MONGODB_URI_ATLAS in .env to your MongoDB Atlas connection string');
   process.exit(1);
 });

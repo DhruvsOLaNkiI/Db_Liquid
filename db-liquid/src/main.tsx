@@ -12,7 +12,7 @@ function Bootstrap() {
     bootstrapSharedStore()
       .then(() => setReady(true))
       .catch(() => {
-        setError('Could not connect to the API / MongoDB. Run: npm run dev and check MONGODB_URI in .env');
+        setError('Could not connect to the API / MongoDB Atlas. Run: npm run dev and check MONGODB_URI_ATLAS in .env');
       });
   }, []);
 
