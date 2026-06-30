@@ -59,7 +59,7 @@ export function BrowsePropertyPage() {
   return (
     <div className="min-h-screen bg-gray-50 selection:bg-blue-100 selection:text-blue-900">
       <Header />
-      <main className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
           {listings.length > 0 && (
             <ListingFilters

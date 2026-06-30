@@ -1,4 +1,5 @@
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, SlidersHorizontal } from 'lucide-react';
 import type { PropertyListing } from '../types/listing';
 import { getListingStatus } from '../types/listing';
 
@@ -19,7 +20,7 @@ type Props = {
 const STATUS_OPTIONS: { value: ListingStatusFilter; label: string }[] = [
   { value: 'all', label: 'All status' },
   { value: 'active', label: 'Active bid' },
-  { value: 'accepted', label: 'On hold' },
+  { value: 'accepted', label: 'On Hold' },
   { value: 'closed', label: 'Closed' },
 ];
 
@@ -67,31 +68,31 @@ export function ListingFilters({
   onTypeChange,
 }: Props) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 mb-8 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <SlidersHorizontal size={18} className="text-gray-500" />
+    <div className="mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <SlidersHorizontal size={16} className="text-gray-500" />
         <h2 className="text-sm font-semibold text-gray-900">Filter listings</h2>
         <span className="text-xs text-gray-400 ml-auto">
           {resultCount} of {totalCount}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="relative sm:col-span-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search city, location, type…"
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value as ListingStatusFilter)}
-          className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
         >
           {STATUS_OPTIONS.map(({ value, label }) => (
             <option key={value} value={value}>
@@ -103,7 +104,7 @@ export function ListingFilters({
         <select
           value={typeFilter}
           onChange={(e) => onTypeChange(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary"
         >
           <option value="all">All property types</option>
           {propertyTypes.map((type) => (
@@ -112,6 +113,14 @@ export function ListingFilters({
             </option>
           ))}
         </select>
+
+        <Link
+          to="/list-your-property"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-1.5"
+        >
+          <Plus size={15} className="text-gray-500" />
+          Add your listing
+        </Link>
       </div>
     </div>
   );

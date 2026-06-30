@@ -59,10 +59,13 @@ export function Header() {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated && user ? (
               <>
-                <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                >
                   <User size={16} className="text-gray-400" />
                   <span>{user.name}</span>
-                </span>
+                </Link>
                 {isAuthenticated && (
                   <div className="relative">
                     <button
@@ -146,9 +149,13 @@ export function Header() {
           <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
             {isAuthenticated && user ? (
               <>
-                <p className="text-sm text-gray-600 text-center">
+                <Link
+                  to="/profile"
+                  className="text-sm text-gray-600 text-center hover:text-primary transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Signed in as <span className="font-medium text-gray-900">{user.name}</span>
-                </p>
+                </Link>
                 <p className="text-[10px] font-mono text-gray-400 text-center break-all px-2">
                   ID: {user.id}
                 </p>

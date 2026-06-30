@@ -10,11 +10,12 @@ export {
   getSellerId,
   createUser,
   addRoleToUser,
-  validateLogin,
+  ensureDualRole,
   getSession,
   setSession,
   clearSession,
   replaceAllUsers,
+  updateUserProfile,
 } from '../data/usersTable';
 
 export { topUpCredits, spendBidCredit, getBuyerCredits, normalizeUser } from './buyerCredits';

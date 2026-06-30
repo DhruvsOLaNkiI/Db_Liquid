@@ -4,22 +4,23 @@ import type { User } from '../types/user';
 import {
   clearSession,
   createUser,
+  ensureDualRole,
   findUserById,
   getSession,
   setSession,
   topUpCredits as topUpCreditsForUser,
-  validateLogin,
+  updateUserProfile,
 } from '../utils/users';
 import { getBuyerCredits } from '../utils/buyerCredits';
-import { reloadUsersFromServer } from '../utils/sharedStore';
+import { loginViaApi, notifyDataRefresh, reloadListingsFromServer, reloadUsersFromServer } from '../utils/sharedStore';
 import { setBuyerName, setBuyerPhone } from '../utils/buyer';
-import { migrateListingsSellerId } from '../utils/listingsStorage';
+import { migrateListingsSellerId, syncUserProfileOnListings } from '../utils/listingsStorage';
 import { setSellerName, setSellerPhone } from '../utils/seller';
 
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => { ok: true } | { ok: false; error: string };
+  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signup: (input: {
     email: string;
     phone: string;
@@ -36,6 +37,12 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
   syncCreditWallet: () => void;
   updateUserCredits: (credits: number) => void;
+  updateProfile: (patch: {
+    email?: string;
+    phone?: string;
+    name?: string;
+    profileImageUrl?: string | null;
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -64,13 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const login = useCallback((email: string, password: string) => {
-    const result = validateLogin(email, password);
+  const login = useCallback(async (email: string, password: string) => {
+    const result = await loginViaApi(email, password);
     if (!result.ok) return result;
 
     setSession({ userId: result.user.id, activeRole: 'buyer' });
-    setUser(result.user);
-    syncIdentityForUser(result.user);
+    const fullUser = ensureDualRole({ ...result.user, password: '' } as User);
+    setUser(fullUser);
+    syncIdentityForUser(fullUser);
+    await Promise.all([reloadUsersFromServer(), reloadListingsFromServer()]);
+    notifyDataRefresh();
     return { ok: true as const };
   }, []);
 
@@ -105,6 +115,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUserCredits = useCallback((credits: number) => {
     setUser((prev) => (prev ? { ...prev, credits } : prev));
   }, []);
+
+  const updateProfile = useCallback(
+    async (patch: {
+      email?: string;
+      phone?: string;
+      name?: string;
+      profileImageUrl?: string | null;
+    }) => {
+      if (!user?.id) {
+        return { ok: false as const, error: 'Log in to update your profile.' };
+      }
+
+      const result = await updateUserProfile(user.id, patch);
+      if (!result.ok) return result;
+
+      setUser(result.user);
+      syncIdentityForUser(result.user);
+      syncUserProfileOnListings(result.user.id, result.user.name, result.user.phone);
+      return { ok: true as const };
+    },
+    [user],
+  );
 
   const topUpCredits = useCallback(async (creditAmount: number) => {
     if (!user?.id) {
@@ -149,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       syncCreditWallet,
       updateUserCredits,
+      updateProfile,
     }),
     [
       user,
@@ -162,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       syncCreditWallet,
       updateUserCredits,
+      updateProfile,
     ],
   );
 

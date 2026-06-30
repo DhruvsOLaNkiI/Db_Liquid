@@ -1,5 +1,5 @@
 import type { AuthSession, User, UserRole } from '../types/user';
-import { getSharedUsers, persistUsers } from '../utils/sharedStore';
+import { getSharedUsers, mutateUsers, persistUsers } from '../utils/sharedStore';
 import { normalizeUser } from '../utils/buyerCredits';
 import { randomId } from '../utils/randomId';
 
@@ -162,4 +162,55 @@ export function clearSession() {
 
 export function replaceAllUsers(users: User[]) {
   saveTable(users);
+}
+
+export async function updateUserProfile(
+  userId: string,
+  patch: {
+    email?: string;
+    phone?: string;
+    name?: string;
+    profileImageUrl?: string | null;
+  },
+): Promise<{ ok: true; user: User } | { ok: false; error: string }> {
+  const email = patch.email !== undefined ? patch.email.trim().toLowerCase() : undefined;
+  const phone = patch.phone !== undefined ? patch.phone.trim() : undefined;
+  const name = patch.name !== undefined ? patch.name.trim() : undefined;
+
+  if (email !== undefined && (!email || !email.includes('@'))) {
+    return { ok: false, error: 'Enter a valid email address.' };
+  }
+  if (name !== undefined && !name) {
+    return { ok: false, error: 'Enter your name.' };
+  }
+  if (phone !== undefined && !phone) {
+    return { ok: false, error: 'Enter your phone number.' };
+  }
+
+  const result = await mutateUsers((users) => {
+    const normalized = users.map((u) => normalizeUser(u as User));
+    const index = normalized.findIndex((u) => u.id === userId);
+    if (index === -1) return { ok: false, error: 'User not found.' };
+
+    const user = normalized[index];
+    if (email && email !== user.email && normalized.some((u) => u.id !== userId && u.email === email)) {
+      return { ok: false, error: 'An account with this email already exists.' };
+    }
+
+    const updated = normalizeUser({
+      ...user,
+      ...(email !== undefined ? { email } : {}),
+      ...(phone !== undefined ? { phone } : {}),
+      ...(name !== undefined ? { name } : {}),
+      ...(patch.profileImageUrl !== undefined
+        ? { profileImageUrl: patch.profileImageUrl || undefined }
+        : {}),
+    });
+
+    normalized[index] = updated;
+    return { ok: true, value: updated, users: normalized };
+  });
+
+  if (!result.ok) return result;
+  return { ok: true, user: result.value };
 }

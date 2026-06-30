@@ -32,7 +32,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
   const currentBidTotal = getCurrentHighestBidTotal(listing);
   const highestBid = getHighestBidPerSqFt(listing);
   const sortedBids = [...listing.bids].sort((a, b) => b.amountPerSqFt - a.amountPerSqFt);
-  const liveLabel = status === 'accepted' ? 'HOLD' : open ? 'LIVE' : 'CLOSED';
+  const liveLabel = status === 'accepted' ? 'On Hold' : open ? 'LIVE' : 'CLOSED';
   const chatEnabled = isChatEnabled(listing);
   const awaitingBuyerToken = isBuyerTokenDue(listing);
 
@@ -59,7 +59,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
             className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${
               liveLabel === 'LIVE'
                 ? 'bg-green-100 text-green-700 animate-pulse'
-                : liveLabel === 'HOLD'
+                : liveLabel === 'On Hold'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-gray-100 text-gray-600'
             }`}

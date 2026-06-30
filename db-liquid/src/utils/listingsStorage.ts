@@ -87,3 +87,48 @@ export function migrateListingsSellerId(
     saveListingsToStorage(updated);
   }
 }
+
+export function syncUserProfileOnListings(userId: string, name: string, phone: string) {
+  const listings = loadListingsFromStorage();
+  let changed = false;
+
+  const updated = listings.map((listing) => {
+    let next = listing;
+
+    if (listing.sellerId === userId) {
+      changed = true;
+      next = {
+        ...next,
+        sellerName: name,
+        sellerPhone: phone,
+        chatSellerName: listing.chatSellerName ? name : listing.chatSellerName,
+        chatSellerPhone: listing.chatSellerPhone ? phone : listing.chatSellerPhone,
+      };
+    }
+
+    const bids = listing.bids.map((bid) => {
+      if (bid.bidderUserId !== userId) return bid;
+      changed = true;
+      return { ...bid, bidderName: name, bidderPhone: phone };
+    });
+
+    if (bids !== listing.bids) {
+      next = { ...next, bids };
+    }
+
+    const acceptedBid = listing.acceptedBidId
+      ? next.bids.find((bid) => bid.id === listing.acceptedBidId)
+      : null;
+
+    if (acceptedBid?.bidderUserId === userId && listing.chatBuyerName) {
+      changed = true;
+      next = { ...next, chatBuyerName: name, chatBuyerPhone: phone };
+    }
+
+    return next;
+  });
+
+  if (changed) {
+    saveListingsToStorage(updated);
+  }
+}

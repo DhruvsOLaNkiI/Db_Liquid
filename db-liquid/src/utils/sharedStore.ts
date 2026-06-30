@@ -1,6 +1,7 @@
 import type { User } from '../types/user';
 import type { PropertyListing } from '../types/listing';
 import { normalizeListing } from '../types/listing';
+import { getSession } from '../data/usersTable';
 
 const USERS_KEY = 'db-liquid-users';
 const LISTINGS_KEY = 'db-liquid-listings';
@@ -27,6 +28,15 @@ function sortListingsByNewest(listings: PropertyListing[]) {
   );
 }
 
+function getViewerId() {
+  return getSession()?.userId;
+}
+
+function viewerHeaders(): Record<string, string> {
+  const viewerId = getViewerId();
+  return viewerId ? { 'X-Viewer-User-Id': viewerId } : {};
+}
+
 export function isSharedStoreReady() {
   return ready;
 }
@@ -40,7 +50,9 @@ export function getSharedListings() {
 }
 
 async function apiGetUsers(): Promise<User[]> {
-  const res = await fetch('/api/users');
+  const viewerId = getViewerId();
+  const url = viewerId ? `/api/users?viewerId=${encodeURIComponent(viewerId)}` : '/api/users';
+  const res = await fetch(url, { headers: viewerHeaders() });
   if (!res.ok) throw new Error('Failed to load users');
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -49,14 +61,16 @@ async function apiGetUsers(): Promise<User[]> {
 async function apiSaveUsers(users: User[]) {
   const res = await fetch('/api/users', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...viewerHeaders() },
     body: JSON.stringify(users),
   });
   if (!res.ok) throw new Error('Failed to save users');
 }
 
 async function apiGetListings(): Promise<PropertyListing[]> {
-  const res = await fetch('/api/listings');
+  const viewerId = getViewerId();
+  const url = viewerId ? `/api/listings?viewerId=${encodeURIComponent(viewerId)}` : '/api/listings';
+  const res = await fetch(url, { headers: viewerHeaders() });
   if (!res.ok) throw new Error('Failed to load listings');
   const data = await res.json();
   return Array.isArray(data) ? data.map((item) => normalizeListing(item as PropertyListing)) : [];
@@ -65,10 +79,40 @@ async function apiGetListings(): Promise<PropertyListing[]> {
 async function apiSaveListings(listings: PropertyListing[]) {
   const res = await fetch('/api/listings', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...viewerHeaders() },
     body: JSON.stringify(listings),
   });
   if (!res.ok) throw new Error('Failed to save listings');
+}
+
+export async function loginViaApi(
+  email: string,
+  password: string,
+): Promise<{ ok: true; user: User } | { ok: false; error: string }> {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, error: data.error ?? 'Invalid email or password.' };
+  }
+
+  const user = data.user as User;
+  if (!user?.id) {
+    return { ok: false, error: 'Login failed.' };
+  }
+
+  const existingIndex = usersCache.findIndex((entry) => entry.id === user.id);
+  if (existingIndex === -1) {
+    usersCache.push(user);
+  } else {
+    usersCache[existingIndex] = { ...usersCache[existingIndex], ...user };
+  }
+
+  return { ok: true, user };
 }
 
 function readLocalUsers(): User[] {
@@ -100,13 +144,19 @@ export async function bootstrapSharedStore() {
   const localUsers = readLocalUsers();
   const localListings = readLocalListings();
 
-  usersCache = apiUsers.length > 0 ? apiUsers : localUsers;
-  listingsCache = sortListingsByNewest(apiListings.length > 0 ? apiListings : localListings);
+  if (apiUsers.length === 0 && localUsers.length > 0) {
+    usersCache = localUsers;
+    await apiSaveUsers(usersCache);
+  } else {
+    usersCache = apiUsers;
+  }
 
-  await Promise.all([
-    apiSaveUsers(usersCache),
-    apiSaveListings(listingsCache),
-  ]);
+  if (apiListings.length === 0 && localListings.length > 0) {
+    listingsCache = sortListingsByNewest(localListings);
+    await apiSaveListings(listingsCache);
+  } else {
+    listingsCache = sortListingsByNewest(apiListings);
+  }
 
   ready = true;
 }
@@ -144,4 +194,10 @@ export async function reloadUsersFromServer() {
 export async function reloadListingsFromServer() {
   listingsCache = sortListingsByNewest(await apiGetListings());
   return listingsCache;
+}
+
+export const DATA_REFRESH_EVENT = 'db-liquid-data-refresh';
+
+export function notifyDataRefresh() {
+  window.dispatchEvent(new Event(DATA_REFRESH_EVENT));
 }

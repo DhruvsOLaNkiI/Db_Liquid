@@ -16,12 +16,15 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
 
-    const result = login(email, password);
+    const result = await login(email, password);
+    setSubmitting(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -77,9 +80,10 @@ export function LoginPage() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-gray-800 transition-colors"
+              disabled={submitting}
+              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-              Log in
+              {submitting ? 'Logging in…' : 'Log in'}
             </button>
           </form>
 

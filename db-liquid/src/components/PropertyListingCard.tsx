@@ -1,16 +1,14 @@
 import { Link } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { MapPin, TrendingUp } from 'lucide-react';
 import type { PropertyListing } from '../types/listing';
 import {
   formatPrice,
   formatPriceShort,
   getBidCount,
-  getBidTotal,
-  getHighestBidPerSqFt,
   getListingStatus,
   getTimeRemaining,
 } from '../types/listing';
-import { formatBuyerConfiguration } from '../utils/listingDisplay';
+import { formatBuyerConfiguration, getListedPriceTotal } from '../utils/listingDisplay';
 
 const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
@@ -21,10 +19,8 @@ const PLACEHOLDER_IMAGES = [
 export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
   const imageIndex = listing.id.charCodeAt(0) % PLACEHOLDER_IMAGES.length;
   const status = getListingStatus(listing);
-  const highestBid = getHighestBidPerSqFt(listing);
   const bidCount = getBidCount(listing);
-  const hasBids = bidCount > 0;
-  const bidTotal = getBidTotal(highestBid, listing.areaSqFt);
+  const askTotal = getListedPriceTotal(listing);
 
   const statusLabel =
     status === 'accepted' ? 'On Hold' : status === 'active' ? 'Active Bid' : 'Closed';
@@ -41,6 +37,10 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
           <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-primary">
             {statusLabel}
           </div>
+          <div className="absolute top-2 right-2 bg-[#0F172A]/85 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-semibold text-white flex items-center gap-1">
+            <TrendingUp size={10} />
+            {bidCount} bid{bidCount === 1 ? '' : 's'}
+          </div>
         </div>
         <div className="p-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5 truncate">
@@ -53,12 +53,9 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
           <p className="text-xs text-gray-500 mb-3 truncate">{formatBuyerConfiguration(listing)}</p>
           <div className="flex items-end justify-between pt-3 border-t border-gray-100 gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] text-gray-400 mb-0.5">{hasBids ? 'Highest bid' : 'Starting at'}</p>
-              <p className="text-lg font-bold text-gray-900 truncate">{formatPrice(bidTotal)}</p>
-              <p className="text-[11px] text-gray-500 truncate">{formatPriceShort(bidTotal)}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">
-                {bidCount} bid{bidCount === 1 ? '' : 's'}
-              </p>
+              <p className="text-[10px] text-gray-400 mb-0.5">Ask Bid</p>
+              <p className="text-lg font-bold text-gray-900 truncate">{formatPrice(askTotal)}</p>
+              <p className="text-[11px] text-gray-500 truncate">{formatPriceShort(askTotal)}</p>
             </div>
             <span className="text-[10px] font-medium text-gray-400 shrink-0 text-right leading-tight">
               {getTimeRemaining(listing)}

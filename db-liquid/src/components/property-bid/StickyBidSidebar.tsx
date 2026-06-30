@@ -58,7 +58,7 @@ export function StickyBidSidebar({
 }: Props) {
   const listedTotal = getListedPriceTotal(listing);
   const currentBidTotal = getCurrentHighestBidTotal(listing);
-  const liveLabel = status === 'accepted' ? 'HOLD' : open ? 'LIVE' : 'CLOSED';
+  const liveLabel = status === 'accepted' ? 'On Hold' : open ? 'LIVE' : 'CLOSED';
 
   return (
     <aside className="lg:sticky lg:top-24 space-y-4">
@@ -68,7 +68,7 @@ export function StickyBidSidebar({
             className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${
               liveLabel === 'LIVE'
                 ? 'bg-green-100 text-green-700 animate-pulse'
-                : liveLabel === 'HOLD'
+                : liveLabel === 'On Hold'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-gray-100 text-gray-600'
             }`}
@@ -77,7 +77,7 @@ export function StickyBidSidebar({
           </span>
           <span className="text-xs text-gray-500 flex items-center gap-1">
             <Clock size={14} />
-            {status === 'accepted' ? 'On hold' : getTimeRemainingDetailed(listing)}
+            {status === 'accepted' ? 'On Hold' : getTimeRemainingDetailed(listing)}
           </span>
         </div>
 

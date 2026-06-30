@@ -31,7 +31,7 @@ export function BidHistoryTimeline({ listing, sortedBids }: Props) {
               isOnHold ? 'text-blue-700 bg-blue-100' : 'text-green-700 bg-green-100'
             }`}
           >
-            {isOnHold ? 'Hold' : 'Highest'}
+            {isOnHold ? 'On Hold' : 'Highest'}
           </span>
           <div>
             <p className="font-semibold text-[#0F172A]">

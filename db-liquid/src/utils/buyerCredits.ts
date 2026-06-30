@@ -16,6 +16,7 @@ export function normalizeUser(raw: Partial<User> & Pick<User, 'id' | 'email' | '
     createdAt: raw.createdAt,
     credits: isBuyer ? (raw.credits ?? 0) : raw.credits,
     creditHistory: raw.creditHistory ?? [],
+    profileImageUrl: raw.profileImageUrl,
   };
 }
 

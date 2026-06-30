@@ -11,6 +11,7 @@ import {
 } from '../utils/listingsStorage';
 import { randomId } from '../utils/randomId';
 import { spendBidCredit } from '../utils/buyerCredits';
+import { DATA_REFRESH_EVENT } from '../utils/sharedStore';
 
 export { LISTINGS_STORAGE_KEY } from '../utils/listingsStorage';
 
@@ -74,8 +75,14 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       void reloadListings();
     };
 
+    const onDataRefresh = () => void reloadListings();
+
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(DATA_REFRESH_EVENT, onDataRefresh);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(DATA_REFRESH_EVENT, onDataRefresh);
+    };
   }, [reloadListings]);
 
   const updateListings = (updater: (prev: PropertyListing[]) => PropertyListing[]) => {

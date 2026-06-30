@@ -12,6 +12,7 @@ import { PropertyBidPage } from './pages/PropertyBidPage';
 import { SellerDashboardPage } from './pages/SellerDashboardPage';
 import { DealChatPage } from './pages/DealChatPage';
 import { SellerChatPage } from './pages/SellerChatPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { UsersPage } from './pages/UsersPage';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/prototype/users" element={<UsersPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/list-your-property" element={<ListPropertyLoginPage />} />
           <Route path="/list-your-property/create" element={<ListYourPropertyPage />} />
           <Route path="/browse-property" element={<BrowsePropertyPage />} />

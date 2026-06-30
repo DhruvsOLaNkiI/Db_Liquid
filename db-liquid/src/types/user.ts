@@ -13,6 +13,8 @@ export interface User {
   /** Buyer bid credits. 1 credit spent per bid. */
   credits?: number;
   creditHistory?: CreditTransaction[];
+  /** Base64 or URL for profile avatar */
+  profileImageUrl?: string;
 }
 
 export interface AuthSession {
