@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Clock, MapPin, MessageCircle, Plus, TrendingUp, Users } from 'lucide-react';
+import { Check, Clock, MapPin, MessageCircle, Pencil, Plus, TrendingUp, Users } from 'lucide-react';
 import { Header } from '../components/Header';
 import { SellerDeclineBuyerButton } from '../components/property-bid/SellerDeclineBuyerButton';
+import { EditListingPriceTrigger } from '../components/listing/EditListingPriceForm';
 import { useListings } from '../context/ListingsContext';
 import {
   formatPrice,
@@ -16,18 +17,15 @@ import {
 } from '../types/listing';
 import { useAuth } from '../context/AuthContext';
 import { getSellerName, resolveSellerId } from '../utils/seller';
+import { canEditListing } from '../utils/listingEditForm';
 
 export function SellerDashboardPage() {
-  const { user, hasRole } = useAuth();
-  const sellerId = resolveSellerId(hasRole('seller') ? user?.id : null);
-  const sellerName = hasRole('seller') && user ? user.name : getSellerName();
-  const { getSellerListings, acceptBid, reloadListings } = useListings();
+  const { user, isAuthenticated } = useAuth();
+  const sellerId = resolveSellerId(isAuthenticated ? user?.id : null);
+  const sellerName = isAuthenticated && user ? user.name : getSellerName();
+  const { getSellerListings, acceptBid } = useListings();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    reloadListings();
-  }, [reloadListings]);
 
   const myListings = getSellerListings(sellerId);
 
@@ -99,6 +97,7 @@ export function SellerDashboardPage() {
                           </h2>
                           <p className="text-sm text-gray-500 mt-1">{listing.detailsSummary}</p>
                         </div>
+                        <div className="flex flex-col items-end gap-2">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-bold ${
                             status === 'active'
@@ -110,6 +109,16 @@ export function SellerDashboardPage() {
                         >
                           {status === 'active' ? 'Active' : status === 'accepted' ? 'Bid accepted' : 'Closed'}
                         </span>
+                        {canEditListing(listing, sellerId) && (
+                          <Link
+                            to={`/seller/listing/${listing.id}/edit`}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-gray-800"
+                          >
+                            <Pencil size={14} />
+                            Edit listing
+                          </Link>
+                        )}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
@@ -128,6 +137,7 @@ export function SellerDashboardPage() {
                         <div className="bg-gray-50 rounded-xl p-4">
                           <p className="text-xs text-gray-400 mb-1">Listed at</p>
                           <p className="text-lg font-bold">₹{listing.pricePerSqFt.toLocaleString('en-IN')}/sq.ft</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{formatPrice(listing.totalPrice)}</p>
                         </div>
                         <div className="bg-gray-50 rounded-xl p-4">
                           <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
@@ -136,6 +146,8 @@ export function SellerDashboardPage() {
                           <p className="text-lg font-bold">{getTimeRemaining(listing)}</p>
                         </div>
                       </div>
+
+                      <EditListingPriceTrigger listing={listing} sellerId={sellerId} />
 
                       {acceptedBid && (
                         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">

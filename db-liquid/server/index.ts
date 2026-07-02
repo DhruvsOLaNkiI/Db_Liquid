@@ -71,6 +71,47 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.post('/api/auth/change-password', async (req, res) => {
+  const userId = typeof req.body?.userId === 'string' ? req.body.userId.trim() : '';
+  const currentPassword =
+    typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+  const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+
+  if (!userId || !currentPassword || !newPassword) {
+    res.status(400).json({ error: 'All password fields are required.' });
+    return;
+  }
+  if (newPassword.length < 6) {
+    res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    return;
+  }
+  if (currentPassword === newPassword) {
+    res.status(400).json({ error: 'New password must be different from your current password.' });
+    return;
+  }
+
+  try {
+    const users = await getUsers();
+    const index = users.findIndex((entry) => entry.id === userId);
+    if (index === -1) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const user = users[index];
+    if (user.password !== currentPassword) {
+      res.status(401).json({ error: 'Current password is incorrect.' });
+      return;
+    }
+
+    users[index] = { ...user, password: newPassword };
+    await saveUsers(users);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
 app.get('/api/users', async (req, res) => {
   try {
     const viewerId = getViewerId(req);

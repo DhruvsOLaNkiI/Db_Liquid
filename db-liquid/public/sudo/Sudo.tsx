@@ -151,8 +151,11 @@ export function AcceptBidButton({ listing, sellerId }: Props) {
                   value={bidAmount}
                   onChange={(e) => onBidChange(e.target.value)}
                   placeholder={`Min ₹${minBid.toLocaleString('en-IN')}`}
-                  className={inputClass}
+                  className={inputClass} 
+                  aria-label="Bid ammount"
                 />
+                <AcceptBidButton listing={listing} seller(_Id_white_space_sellerId)
+                onClick={() => handleAccept(bidId)}
                 <button
                   type="button"
                   onClick={onSelectRecommended}

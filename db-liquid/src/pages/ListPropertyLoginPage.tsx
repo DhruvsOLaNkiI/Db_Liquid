@@ -6,15 +6,15 @@ import { getOrCreateSellerId } from '../utils/seller';
 
 export function ListPropertyLoginPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, sessionReady } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (sessionReady && isAuthenticated) {
       navigate('/list-your-property/create', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [sessionReady, isAuthenticated, navigate]);
 
-  if (isAuthenticated) {
+  if (!sessionReady || isAuthenticated) {
     return null;
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { filterListings, ListingFilters, type ListingStatusFilter } from '../components/ListingFilters';
@@ -16,20 +16,6 @@ export function BrowsePropertyPage() {
   const [statusFilter, setStatusFilter] = useState<ListingStatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
-  useEffect(() => {
-    reloadListings();
-  }, [reloadListings]);
-
-  useEffect(() => {
-    const refresh = () => reloadListings();
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
-    };
-  }, [reloadListings]);
-
   const propertyTypes = useMemo(
     () => [...new Set(listings.map((l) => l.propertyType))].sort(),
     [listings],
@@ -45,7 +31,7 @@ export function BrowsePropertyPage() {
     setSampleError('');
     try {
       const result = await loadSampleListingsForBrowse();
-      reloadListings();
+      reloadListings({ force: true });
       if (result.listings === 0) {
         setSampleError('No listings found in the sample Excel file.');
       }
@@ -120,7 +106,7 @@ export function BrowsePropertyPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => reloadListings()}
+                      onClick={() => reloadListings({ force: true })}
                       className="inline-block px-8 py-4 border border-gray-200 text-gray-900 rounded-full font-medium hover:bg-gray-50 transition-colors"
                     >
                       Refresh

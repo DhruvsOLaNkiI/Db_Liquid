@@ -8,13 +8,11 @@ const root = path.join(__dirname, '..');
 const api = spawn('npx', ['tsx', 'server/index.ts'], {
   cwd: root,
   stdio: 'inherit',
-  shell: true,
 });
 
 const vite = spawn('npx', ['vite', '--port=3000', '--host=0.0.0.0'], {
   cwd: root,
   stdio: 'inherit',
-  shell: true,
 });
 
 function shutdown() {

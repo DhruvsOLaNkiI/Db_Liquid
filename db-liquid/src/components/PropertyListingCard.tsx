@@ -8,7 +8,7 @@ import {
   getListingStatus,
   getTimeRemaining,
 } from '../types/listing';
-import { formatBuyerConfiguration, getListedPriceTotal } from '../utils/listingDisplay';
+import { formatBuyerConfiguration, getCurrentHighestBidTotal, getListedPriceTotal } from '../utils/listingDisplay';
 
 const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
@@ -21,9 +21,11 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
   const status = getListingStatus(listing);
   const bidCount = getBidCount(listing);
   const askTotal = getListedPriceTotal(listing);
+  const highestTotal = getCurrentHighestBidTotal(listing);
+  const hasBids = bidCount > 0;
 
   const statusLabel =
-    status === 'accepted' ? 'On Hold' : status === 'active' ? 'Active Bid' : 'Closed';
+    status === 'accepted' ? 'On Hold' : status === 'active' ? 'Active' : 'Closed';
 
   return (
     <Link to={`/browse-property/${listing.id}`} className="block group h-full">
@@ -51,15 +53,24 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
             <span className="truncate">{listing.location}</span>
           </h3>
           <p className="text-xs text-gray-500 mb-3 truncate">{formatBuyerConfiguration(listing)}</p>
-          <div className="flex items-end justify-between pt-3 border-t border-gray-100 gap-2">
-            <div className="min-w-0">
+          <div className="flex items-start justify-between pt-3 border-t border-gray-100 gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] text-gray-400 mb-0.5">Ask Bid</p>
               <p className="text-lg font-bold text-gray-900 truncate">{formatPrice(askTotal)}</p>
               <p className="text-[11px] text-gray-500 truncate">{formatPriceShort(askTotal)}</p>
             </div>
-            <span className="text-[10px] font-medium text-gray-400 shrink-0 text-right leading-tight">
-              {getTimeRemaining(listing)}
-            </span>
+            <div className="min-w-0 flex-1 text-right">
+              <p className="text-[10px] text-gray-400 mb-0.5">Highest bid</p>
+              {hasBids ? (
+                <>
+                  <p className="text-lg font-bold text-green-700 truncate">{formatPrice(highestTotal)}</p>
+                  <p className="text-[11px] text-green-700/80 truncate">{formatPriceShort(highestTotal)}</p>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-gray-400">No bids</p>
+              )}
+              <p className="text-[10px] font-medium text-gray-400 mt-1">{getTimeRemaining(listing)}</p>
+            </div>
           </div>
         </div>
       </article>

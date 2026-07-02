@@ -6,6 +6,7 @@ import { BidHistoryTimeline } from '../components/property-bid/BidHistoryTimelin
 import { PricingCards } from '../components/property-bid/PricingCards';
 import { PropertyHeroCard } from '../components/property-bid/PropertyHeroCard';
 import { StickyBidSidebar } from '../components/property-bid/StickyBidSidebar';
+import { MobileBidBar } from '../components/property-bid/MobileBidBar';
 import { SellerDealSidebar } from '../components/property-bid/SellerDealSidebar';
 import { VerificationBadges } from '../components/property-bid/VerificationBadges';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +14,7 @@ import { useListings } from '../context/ListingsContext';
 import { setBuyerName, setBuyerPhone } from '../utils/buyer';
 import { getBuyerCredits } from '../utils/buyerCredits';
 import { resolveSellerId } from '../utils/seller';
+import { getCurrentHighestBidTotal } from '../utils/listingDisplay';
 import {
   formatPrice,
   getBidTotal,
@@ -140,9 +142,9 @@ export function PropertyBidPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] selection:bg-blue-100 selection:text-blue-900">
       <Header />
-      <main className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="pt-20 pb-28 lg:pt-24 lg:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
-          <div className="mb-5">
+          <div className="mb-4">
             <Link
               to={isListingOwner ? '/seller/dashboard' : '/'}
               className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#0F172A] transition-colors"
@@ -152,58 +154,74 @@ export function PropertyBidPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-8">
-            {/* Left column ~70% */}
-            <div className="space-y-8 min-w-0">
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] lg:gap-8 lg:items-start">
+            <div className="order-1 lg:col-start-1 min-w-0">
               <PropertyHeroCard listing={listing} />
+            </div>
 
+            <div className="order-2 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+              {isListingOwner ? (
+                <SellerDealSidebar listing={listing} sellerId={sellerId} />
+              ) : (
+                <StickyBidSidebar
+                  listing={listing}
+                  open={open}
+                  status={status}
+                  buyerCredits={buyerCredits}
+                  loggedInBuyer={Boolean(loggedInBuyer)}
+                  bidAmount={bidAmount}
+                  error={error}
+                  success={success}
+                  isSubmitting={isSubmitting}
+                  minBid={minBid}
+                  recommendedBid={recommendedBid}
+                  isWinningBuyer={isWinningBuyer}
+                  isChatEnabled={chatEnabled}
+                  showBuyerTokenStep={showBuyerTokenStep}
+                  wasDeclinedBySeller={wasDeclined}
+                  tokenMessage={tokenMessage || undefined}
+                  onPayToken={() => handleBuyerToken('pay')}
+                  onSkipToken={() => handleBuyerToken('skip')}
+                  onBidChange={setBidAmount}
+                  onSubmit={handleSubmit}
+                  onFastBid={() => void submitBid(recommendedBid)}
+                  onSelectRecommended={handleSelectRecommended}
+                />
+              )}
+            </div>
+
+            <div className="order-3 lg:col-start-1 space-y-6 lg:space-y-8 min-w-0">
               <section>
-                <h2 className="text-[22px] font-bold text-[#0F172A] mb-4">Verification</h2>
+                <h2 className="text-lg lg:text-[22px] font-bold text-[#0F172A] mb-3 lg:mb-4">Verification</h2>
                 <VerificationBadges listing={listing} />
               </section>
 
-              <section>
-                <h2 className="text-[22px] font-bold text-[#0F172A] mb-4">Pricing</h2>
+              <section className={!isListingOwner ? 'hidden lg:block' : ''}>
+                <h2 className="text-lg lg:text-[22px] font-bold text-[#0F172A] mb-3 lg:mb-4">Pricing</h2>
                 <PricingCards listing={listing} forBuyer={!isListingOwner} />
               </section>
             </div>
-
-            {/* Right sticky sidebar ~30% */}
-            {isListingOwner ? (
-              <SellerDealSidebar listing={listing} sellerId={sellerId} />
-            ) : (
-              <StickyBidSidebar
-                listing={listing}
-                open={open}
-                status={status}
-                buyerCredits={buyerCredits}
-                loggedInBuyer={Boolean(loggedInBuyer)}
-                bidAmount={bidAmount}
-                error={error}
-                success={success}
-                isSubmitting={isSubmitting}
-                minBid={minBid}
-                recommendedBid={recommendedBid}
-                isWinningBuyer={isWinningBuyer}
-                isChatEnabled={chatEnabled}
-                showBuyerTokenStep={showBuyerTokenStep}
-                wasDeclinedBySeller={wasDeclined}
-                tokenMessage={tokenMessage || undefined}
-                onPayToken={() => handleBuyerToken('pay')}
-                onSkipToken={() => handleBuyerToken('skip')}
-                onBidChange={setBidAmount}
-                onSubmit={handleSubmit}
-                onFastBid={() => void submitBid(recommendedBid)}
-                onSelectRecommended={handleSelectRecommended}
-              />
-            )}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-6 lg:mt-8">
             <BidHistoryTimeline listing={listing} sortedBids={sortedBids} />
           </div>
         </div>
       </main>
+
+      {!isListingOwner && (
+        <MobileBidBar
+          listingId={listing.id}
+          open={open}
+          loggedInBuyer={Boolean(loggedInBuyer)}
+          isSubmitting={isSubmitting}
+          buyerCredits={buyerCredits}
+          currentBidTotal={getCurrentHighestBidTotal(listing)}
+          onPlaceBid={() => {
+            document.getElementById('bid-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        />
+      )}
     </div>
   );
 }

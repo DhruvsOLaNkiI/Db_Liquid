@@ -10,6 +10,7 @@ import {
   setSession,
   topUpCredits as topUpCreditsForUser,
   updateUserProfile,
+  changeUserPassword,
 } from '../utils/users';
 import { getBuyerCredits } from '../utils/buyerCredits';
 import { loginViaApi, notifyDataRefresh, reloadListingsFromServer, reloadUsersFromServer } from '../utils/sharedStore';
@@ -20,6 +21,7 @@ import { setSellerName, setSellerPhone } from '../utils/seller';
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+  sessionReady: boolean;
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signup: (input: {
     email: string;
@@ -43,6 +45,10 @@ interface AuthContextValue {
     name?: string;
     profileImageUrl?: string | null;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -60,10 +66,23 @@ function syncIdentityForUser(user: User) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
+  const [user, setUser] = useState<User | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
     const session = getSession();
-    return session ? findUserById(session.userId) ?? null : null;
-  });
+    if (session) {
+      const found = findUserById(session.userId);
+      if (found) {
+        const fullUser = ensureDualRole(found);
+        setUser(fullUser);
+        syncIdentityForUser(fullUser);
+      } else {
+        clearSession();
+      }
+    }
+    setSessionReady(true);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -79,7 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fullUser = ensureDualRole({ ...result.user, password: '' } as User);
     setUser(fullUser);
     syncIdentityForUser(fullUser);
-    await Promise.all([reloadUsersFromServer(), reloadListingsFromServer()]);
+    await Promise.all([
+      reloadUsersFromServer({ force: true }),
+      reloadListingsFromServer({ force: true }),
+    ]);
     notifyDataRefresh();
     return { ok: true as const };
   }, []);
@@ -101,7 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await reloadUsersFromServer();
     const session = getSession();
     if (session) {
-      setUser(findUserById(session.userId) ?? null);
+      const found = findUserById(session.userId);
+      setUser(found ? ensureDualRole(found) : null);
     }
   }, []);
 
@@ -134,6 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncIdentityForUser(result.user);
       syncUserProfileOnListings(result.user.id, result.user.name, result.user.phone);
       return { ok: true as const };
+    },
+    [user],
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!user?.id) {
+        return { ok: false as const, error: 'Log in to change your password.' };
+      }
+
+      const result = await changeUserPassword(user.id, currentPassword, newPassword);
+      return result;
     },
     [user],
   );
@@ -171,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      sessionReady,
       login,
       signup,
       logout,
@@ -182,9 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncCreditWallet,
       updateUserCredits,
       updateProfile,
+      changePassword,
     }),
     [
       user,
+      sessionReady,
       login,
       signup,
       logout,
@@ -196,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncCreditWallet,
       updateUserCredits,
       updateProfile,
+      changePassword,
     ],
   );
 

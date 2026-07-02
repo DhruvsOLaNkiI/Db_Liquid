@@ -13,8 +13,8 @@ export function BidHistoryTimeline({ listing, sortedBids }: Props) {
   const isOnHold = status === 'accepted';
 
   return (
-    <section className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 sm:p-8 shadow-[0_10px_30px_rgba(0,0,0,0.05)] animate-in fade-in duration-300">
-      <h2 className="text-[22px] font-bold text-[#0F172A] mb-6">
+    <section className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 sm:p-8 shadow-[0_10px_30px_rgba(0,0,0,0.05)] w-full">
+      <h2 className="text-xl sm:text-[22px] font-bold text-[#0F172A] mb-5 sm:mb-6">
         {isOnHold ? 'Winning Bid' : 'Highest Bid'}
       </h2>
 
@@ -22,19 +22,19 @@ export function BidHistoryTimeline({ listing, sortedBids }: Props) {
         <p className="text-gray-500 text-sm">No bids yet. Be the first to place an offer.</p>
       ) : (
         <div
-          className={`relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 rounded-[14px] border shadow-[0_8px_24px_rgba(22,163,74,0.1)] transition-all duration-300 ${
+          className={`relative w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 sm:p-8 rounded-[14px] border shadow-[0_8px_24px_rgba(22,163,74,0.1)] ${
             isOnHold ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
           }`}
         >
           <span
-            className={`absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+            className={`absolute top-4 right-4 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
               isOnHold ? 'text-blue-700 bg-blue-100' : 'text-green-700 bg-green-100'
             }`}
           >
             {isOnHold ? 'On Hold' : 'Highest'}
           </span>
           <div>
-            <p className="font-semibold text-[#0F172A]">
+            <p className="text-base sm:text-lg font-semibold text-[#0F172A]">
               {new Date(displayBid.createdAt).toLocaleString('en-IN', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
@@ -42,10 +42,10 @@ export function BidHistoryTimeline({ listing, sortedBids }: Props) {
             </p>
           </div>
           <div className="sm:text-right">
-            <p className={`text-xl font-bold ${isOnHold ? 'text-blue-700' : 'text-green-700'}`}>
+            <p className={`text-2xl sm:text-3xl font-bold ${isOnHold ? 'text-blue-700' : 'text-green-700'}`}>
               {formatPrice(getBidTotal(displayBid.amountPerSqFt, listing.areaSqFt))}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-1">
               ₹{displayBid.amountPerSqFt.toLocaleString('en-IN')}/sq.ft
             </p>
           </div>

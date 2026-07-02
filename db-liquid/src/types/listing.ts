@@ -74,6 +74,17 @@ export type PropertyListing = {
   possession?: string;
   cornerPlot?: boolean;
   boundaryWall?: boolean;
+  plotOpenSides?: string;
+  plotRoadWidthMeters?: number;
+  plotConstructionDone?: boolean;
+  plotGatedColony?: boolean;
+  landZone?: string;
+  idealForBusinesses?: string;
+  personalWashroom?: boolean;
+  pantryCafeteria?: string;
+  shopWashrooms?: string;
+  cornerShop?: boolean;
+  mainRoadFacing?: boolean;
   publishedAt: string;
   biddingEndsAt: string;
   bids: Bid[];
@@ -212,6 +223,17 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     possession: raw.possession,
     cornerPlot: raw.cornerPlot,
     boundaryWall: raw.boundaryWall,
+    plotOpenSides: raw.plotOpenSides,
+    plotRoadWidthMeters: raw.plotRoadWidthMeters,
+    plotConstructionDone: raw.plotConstructionDone,
+    plotGatedColony: raw.plotGatedColony,
+    landZone: raw.landZone,
+    idealForBusinesses: raw.idealForBusinesses,
+    personalWashroom: raw.personalWashroom,
+    pantryCafeteria: raw.pantryCafeteria,
+    shopWashrooms: raw.shopWashrooms,
+    cornerShop: raw.cornerShop,
+    mainRoadFacing: raw.mainRoadFacing,
     publishedAt,
     biddingEndsAt: raw.biddingEndsAt ?? getBiddingEndDate(publishedAt),
     bids: (raw.bids ?? []).map((b) => normalizeBid(b as Bid)),

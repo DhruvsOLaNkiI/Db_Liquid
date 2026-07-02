@@ -43,10 +43,10 @@ export function PropertyTypeSelect({ value, onChange }: PropertyTypeSelectProps)
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
+        <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
           {PROPERTY_TYPES.map((group) => (
             <div key={group.category}>
-              <div className="px-4 py-2.5 text-xs font-bold text-gray-700 bg-blue-50 sticky top-0">
+              <div className="px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#e8f4fc] border-b border-gray-100 sticky top-0">
                 {group.category}
               </div>
               {group.options.map((option) => (
@@ -54,10 +54,10 @@ export function PropertyTypeSelect({ value, onChange }: PropertyTypeSelectProps)
                   key={option}
                   type="button"
                   onClick={() => select(option)}
-                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                  className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${
                     value === option
-                      ? 'bg-blue-100 text-primary font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-[#e8f4fc] text-gray-900 font-medium'
+                      : 'text-gray-800 hover:bg-[#f0f7fc]'
                   }`}
                 >
                   {option}

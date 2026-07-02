@@ -12,7 +12,7 @@ import {
 } from '../components/listing/SellerVerificationStep';
 import { PropertyTypeSelect } from '../components/PropertyTypeSelect';
 import { useListings } from '../context/ListingsContext';
-import { isPlotType, isResidentialUnitType } from '../data/propertyTypes';
+import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data/propertyTypes';
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, VerificationDocType, VerificationDocument } from '../types/listing';
 import { useAuth } from '../context/AuthContext';
@@ -64,7 +64,18 @@ export function ListYourPropertyPage() {
   const [parking, setParking] = useState(1);
   const [possession, setPossession] = useState('');
   const [cornerPlot, setCornerPlot] = useState(false);
-  const [boundaryWall, setBoundaryWall] = useState(false);
+  const [boundaryWall, setBoundaryWall] = useState<boolean | undefined>(undefined);
+  const [plotOpenSides, setPlotOpenSides] = useState('');
+  const [plotRoadWidthMeters, setPlotRoadWidthMeters] = useState('');
+  const [plotConstructionDone, setPlotConstructionDone] = useState<boolean | undefined>(undefined);
+  const [plotGatedColony, setPlotGatedColony] = useState<boolean | undefined>(undefined);
+  const [landZone, setLandZone] = useState('');
+  const [idealForBusinesses, setIdealForBusinesses] = useState('');
+  const [shopWashrooms, setShopWashrooms] = useState('');
+  const [cornerShop, setCornerShop] = useState<boolean | undefined>(undefined);
+  const [mainRoadFacing, setMainRoadFacing] = useState<boolean | undefined>(undefined);
+  const [personalWashroom, setPersonalWashroom] = useState<boolean | undefined>(undefined);
+  const [pantryCafeteria, setPantryCafeteria] = useState('');
   const [propertyHighlights, setPropertyHighlights] = useState('');
   const [pricePerSqFt, setPricePerSqFt] = useState('');
   const [photoNote, setPhotoNote] = useState('');
@@ -75,7 +86,8 @@ export function ListYourPropertyPage() {
 
   const isPlot = isPlotType(propertyType);
   const isResidential = isResidentialUnitType(propertyType);
-  const showFloorFields = !isPlot && propertyType.length > 0;
+  const isCommercialShop = isCommercialShopType(propertyType);
+  const showFloorFields = !isPlot && !isCommercialShop && propertyType.length > 0;
   const location = locality.trim() && stateName.trim() ? buildListingLocation(locality, stateName) : '';
   const areaSqFt = getAreaSqFt(isPlot, builtUpArea, landSqFt);
   const totalPrice = getTotalPrice(pricePerSqFt, areaSqFt);
@@ -83,6 +95,7 @@ export function ListYourPropertyPage() {
   const detailsSummary = buildListingDetailsSummary({
     isPlot,
     isResidential,
+    isCommercialShop,
     bedrooms,
     washrooms,
     balconies,
@@ -98,7 +111,20 @@ export function ListYourPropertyPage() {
     parking: parking || undefined,
     possession: possession || undefined,
     cornerPlot,
-    boundaryWall,
+    boundaryWall: boundaryWall === true,
+    plotOpenSides: plotOpenSides || undefined,
+    plotRoadWidthMeters: plotRoadWidthMeters || undefined,
+    plotConstructionDone,
+    plotGatedColony,
+    landZone: landZone || undefined,
+    idealForBusinesses: idealForBusinesses || undefined,
+    shopFloor: isCommercialShop ? floor || undefined : undefined,
+    shopTotalFloors: isCommercialShop ? totalFloors || undefined : undefined,
+    shopWashrooms: isCommercialShop ? shopWashrooms || undefined : undefined,
+    personalWashroom: isCommercialShop ? personalWashroom : undefined,
+    pantryCafeteria: isCommercialShop ? pantryCafeteria || undefined : undefined,
+    cornerShop: isCommercialShop ? cornerShop : undefined,
+    mainRoadFacing: isCommercialShop ? mainRoadFacing : undefined,
   });
 
   function setVerificationUpload(type: VerificationDocType, upload: PendingVerificationUpload | null) {
@@ -137,6 +163,16 @@ export function ListYourPropertyPage() {
     }
     if (step === 3) {
       if (isPlot) return landSqFt.trim() && plotWidth.trim() && plotLength.trim();
+      if (isCommercialShop) {
+        return (
+          builtUpArea.trim().length > 0 &&
+          landZone.trim().length > 0 &&
+          floor.trim().length > 0 &&
+          totalFloors.trim().length > 0 &&
+          furnishing.trim().length > 0 &&
+          shopWashrooms.trim().length > 0
+        );
+      }
       if (isResidential) return bedrooms > 0 && builtUpArea.trim().length > 0;
       return builtUpArea.trim().length > 0;
     }
@@ -190,8 +226,13 @@ export function ListYourPropertyPage() {
       address: address.trim(),
       state: stateName.trim(),
       pincode: pincode.trim() || undefined,
-      floor: showFloorFields && floor.trim() ? floor.trim() : undefined,
-      totalFloors: showFloorFields && totalFloors.trim() ? totalFloors.trim() : undefined,
+      floor: showFloorFields && floor.trim() ? floor.trim() : isCommercialShop && floor.trim() ? floor.trim() : undefined,
+      totalFloors:
+        showFloorFields && totalFloors.trim()
+          ? totalFloors.trim()
+          : isCommercialShop && totalFloors.trim()
+            ? totalFloors.trim()
+            : undefined,
       pricePerSqFt: Number(pricePerSqFt),
       totalPrice,
       areaSqFt,
@@ -213,7 +254,19 @@ export function ListYourPropertyPage() {
       parking: parking || undefined,
       possession: possession || undefined,
       cornerPlot: isPlot ? cornerPlot : undefined,
-      boundaryWall: isPlot ? boundaryWall : undefined,
+      boundaryWall: isPlot && boundaryWall === true ? true : undefined,
+      plotOpenSides: isPlot && plotOpenSides ? plotOpenSides : undefined,
+      plotRoadWidthMeters:
+        isPlot && plotRoadWidthMeters.trim() ? Number(plotRoadWidthMeters) : undefined,
+      plotConstructionDone: isPlot ? plotConstructionDone : undefined,
+      plotGatedColony: isPlot ? plotGatedColony : undefined,
+      landZone: isCommercialShop && landZone ? landZone : undefined,
+      idealForBusinesses: isCommercialShop && idealForBusinesses.trim() ? idealForBusinesses.trim() : undefined,
+      shopWashrooms: isCommercialShop && shopWashrooms ? shopWashrooms : undefined,
+      personalWashroom: isCommercialShop ? personalWashroom : undefined,
+      pantryCafeteria: isCommercialShop && pantryCafeteria ? pantryCafeteria : undefined,
+      cornerShop: isCommercialShop && cornerShop === true ? true : undefined,
+      mainRoadFacing: isCommercialShop && mainRoadFacing === true ? true : undefined,
       publishedAt,
       biddingEndsAt: getBiddingEndDate(publishedAt),
       bids: [],
@@ -365,6 +418,7 @@ export function ListYourPropertyPage() {
               <SellerPropertyDetailsStep
                 isPlot={isPlot}
                 isResidential={isResidential}
+                isCommercialShop={isCommercialShop}
                 bedrooms={bedrooms}
                 washrooms={washrooms}
                 balconies={balconies}
@@ -381,6 +435,19 @@ export function ListYourPropertyPage() {
                 possession={possession}
                 cornerPlot={cornerPlot}
                 boundaryWall={boundaryWall}
+                plotOpenSides={plotOpenSides}
+                plotRoadWidthMeters={plotRoadWidthMeters}
+                plotConstructionDone={plotConstructionDone}
+                plotGatedColony={plotGatedColony}
+                landZone={landZone}
+                idealForBusinesses={idealForBusinesses}
+                shopFloor={floor}
+                shopTotalFloors={totalFloors}
+                shopWashrooms={shopWashrooms}
+                cornerShop={cornerShop}
+                mainRoadFacing={mainRoadFacing}
+                personalWashroom={personalWashroom}
+                pantryCafeteria={pantryCafeteria}
                 propertyHighlights={propertyHighlights}
                 onBedroomsChange={setBedrooms}
                 onWashroomsChange={setWashrooms}
@@ -398,6 +465,19 @@ export function ListYourPropertyPage() {
                 onPossessionChange={setPossession}
                 onCornerPlotChange={setCornerPlot}
                 onBoundaryWallChange={setBoundaryWall}
+                onPlotOpenSidesChange={setPlotOpenSides}
+                onPlotRoadWidthMetersChange={setPlotRoadWidthMeters}
+                onPlotConstructionDoneChange={setPlotConstructionDone}
+                onPlotGatedColonyChange={setPlotGatedColony}
+                onLandZoneChange={setLandZone}
+                onIdealForBusinessesChange={setIdealForBusinesses}
+                onShopFloorChange={setFloor}
+                onShopTotalFloorsChange={setTotalFloors}
+                onShopWashroomsChange={setShopWashrooms}
+                onCornerShopChange={setCornerShop}
+                onMainRoadFacingChange={setMainRoadFacing}
+                onPersonalWashroomChange={setPersonalWashroom}
+                onPantryCafeteriaChange={setPantryCafeteria}
                 onPropertyHighlightsChange={setPropertyHighlights}
               />
             )}

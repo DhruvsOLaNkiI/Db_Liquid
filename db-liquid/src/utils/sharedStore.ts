@@ -10,6 +10,13 @@ let usersCache: User[] = [];
 let listingsCache: PropertyListing[] = [];
 let ready = false;
 
+const MIN_RELOAD_MS = 8_000;
+
+let usersFetchPromise: Promise<User[]> | null = null;
+let listingsFetchPromise: Promise<PropertyListing[]> | null = null;
+let lastUsersFetchAt = 0;
+let lastListingsFetchAt = 0;
+
 /** Serializes user writes so rapid bids cannot reuse stale credit balances. */
 let usersWriteQueue: Promise<unknown> = Promise.resolve();
 
@@ -50,12 +57,23 @@ export function getSharedListings() {
 }
 
 async function apiGetUsers(): Promise<User[]> {
-  const viewerId = getViewerId();
-  const url = viewerId ? `/api/users?viewerId=${encodeURIComponent(viewerId)}` : '/api/users';
-  const res = await fetch(url, { headers: viewerHeaders() });
-  if (!res.ok) throw new Error('Failed to load users');
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  if (usersFetchPromise) return usersFetchPromise;
+
+  usersFetchPromise = (async () => {
+    const viewerId = getViewerId();
+    const url = viewerId ? `/api/users?viewerId=${encodeURIComponent(viewerId)}` : '/api/users';
+    const res = await fetch(url, { headers: viewerHeaders() });
+    if (!res.ok) throw new Error('Failed to load users');
+    const data = await res.json();
+    lastUsersFetchAt = Date.now();
+    return Array.isArray(data) ? data : [];
+  })();
+
+  try {
+    return await usersFetchPromise;
+  } finally {
+    usersFetchPromise = null;
+  }
 }
 
 async function apiSaveUsers(users: User[]) {
@@ -68,12 +86,23 @@ async function apiSaveUsers(users: User[]) {
 }
 
 async function apiGetListings(): Promise<PropertyListing[]> {
-  const viewerId = getViewerId();
-  const url = viewerId ? `/api/listings?viewerId=${encodeURIComponent(viewerId)}` : '/api/listings';
-  const res = await fetch(url, { headers: viewerHeaders() });
-  if (!res.ok) throw new Error('Failed to load listings');
-  const data = await res.json();
-  return Array.isArray(data) ? data.map((item) => normalizeListing(item as PropertyListing)) : [];
+  if (listingsFetchPromise) return listingsFetchPromise;
+
+  listingsFetchPromise = (async () => {
+    const viewerId = getViewerId();
+    const url = viewerId ? `/api/listings?viewerId=${encodeURIComponent(viewerId)}` : '/api/listings';
+    const res = await fetch(url, { headers: viewerHeaders() });
+    if (!res.ok) throw new Error('Failed to load listings');
+    const data = await res.json();
+    lastListingsFetchAt = Date.now();
+    return Array.isArray(data) ? data.map((item) => normalizeListing(item as PropertyListing)) : [];
+  })();
+
+  try {
+    return await listingsFetchPromise;
+  } finally {
+    listingsFetchPromise = null;
+  }
 }
 
 async function apiSaveListings(listings: PropertyListing[]) {
@@ -186,12 +215,20 @@ export async function persistListings(listings: PropertyListing[]) {
   await apiSaveListings(listingsCache);
 }
 
-export async function reloadUsersFromServer() {
+export async function reloadUsersFromServer(options?: { force?: boolean }) {
+  const force = options?.force ?? false;
+  if (!force && usersCache.length > 0 && Date.now() - lastUsersFetchAt < MIN_RELOAD_MS) {
+    return usersCache;
+  }
   usersCache = await apiGetUsers();
   return usersCache;
 }
 
-export async function reloadListingsFromServer() {
+export async function reloadListingsFromServer(options?: { force?: boolean }) {
+  const force = options?.force ?? false;
+  if (!force && listingsCache.length > 0 && Date.now() - lastListingsFetchAt < MIN_RELOAD_MS) {
+    return listingsCache;
+  }
   listingsCache = sortListingsByNewest(await apiGetListings());
   return listingsCache;
 }

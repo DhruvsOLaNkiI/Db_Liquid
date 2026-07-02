@@ -16,6 +16,7 @@ export {
   clearSession,
   replaceAllUsers,
   updateUserProfile,
+  changeUserPassword,
 } from '../data/usersTable';
 
 export { topUpCredits, spendBidCredit, getBuyerCredits, normalizeUser } from './buyerCredits';

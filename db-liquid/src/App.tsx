@@ -12,6 +12,7 @@ import { PropertyBidPage } from './pages/PropertyBidPage';
 import { SellerDashboardPage } from './pages/SellerDashboardPage';
 import { DealChatPage } from './pages/DealChatPage';
 import { SellerChatPage } from './pages/SellerChatPage';
+import { EditListingPage } from './pages/EditListingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/browse-property" element={<BrowsePropertyPage />} />
           <Route path="/browse-property/:id" element={<PropertyBidPage />} />
           <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
+          <Route path="/seller/listing/:id/edit" element={<EditListingPage />} />
           <Route path="/seller/chat/:id" element={<SellerChatPage />} />
           <Route path="/deal/:id/chat" element={<DealChatPage />} />
           </Routes>

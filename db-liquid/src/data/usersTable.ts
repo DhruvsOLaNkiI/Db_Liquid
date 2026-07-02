@@ -1,5 +1,5 @@
 import type { AuthSession, User, UserRole } from '../types/user';
-import { getSharedUsers, mutateUsers, persistUsers } from '../utils/sharedStore';
+import { getSharedUsers, isSharedStoreReady, mutateUsers, persistUsers, reloadUsersFromServer } from '../utils/sharedStore';
 import { normalizeUser } from '../utils/buyerCredits';
 import { randomId } from '../utils/randomId';
 
@@ -142,10 +142,16 @@ export function getSession(): AuthSession | null {
     if (!raw) return null;
     const session = JSON.parse(raw) as AuthSession;
     if (!session?.userId || !session?.activeRole) return null;
-    if (!findUserById(session.userId)) {
-      clearSession();
-      return null;
+
+    // Wait until Mongo/API users are loaded — otherwise refresh would clear a valid session.
+    if (isSharedStoreReady()) {
+      const user = findUserById(session.userId);
+      if (!user) {
+        clearSession();
+        return null;
+      }
     }
+
     return session;
   } catch {
     return null;
@@ -213,4 +219,41 @@ export async function updateUserProfile(
 
   if (!result.ok) return result;
   return { ok: true, user: result.value };
+}
+
+export async function changeUserPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const trimmedCurrent = currentPassword;
+  const trimmedNew = newPassword.trim();
+
+  if (!trimmedCurrent) {
+    return { ok: false, error: 'Enter your current password.' };
+  }
+  if (!trimmedNew || trimmedNew.length < 6) {
+    return { ok: false, error: 'New password must be at least 6 characters.' };
+  }
+  if (trimmedCurrent === trimmedNew) {
+    return { ok: false, error: 'New password must be different from your current password.' };
+  }
+
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      currentPassword: trimmedCurrent,
+      newPassword: trimmedNew,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, error: data.error ?? 'Could not change password.' };
+  }
+
+  await reloadUsersFromServer({ force: true });
+  return { ok: true };
 }

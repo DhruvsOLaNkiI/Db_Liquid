@@ -199,6 +199,95 @@ export const FACING_OPTIONS = [
 ] as const;
 export const POSSESSION_OPTIONS = ['Ready to move', 'Under construction'] as const;
 
+export const LAND_ZONE_OPTIONS = [
+  'Commercial',
+  'Industrial',
+  'Residential',
+  'Mixed Use',
+  'SEZ',
+  'Agricultural',
+] as const;
+
+export const COMMERCIAL_SHOP_FLOOR_OPTIONS = [
+  'Lower Basement',
+  'Upper Basement',
+  'Ground',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '5+',
+] as const;
+
+export const COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS = [
+  ...Array.from({ length: 13 }, (_, i) => String(i + 1)),
+  '13+',
+] as const;
+
+export const COMMERCIAL_SHOP_FURNISHING_OPTIONS = ['Furnished', 'Unfurnished'] as const;
+
+export const COMMERCIAL_SHOP_WASHROOM_OPTIONS = ['0', '1', '2', '3', '3+'] as const;
+
+export const PANTRY_CAFE_OPTIONS = ['Dry', 'Wet', 'Not Available'] as const;
+
+export const PLOT_OPEN_SIDES_OPTIONS = ['1', '2', '3', '4+'] as const;
+
+export type PlotAreaUnit = 'sq-ft' | 'sq-yrd' | 'sq-m';
+
+export const PLOT_AREA_UNIT_OPTIONS: { value: PlotAreaUnit; label: string }[] = [
+  { value: 'sq-ft', label: 'Sq-ft' },
+  { value: 'sq-yrd', label: 'Sq-yrd' },
+  { value: 'sq-m', label: 'Sq-m' },
+];
+
+const PLOT_UNIT_TO_SQ_FT: Record<PlotAreaUnit, number> = {
+  'sq-ft': 1,
+  'sq-yrd': 9,
+  'sq-m': 10.76391041671,
+};
+
+export function plotUnitLinearLabel(unit: PlotAreaUnit) {
+  if (unit === 'sq-yrd') return 'yd';
+  if (unit === 'sq-m') return 'm';
+  return 'ft';
+}
+
+export function convertPlotAreaToSqFt(value: number, unit: PlotAreaUnit) {
+  return Math.round(value * PLOT_UNIT_TO_SQ_FT[unit]);
+}
+
+export function applyPlotAreaInput(
+  unit: PlotAreaUnit,
+  plotAreaInput: string,
+  plotWidth: string,
+  plotLength: string,
+): { sqFt: string; areaInUnit: string } | { error: string } {
+  const width = Number(plotWidth);
+  const length = Number(plotLength);
+
+  if (plotWidth.trim() && plotLength.trim()) {
+    if (!Number.isFinite(width) || !Number.isFinite(length) || width <= 0 || length <= 0) {
+      return { error: 'Enter valid width and length.' };
+    }
+    const areaInUnit = width * length;
+    return {
+      sqFt: String(convertPlotAreaToSqFt(areaInUnit, unit)),
+      areaInUnit: String(areaInUnit),
+    };
+  }
+
+  const area = Number(plotAreaInput);
+  if (!plotAreaInput.trim() || !Number.isFinite(area) || area <= 0) {
+    return { error: 'Enter plot area or both width and length, then tap Apply.' };
+  }
+
+  return {
+    sqFt: String(convertPlotAreaToSqFt(area, unit)),
+    areaInUnit: plotAreaInput.trim(),
+  };
+}
+
 type DetailsInput = {
   isPlot: boolean;
   isResidential: boolean;
@@ -218,6 +307,20 @@ type DetailsInput = {
   possession?: string;
   cornerPlot?: boolean;
   boundaryWall?: boolean;
+  plotOpenSides?: string;
+  plotRoadWidthMeters?: string;
+  plotConstructionDone?: boolean;
+  plotGatedColony?: boolean;
+  isCommercialShop?: boolean;
+  landZone?: string;
+  idealForBusinesses?: string;
+  shopFloor?: string;
+  shopTotalFloors?: string;
+  shopWashrooms?: string;
+  personalWashroom?: boolean;
+  pantryCafeteria?: string;
+  cornerShop?: boolean;
+  mainRoadFacing?: boolean;
 };
 
 export function buildListingDetailsSummary(input: DetailsInput) {
@@ -240,21 +343,55 @@ export function buildListingDetailsSummary(input: DetailsInput) {
     possession,
     cornerPlot,
     boundaryWall,
+    plotOpenSides,
+    plotRoadWidthMeters,
+    plotConstructionDone,
+    plotGatedColony,
+    isCommercialShop,
+    landZone,
+    idealForBusinesses,
+    shopFloor,
+    shopTotalFloors,
+    shopWashrooms,
+    personalWashroom,
+    pantryCafeteria,
+    cornerShop,
+    mainRoadFacing,
   } = input;
 
   let base = isPlot
     ? `${landSqFt} sq.ft (${plotWidth} × ${plotLength} ft)`
     : isResidential
       ? `${bedrooms} bed · ${washrooms} bath · ${balconies} balcony · ${kitchens} kitchen${hasServiceRoom ? ' · Service room' : ''}${hasStudyRoom ? ' · Study room' : ''} · ${builtUpArea} sq.ft`
-      : `${builtUpArea} sq.ft`;
+      : isCommercialShop
+        ? `${builtUpArea} sq.ft commercial shop`
+        : `${builtUpArea} sq.ft`;
 
   const extras: string[] = [];
+  if (isCommercialShop && landZone) extras.push(landZone);
+  if (isCommercialShop && idealForBusinesses) extras.push(`Ideal for ${idealForBusinesses}`);
+  if (isCommercialShop && shopFloor) {
+    extras.push(
+      shopTotalFloors ? `Floor ${shopFloor} of ${shopTotalFloors}` : `Floor ${shopFloor}`,
+    );
+  }
+  if (isCommercialShop && shopWashrooms !== undefined && shopWashrooms !== '') {
+    extras.push(`${shopWashrooms} washroom${shopWashrooms === '1' ? '' : 's'}`);
+  }
+  if (isCommercialShop && personalWashroom) extras.push('Personal washroom');
+  if (isCommercialShop && pantryCafeteria) extras.push(`Pantry: ${pantryCafeteria}`);
+  if (isCommercialShop && cornerShop) extras.push('Corner shop');
+  if (isCommercialShop && mainRoadFacing) extras.push('Main road facing');
   if (furnishing) extras.push(furnishing);
   if (facing) extras.push(`${facing} facing`);
   if (parking && parking > 0) extras.push(`${parking} parking`);
   if (possession) extras.push(possession);
   if (isPlot && cornerPlot) extras.push('Corner plot');
   if (isPlot && boundaryWall) extras.push('Boundary wall');
+  if (isPlot && plotOpenSides) extras.push(`${plotOpenSides} open side${plotOpenSides === '1' ? '' : 's'}`);
+  if (isPlot && plotRoadWidthMeters) extras.push(`${plotRoadWidthMeters} m road`);
+  if (isPlot && plotConstructionDone) extras.push('Construction done');
+  if (isPlot && plotGatedColony) extras.push('Gated colony');
 
   if (extras.length > 0) {
     base = `${base} · ${extras.join(' · ')}`;
@@ -293,6 +430,10 @@ export function formatBuyerConfiguration(listing: PropertyListing) {
     const plotArea = summary.match(/([\d,]+)\s*sq\.ft/i)?.[1];
     if (plotArea) return `${plotArea} sq.ft plot`;
     return areaLabel ? `${areaLabel} plot` : 'Plot';
+  }
+
+  if (listing.propertyType === 'Commercial Shop') {
+    return areaLabel ? `Commercial shop · ${areaLabel}` : 'Commercial shop';
   }
 
   if (areaLabel) return areaLabel;

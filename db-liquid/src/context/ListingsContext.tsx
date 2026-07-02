@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Bid, PropertyListing, VerificationDocument } from '../types/listing';
-import { getAcceptedBid, getMinNextBid, isBiddingOpen, isBuyerTokenDue, normalizeListing } from '../types/listing';
+import { getAcceptedBid, getMinNextBid, getTotalPrice, isBiddingOpen, isBuyerTokenDue, normalizeListing } from '../types/listing';
 import { buildApprovedVerifications } from '../utils/listingDisplay';
 import {
   appendListingToStorage,
@@ -19,9 +19,11 @@ type ActionResult =
   | { ok: true; creditsRemaining?: number }
   | { ok: false; error: string };
 
+type ReloadOptions = { force?: boolean };
+
 type ListingsContextValue = {
   listings: PropertyListing[];
-  reloadListings: () => void;
+  reloadListings: (options?: ReloadOptions) => void;
   addListing: (listing: PropertyListing) => void;
   placeBid: (
     listingId: string,
@@ -48,34 +50,66 @@ type ListingsContextValue = {
   ) => ActionResult;
   getListingById: (id: string) => PropertyListing | undefined;
   getSellerListings: (sellerId: string) => PropertyListing[];
+  updateListingAskPrice: (
+    listingId: string,
+    sellerId: string,
+    pricePerSqFt: number,
+  ) => ActionResult;
+  updateListingDetails: (
+    listingId: string,
+    sellerId: string,
+    patch: Partial<PropertyListing>,
+  ) => ActionResult;
 };
 
 const ListingsContext = createContext<ListingsContextValue | null>(null);
+
+const LISTINGS_POLL_MS = 30_000;
 
 export function ListingsProvider({ children }: { children: ReactNode }) {
   const [listings, setListings] = useState<PropertyListing[]>(() =>
     sortListingsByNewest(loadListingsFromStorage()),
   );
 
-  const reloadListings = useCallback(async () => {
+  const reloadListings = useCallback(async (options?: ReloadOptions) => {
     const { reloadListingsFromServer } = await import('../utils/sharedStore');
-    const data = await reloadListingsFromServer();
+    const data = await reloadListingsFromServer(options);
     setListings(sortListingsByNewest(data));
   }, []);
 
   useEffect(() => {
-    void reloadListings();
-    const interval = window.setInterval(() => void reloadListings(), 5000);
-    return () => window.clearInterval(interval);
+    let intervalId: number | undefined;
+
+    const refreshIfVisible = (options?: ReloadOptions) => {
+      if (document.visibilityState === 'visible') {
+        void reloadListings(options);
+      }
+    };
+
+    refreshIfVisible();
+
+    intervalId = window.setInterval(() => refreshIfVisible(), LISTINGS_POLL_MS);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfVisible();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [reloadListings]);
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && event.key !== LISTINGS_STORAGE_KEY) return;
-      void reloadListings();
+      void reloadListings({ force: true });
     };
 
-    const onDataRefresh = () => void reloadListings();
+    const onDataRefresh = () => void reloadListings({ force: true });
 
     window.addEventListener('storage', onStorage);
     window.addEventListener(DATA_REFRESH_EVENT, onDataRefresh);
@@ -335,6 +369,91 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
+  const updateListingAskPrice = (
+    listingId: string,
+    sellerId: string,
+    pricePerSqFt: number,
+  ): ActionResult => {
+    const listing = listings.find((l) => l.id === listingId);
+    if (!listing) return { ok: false, error: 'Listing not found.' };
+    if (listing.sellerId !== sellerId) return { ok: false, error: 'Not your listing.' };
+    if (listing.acceptedBidId) {
+      return { ok: false, error: 'Cannot change price after a bid is accepted.' };
+    }
+    if (!isBiddingOpen(listing)) {
+      return { ok: false, error: 'Bidding has closed for this property.' };
+    }
+
+    const roundedPerSqFt = Math.round(pricePerSqFt);
+    if (!roundedPerSqFt || roundedPerSqFt <= 0) {
+      return { ok: false, error: 'Enter a valid price per sq.ft.' };
+    }
+    if (!listing.areaSqFt || listing.areaSqFt <= 0) {
+      return { ok: false, error: 'Listing area is missing.' };
+    }
+
+    const totalPrice = getTotalPrice(String(roundedPerSqFt), listing.areaSqFt);
+    if (totalPrice <= 0) {
+      return { ok: false, error: 'Enter a valid total price.' };
+    }
+
+    updateListings((prev) =>
+      prev.map((l) =>
+        l.id === listingId
+          ? {
+              ...l,
+              pricePerSqFt: roundedPerSqFt,
+              totalPrice,
+            }
+          : l,
+      ),
+    );
+
+    return { ok: true };
+  };
+
+  const updateListingDetails = (
+    listingId: string,
+    sellerId: string,
+    patch: Partial<PropertyListing>,
+  ): ActionResult => {
+    const listing = listings.find((l) => l.id === listingId);
+    if (!listing) return { ok: false, error: 'Listing not found.' };
+    if (listing.sellerId !== sellerId) return { ok: false, error: 'Not your listing.' };
+    if (listing.acceptedBidId) {
+      return { ok: false, error: 'Cannot edit after a bid is accepted.' };
+    }
+    if (!isBiddingOpen(listing)) {
+      return { ok: false, error: 'Bidding has closed for this property.' };
+    }
+
+    updateListings((prev) =>
+      prev.map((l) =>
+        l.id === listingId
+          ? normalizeListing({
+              ...l,
+              ...patch,
+              id: l.id,
+              sellerId: l.sellerId,
+              propertyType: l.propertyType,
+              publishedAt: l.publishedAt,
+              biddingEndsAt: l.biddingEndsAt,
+              bids: l.bids,
+              acceptedBidId: l.acceptedBidId,
+              acceptedAt: l.acceptedAt,
+              proceededAt: l.proceededAt,
+              tokenStatus: l.tokenStatus,
+              chatMessages: l.chatMessages,
+              sellerName: l.sellerName,
+              sellerPhone: l.sellerPhone,
+            })
+          : l,
+      ),
+    );
+
+    return { ok: true };
+  };
+
   return (
     <ListingsContext.Provider
       value={{
@@ -349,6 +468,8 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
         sendChatMessage,
         getListingById,
         getSellerListings,
+        updateListingAskPrice,
+        updateListingDetails,
       }}
     >
       {children}

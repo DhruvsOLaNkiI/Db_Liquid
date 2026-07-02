@@ -18,6 +18,11 @@ export const PROPERTY_TYPES = [
       'Office in IT Park/ SEZ',
       'Commercial Shop',
       'Commercial Showroom',
+    ],
+  },
+  {
+    category: 'ALL INDUSTRIAL',
+    options: [
       'Commercial Land',
       'Warehouse/ Godown',
       'Industrial Land',
@@ -54,6 +59,10 @@ export function isPlotType(type: string) {
 
 export function isResidentialUnitType(type: string) {
   return (RESIDENTIAL_UNIT_TYPES as readonly string[]).includes(type);
+}
+
+export function isCommercialShopType(type: string) {
+  return type === 'Commercial Shop';
 }
 
 export const BHK_OPTIONS = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK'] as const;

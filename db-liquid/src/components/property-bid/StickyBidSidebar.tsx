@@ -61,8 +61,8 @@ export function StickyBidSidebar({
   const liveLabel = status === 'accepted' ? 'On Hold' : open ? 'LIVE' : 'CLOSED';
 
   return (
-    <aside className="lg:sticky lg:top-24 space-y-4">
-      <div className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
+    <aside id="bid-panel" className="scroll-mt-24 lg:sticky lg:top-24 space-y-4">
+      <div className="bg-white rounded-[18px] border border-[#E5E7EB] p-5 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between mb-5">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${

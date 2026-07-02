@@ -5,7 +5,10 @@ import {
   Camera,
   Check,
   ChevronRight,
+  Eye,
+  EyeOff,
   Gavel,
+  Lock,
   MessageCircle,
   User as UserIcon,
 } from 'lucide-react';
@@ -16,7 +19,6 @@ import {
   formatPrice,
   formatPriceShort,
   getBidTotal,
-  getListingStatus,
 } from '../types/listing';
 import {
   getProfileCompletion,
@@ -25,9 +27,56 @@ import {
   getUserChatSummaries,
   getUserListings,
 } from '../utils/profileStats';
+import { ProfileListingCard } from '../components/profile/ProfileListingCard';
 
 const inputClass =
   'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors';
+
+type ProfileTab = 'details' | 'security';
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`${inputClass} pr-11`}
+          autoComplete={id.includes('current') ? 'current-password' : 'new-password'}
+          required
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          aria-label={visible ? 'Hide password' : 'Show password'}
+        >
+          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('en-IN', {
@@ -40,10 +89,11 @@ function formatDateTime(value: string) {
 }
 
 export function ProfilePage() {
-  const { user, isAuthenticated, updateProfile } = useAuth();
+  const { user, isAuthenticated, sessionReady, updateProfile, changePassword } = useAuth();
   const { listings, reloadListings } = useListings();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeTab, setActiveTab] = useState<ProfileTab>('details');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -52,9 +102,12 @@ export function ProfilePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    reloadListings();
-  }, [reloadListings]);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -63,6 +116,14 @@ export function ProfilePage() {
     setPhone(user.phone);
     setProfileImageUrl(user.profileImageUrl);
   }, [user]);
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Loading your account…</p>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login?next=/profile" replace />;
@@ -114,9 +175,51 @@ export function ProfilePage() {
       return;
     }
 
-    reloadListings();
+    reloadListings({ force: true });
     setMessage('Profile updated successfully.');
   };
+
+  const resetDetailsForm = () => {
+    if (!user) return;
+    setName(user.name);
+    setEmail(user.email);
+    setPhone(user.phone);
+    setProfileImageUrl(user.profileImageUrl);
+    setError('');
+    setMessage('');
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordMessage('');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+
+    setSavingPassword(true);
+    const result = await changePassword(currentPassword, newPassword);
+    setSavingPassword(false);
+
+    if (!result.ok) {
+      setPasswordError(result.error);
+      return;
+    }
+
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordMessage('Password changed successfully.');
+  };
+
+  const hasDetailsChanges =
+    user &&
+    (name !== user.name ||
+      email !== user.email ||
+      phone !== user.phone ||
+      (profileImageUrl ?? undefined) !== (user.profileImageUrl ?? undefined));
 
   return (
     <div className="min-h-screen bg-gray-50 selection:bg-blue-100 selection:text-blue-900">
@@ -193,6 +296,32 @@ export function ProfilePage() {
                   ))}
                 </ul>
 
+                <div className="flex rounded-xl bg-gray-100 p-1 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('details')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'details'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Personal details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('security')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'security'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Password
+                  </button>
+                </div>
+
+                {activeTab === 'details' ? (
                 <form onSubmit={handleSubmit} className="space-y-4 border-t border-gray-100 pt-6">
                   <div>
                     <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -237,14 +366,70 @@ export function ProfilePage() {
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   {message && <p className="text-sm text-green-600">{message}</p>}
 
+                  <div className="flex gap-2">
+                    {hasDetailsChanges && (
+                      <button
+                        type="button"
+                        onClick={resetDetailsForm}
+                        className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={saving || !hasDetailsChanges}
+                      className={`py-3 bg-primary text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 ${
+                        hasDetailsChanges ? 'flex-1' : 'w-full'
+                      }`}
+                    >
+                      {saving ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
+                </form>
+                ) : (
+                <form onSubmit={handlePasswordSubmit} className="space-y-4 border-t border-gray-100 pt-6">
+                  <div className="flex items-start gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 mb-1">
+                    <Lock size={18} className="text-gray-500 shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-600">
+                      Use a strong password with at least 6 characters. You will stay logged in after changing it.
+                    </p>
+                  </div>
+
+                  <PasswordField
+                    id="current-password"
+                    label="Current password"
+                    value={currentPassword}
+                    onChange={setCurrentPassword}
+                    placeholder="Enter current password"
+                  />
+                  <PasswordField
+                    id="new-password"
+                    label="New password"
+                    value={newPassword}
+                    onChange={setNewPassword}
+                    placeholder="At least 6 characters"
+                  />
+                  <PasswordField
+                    id="confirm-password"
+                    label="Confirm new password"
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    placeholder="Re-enter new password"
+                  />
+
+                  {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+                  {passwordMessage && <p className="text-sm text-green-600">{passwordMessage}</p>}
+
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
                     className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
                   >
-                    {saving ? 'Saving…' : 'Save profile'}
+                    {savingPassword ? 'Updating…' : 'Change password'}
                   </button>
                 </form>
+                )}
               </div>
             </aside>
 
@@ -324,46 +509,54 @@ export function ProfilePage() {
               </section>
 
               <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">My listings</h3>
-                  <p className="text-sm text-gray-500">Properties you have published</p>
+                <div className="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">My listings</h3>
+                    <p className="text-sm text-gray-500">
+                      {myListings.length === 0
+                        ? 'Properties you have published'
+                        : `${myListings.length} published · track bids and manage deals`}
+                    </p>
+                  </div>
+                  {myListings.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to="/seller/dashboard"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Seller dashboard
+                      </Link>
+                      <Link
+                        to="/list-your-property"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-gray-800 transition-colors"
+                      >
+                        List new
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 {myListings.length === 0 ? (
-                  <p className="px-6 py-10 text-sm text-gray-500 text-center">
-                    No listings yet.{' '}
-                    <Link to="/list-your-property" className="text-primary font-medium hover:underline">
+                  <div className="px-6 py-12 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                      <Building2 size={24} className="text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 font-medium mb-1">No listings yet</p>
+                    <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                      Publish your first property to start receiving bids from verified buyers.
+                    </p>
+                    <Link
+                      to="/list-your-property"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
+                    >
                       List a property
                     </Link>
-                  </p>
+                  </div>
                 ) : (
-                  <ul className="divide-y divide-gray-100">
-                    {myListings.map((listing) => {
-                      const status = getListingStatus(listing);
-                      const statusLabel =
-                        status === 'accepted' ? 'On Hold' : status === 'active' ? 'Active' : 'Closed';
-                      return (
-                        <li key={listing.id}>
-                          <Link
-                            to={`/browse-property/${listing.id}`}
-                            className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="min-w-0">
-                              <p className="font-semibold text-gray-900 truncate">{listing.location}</p>
-                              <p className="text-sm text-gray-500">{listing.propertyType}</p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                {listing.bids.length} bid{listing.bids.length === 1 ? '' : 's'} · {statusLabel}
-                              </p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="font-bold text-gray-900">{formatPriceShort(listing.totalPrice)}</p>
-                              <p className="text-xs text-gray-500">{formatPrice(listing.totalPrice)}</p>
-                            </div>
-                            <ChevronRight size={18} className="text-gray-300 shrink-0" />
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="p-4 sm:p-6 space-y-4 bg-gray-50/60">
+                    {myListings.map((listing) => (
+                      <ProfileListingCard key={listing.id} listing={listing} sellerId={user.id} />
+                    ))}
+                  </div>
                 )}
               </section>
 

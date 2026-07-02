@@ -14,8 +14,8 @@ export function PricingCards({ listing, forBuyer = false }: Props) {
   const highestBidTotal = getCurrentHighestBidTotal(listing);
 
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-0.5">
+    <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+      <div className="w-full rounded-[18px] border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
         <p className="text-[15px] font-medium text-gray-600 mb-2">Listed Price</p>
         <p className="text-[36px] font-bold text-[#0F172A] leading-none" title={formatPrice(listed)}>
           {formatPriceShort(listed)}
@@ -26,9 +26,12 @@ export function PricingCards({ listing, forBuyer = false }: Props) {
       </div>
 
       {forBuyer ? (
-        <div className="bg-gradient-to-br from-green-50 to-white rounded-[18px] border border-green-200 p-6 shadow-[0_10px_30px_rgba(22,163,74,0.12)] transition-all duration-300 hover:-translate-y-0.5">
+        <div className="w-full rounded-[18px] border border-green-200 bg-gradient-to-br from-green-50 to-white p-6 shadow-[0_10px_30px_rgba(22,163,74,0.12)]">
           <p className="text-[15px] font-medium text-green-800 mb-2">Highest Bid</p>
-          <p className="text-[36px] font-bold text-green-700 leading-none" title={hasBids ? formatPrice(highestBidTotal) : undefined}>
+          <p
+            className="text-[36px] font-bold text-green-700 leading-none"
+            title={hasBids ? formatPrice(highestBidTotal) : undefined}
+          >
             {hasBids ? formatPriceShort(highestBidTotal) : '—'}
           </p>
           <p className="text-sm text-green-700/80 mt-2">
@@ -38,7 +41,7 @@ export function PricingCards({ listing, forBuyer = false }: Props) {
           </p>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-amber-50 to-white rounded-[18px] border border-amber-200 p-6 shadow-[0_10px_30px_rgba(245,158,11,0.12)] transition-all duration-300 hover:-translate-y-0.5">
+        <div className="w-full rounded-[18px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 shadow-[0_10px_30px_rgba(245,158,11,0.12)]">
           <p className="text-[15px] font-medium text-amber-800 mb-2">Market Ask Value</p>
           <p className="text-[36px] font-bold text-[#F59E0B] leading-none" title={formatPrice(marketAsk)}>
             {formatPriceShort(marketAsk)}
