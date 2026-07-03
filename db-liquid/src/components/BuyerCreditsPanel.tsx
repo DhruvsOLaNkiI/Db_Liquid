@@ -67,7 +67,7 @@ export function BuyerCreditsPanel({ listing, compact }: Props) {
           <button
             type="button"
             onClick={() => setShowTopUp(true)}
-            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-blue-950 transition-colors"
           >
             <Plus size={16} />
             Top up

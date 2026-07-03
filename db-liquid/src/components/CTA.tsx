@@ -8,7 +8,7 @@ export function CTA() {
         {/* Background shapes */}
         <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[150%] bg-white/5 rotate-12 blur-2xl"></div>
-           <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[100%] bg-blue-500/20 -rotate-12 blur-3xl"></div>
+           <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[100%] bg-orange-500/20 -rotate-12 blur-3xl"></div>
         </div>
 
         <div className="relative z-10 max-w-xl text-center md:text-left">
@@ -40,7 +40,7 @@ export function CTA() {
              </div>
              <div className="flex justify-between items-center mb-2">
                <h4 className="font-bold text-gray-900 text-lg">Luxury Villa</h4>
-               <span className="font-bold text-blue-600">₹14,200/sq.ft</span>
+               <span className="font-bold text-orange-600">₹14,200/sq.ft</span>
              </div>
              <p className="text-sm text-gray-500 mb-4">Ends in 2d 14h</p>
              <button className="w-full bg-primary text-white py-3 rounded-xl font-medium text-sm">Place Bid</button>

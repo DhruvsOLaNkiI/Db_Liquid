@@ -17,8 +17,7 @@ type Props = {
   error: string;
   success: boolean;
   isSubmitting: boolean;
-  minBid: number;
-  recommendedBid: number;
+  recommendedBidTotal: number;
   isWinningBuyer: boolean;
   isChatEnabled: boolean;
   showBuyerTokenStep: boolean;
@@ -42,8 +41,7 @@ export function StickyBidSidebar({
   error,
   success,
   isSubmitting,
-  minBid,
-  recommendedBid,
+  recommendedBidTotal,
   isWinningBuyer,
   isChatEnabled,
   showBuyerTokenStep,
@@ -62,51 +60,57 @@ export function StickyBidSidebar({
 
   return (
     <aside id="bid-panel" className="scroll-mt-24 lg:sticky lg:top-24 space-y-4">
-      <div className="bg-white rounded-[18px] border border-[#E5E7EB] p-5 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
+      <div className="glass-card rounded-[18px] p-5 sm:p-6">
         <div className="flex items-center justify-between mb-5">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${
               liveLabel === 'LIVE'
-                ? 'bg-green-100 text-green-700 animate-pulse'
+                ? 'bg-green-500/20 text-green-300 animate-pulse'
                 : liveLabel === 'On Hold'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-orange-500/20 text-orange-300'
+                  : 'bg-white/10 text-white/60'
             }`}
           >
             {liveLabel}
           </span>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
+          <span className="text-xs text-white/70 flex items-center gap-1">
             <Clock size={14} />
             {status === 'accepted' ? 'On Hold' : getTimeRemainingDetailed(listing)}
           </span>
         </div>
 
-        <div className="space-y-4 mb-6 pb-6 border-b border-[#E5E7EB]">
+        <div className="space-y-4 mb-6 pb-6 border-b border-white/10">
           <div>
-            <p className="text-[15px] font-medium text-gray-500 mb-1">Ask Bid</p>
-            <p className="text-2xl font-bold text-[#0F172A]">{formatPrice(listedTotal)}</p>
-            <p className="text-xs text-gray-400 mt-1">{formatPriceShort(listedTotal)}</p>
+            <p className="text-[15px] font-medium text-white/75 mb-1">Ask Bid</p>
+            <p className="text-2xl font-bold text-white">{formatPrice(listedTotal)}</p>
+            <p className="text-xs text-white/65 mt-1">{formatPriceShort(listedTotal)}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-0.5">Current Bid</p>
-            <p className="text-lg font-semibold text-gray-600">{formatPrice(currentBidTotal)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{formatPriceShort(currentBidTotal)}</p>
+            <p className="text-sm font-medium text-white/75 mb-0.5">Current Bid</p>
+            {listing.bids.length > 0 ? (
+              <>
+                <p className="text-lg font-semibold text-white">{formatPrice(currentBidTotal)}</p>
+                <p className="text-xs text-white/65 mt-0.5">{formatPriceShort(currentBidTotal)}</p>
+              </>
+            ) : (
+              <p className="text-lg font-semibold text-white/65">No bids yet</p>
+            )}
           </div>
         </div>
 
         {!loggedInBuyer && open && (
           <div className="space-y-3 mb-4">
-            <p className="text-sm text-gray-600">Log in to place a bid.</p>
+            <p className="text-sm text-white/70">Log in to place a bid.</p>
             <div className="flex gap-2">
               <Link
                 to={`/login?next=${encodeURIComponent(`/browse-property/${listing.id}`)}`}
-                className="flex-1 text-center py-2.5 bg-[#0F172A] text-white rounded-[14px] text-sm font-semibold hover:bg-slate-800 transition-colors"
+                className="flex-1 text-center py-2.5 bg-[#FF7A00] text-white rounded-[14px] text-sm font-semibold hover:bg-[#E66E00] transition-colors"
               >
                 Log in
               </Link>
               <Link
                 to={`/signup?next=${encodeURIComponent(`/browse-property/${listing.id}`)}`}
-                className="flex-1 text-center py-2.5 border border-[#E5E7EB] rounded-[14px] text-sm font-semibold hover:bg-gray-50 transition-colors"
+                className="flex-1 text-center py-2.5 border border-white/20 text-white rounded-[14px] text-sm font-semibold hover:bg-white/10 transition-colors"
               >
                 Sign up
               </Link>
@@ -117,15 +121,19 @@ export function StickyBidSidebar({
         {loggedInBuyer && open && (
           <form onSubmit={onSubmit} className="space-y-4">
               <BidAmountSlider
-                minBid={minBid}
-                recommendedBid={recommendedBid}
+                recommendedBidTotal={recommendedBidTotal}
                 bidAmount={bidAmount}
-                areaSqFt={listing.areaSqFt}
                 onChange={onBidChange}
                 onSelectRecommended={onSelectRecommended}
               />
 
               {error && <p className="text-sm text-red-600">{error}</p>}
+              {buyerCredits < 1 && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3">
+                  You need at least 1 credit to place a bid. Click the{' '}
+                  <span className="font-semibold">coins icon ({buyerCredits})</span> in the header to top up.
+                </p>
+              )}
               {success && (
                 <p className="text-sm text-green-600 flex items-center gap-1">
                   <Check size={16} />
@@ -136,7 +144,7 @@ export function StickyBidSidebar({
               <button
                 type="submit"
                 disabled={isSubmitting || buyerCredits < 1}
-                className="w-full py-3.5 bg-[#0F172A] text-white rounded-[14px] text-base font-semibold hover:bg-slate-800 transition-all duration-300 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-[#FF7A00] text-white rounded-[14px] text-base font-semibold hover:bg-[#E66E00] transition-all duration-300 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {isSubmitting && <Loader2 size={18} className="animate-spin" />}
                 Place Bid
@@ -145,7 +153,7 @@ export function StickyBidSidebar({
                 type="button"
                 onClick={onFastBid}
                 disabled={isSubmitting || buyerCredits < 1}
-                className="w-full py-3.5 border border-[#E5E7EB] text-[#0F172A] rounded-[14px] text-base font-semibold hover:bg-gray-50 transition-all duration-300 disabled:opacity-40 inline-flex items-center justify-center gap-2"
+                className="w-full py-3.5 border border-white/20 text-white rounded-[14px] text-base font-semibold hover:bg-white/10 transition-all duration-300 disabled:opacity-40 inline-flex items-center justify-center gap-2"
               >
                 <Zap size={16} />
                 Fast Bid
@@ -180,19 +188,19 @@ export function StickyBidSidebar({
         )}
 
         {status === 'accepted' && isWinningBuyer && !isChatEnabled && !showBuyerTokenStep && (
-          <p className="text-sm text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-3 py-3 mt-4 text-center">
+          <p className="text-sm text-orange-700 bg-orange-50 border border-orange-100 rounded-xl px-3 py-3 mt-4 text-center">
             Your bid was accepted! Complete the token step to start chatting with the seller.
           </p>
         )}
 
         {status === 'accepted' && loggedInBuyer && !isWinningBuyer && (
-          <p className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-3 py-3 mt-4 text-center">
+          <p className="text-sm text-white/80 glass-card-inner rounded-xl px-3 py-3 mt-4 text-center">
             This property has been sold. Bidding is closed.
           </p>
         )}
 
         {!open && status !== 'accepted' && (
-          <p className="text-sm text-gray-500 text-center py-4">Bidding has ended for this property.</p>
+          <p className="text-sm text-white/70 text-center py-4">Bidding has ended for this property.</p>
         )}
       </div>
     </aside>

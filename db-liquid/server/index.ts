@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 import { connectMongo, getMongoInfo } from './db';
 import { mergeListingsForSave } from './mergeListings';
+import { applyListingView } from './listingViews';
 import { mergeUsersForSave } from './mergeUsers';
 import {
   getListings,
@@ -13,6 +14,12 @@ import {
   saveListings,
   saveUsers,
 } from './mongoStore';
+import {
+  reviewVerificationDocument as applyDocumentReview,
+  reviewUserKyc,
+  toAdminListing,
+  toAdminUser,
+} from './verificationAdmin';
 import { sanitizeListing, sanitizeListings, sanitizeUser, sanitizeUsers } from './sanitize';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -162,6 +169,52 @@ app.get('/api/listings/:id', async (req, res) => {
   }
 });
 
+app.post('/api/listings/:id/record-view', async (req, res) => {
+  const visitorId = typeof req.body?.visitorId === 'string' ? req.body.visitorId.trim() : '';
+  const viewerUserId =
+    typeof req.body?.viewerUserId === 'string' ? req.body.viewerUserId.trim() : undefined;
+
+  if (!visitorId) {
+    res.status(400).json({ error: 'visitorId is required.' });
+    return;
+  }
+
+  try {
+    const listings = await getListings();
+    const index = listings.findIndex((entry) => entry.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ error: 'Listing not found.' });
+      return;
+    }
+
+    const listing = listings[index] as Record<string, unknown>;
+    const updated = applyListingView(listing, visitorId, viewerUserId);
+
+    if (!updated) {
+      res.json({
+        ok: true,
+        skipped: true,
+        viewCount: listing.viewCount ?? 0,
+        uniqueVisitorCount: listing.uniqueVisitorCount ?? 0,
+        returnVisitorCount: listing.returnVisitorCount ?? 0,
+      });
+      return;
+    }
+
+    listings[index] = updated;
+    await saveListings(listings);
+
+    res.json({
+      ok: true,
+      viewCount: updated.viewCount ?? 0,
+      uniqueVisitorCount: updated.uniqueVisitorCount ?? 0,
+      returnVisitorCount: updated.returnVisitorCount ?? 0,
+    });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
 app.put('/api/listings', async (req, res) => {
   if (!Array.isArray(req.body)) {
     res.status(400).json({ error: 'Expected an array of listings.' });
@@ -178,9 +231,135 @@ app.put('/api/listings', async (req, res) => {
   }
 });
 
+app.get('/api/admin/verification-queue', async (_req, res) => {
+  try {
+    const [listings, users] = await Promise.all([getListings(), getUsers()]);
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    const queue = listings
+      .map((listing) => {
+        const raw = listing as Record<string, unknown>;
+        const sellerId = String(raw.sellerId ?? '');
+        const seller = usersById.get(sellerId);
+        return toAdminListing(raw, seller as Parameters<typeof toAdminListing>[1]);
+      })
+      .sort(
+        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      );
+
+    res.json({ listings: queue });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
+app.post('/api/admin/verification/review', async (req, res) => {
+  const listingId = typeof req.body?.listingId === 'string' ? req.body.listingId.trim() : '';
+  const documentId = typeof req.body?.documentId === 'string' ? req.body.documentId.trim() : '';
+  const status = req.body?.status;
+
+  if (!listingId || !documentId) {
+    res.status(400).json({ error: 'listingId and documentId are required.' });
+    return;
+  }
+  if (status !== 'approved' && status !== 'rejected') {
+    res.status(400).json({ error: 'status must be approved or rejected.' });
+    return;
+  }
+
+  try {
+    const listings = await getListings();
+    const index = listings.findIndex((entry) => entry.id === listingId);
+    if (index === -1) {
+      res.status(404).json({ error: 'Listing not found.' });
+      return;
+    }
+
+    const listing = listings[index] as Record<string, unknown>;
+    const documents = (listing.verificationDocuments as { id: string }[] | undefined) ?? [];
+    if (!documents.some((doc) => doc.id === documentId)) {
+      res.status(404).json({ error: 'Document not found.' });
+      return;
+    }
+
+    listings[index] = applyDocumentReview(listing, documentId, status);
+    await saveListings(listings);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
+app.get('/api/admin/users', async (_req, res) => {
+  try {
+    const [users, listings] = await Promise.all([getUsers(), getListings()]);
+    const listingCountBySeller = new Map<string, number>();
+
+    for (const listing of listings) {
+      const sellerId = String((listing as { sellerId?: string }).sellerId ?? '');
+      if (!sellerId) continue;
+      listingCountBySeller.set(sellerId, (listingCountBySeller.get(sellerId) ?? 0) + 1);
+    }
+
+    const profiles = users
+      .map((user) =>
+        toAdminUser(user as Parameters<typeof toAdminUser>[0], listingCountBySeller.get(user.id) ?? 0),
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json({ users: profiles });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
+app.post('/api/admin/users/review-kyc', async (req, res) => {
+  const userId = typeof req.body?.userId === 'string' ? req.body.userId.trim() : '';
+  const field = req.body?.field;
+  const verified = req.body?.verified;
+
+  if (!userId) {
+    res.status(400).json({ error: 'userId is required.' });
+    return;
+  }
+  if (field !== 'aadhar' && field !== 'pan') {
+    res.status(400).json({ error: 'field must be aadhar or pan.' });
+    return;
+  }
+  if (typeof verified !== 'boolean') {
+    res.status(400).json({ error: 'verified must be a boolean.' });
+    return;
+  }
+
+  try {
+    const users = await getUsers();
+    const index = users.findIndex((entry) => entry.id === userId);
+    if (index === -1) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const result = reviewUserKyc(users[index] as Record<string, unknown>, field, verified);
+    if (!result.ok) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    users[index] = result.user;
+    await saveUsers(users);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
 if (existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (_req, res) => {
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ error: 'API route not found.' });
+      return;
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }

@@ -44,7 +44,7 @@ export function EditListingPage() {
 
   if (!sessionReady) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Loading your account…</p>
       </div>
     );
@@ -56,7 +56,7 @@ export function EditListingPage() {
 
   if (!listing || !form) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-28 px-4 text-center">
           <p className="text-gray-600 mb-4">Listing not found.</p>
@@ -74,7 +74,7 @@ export function EditListingPage() {
 
   if (!canEditListing(listing, user.id)) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-28 px-4 max-w-lg mx-auto text-center">
           <h1 className="text-2xl font-bold mb-2">Cannot edit this listing</h1>
@@ -84,7 +84,7 @@ export function EditListingPage() {
           </p>
           <Link
             to="/profile"
-            className="inline-flex px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-gray-800"
+            className="inline-flex px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-blue-950"
           >
             Back to profile
           </Link>
@@ -127,7 +127,7 @@ export function EditListingPage() {
 
   if (saved) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-32 px-4 text-center">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
@@ -141,7 +141,7 @@ export function EditListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900">
       <Header />
       <main className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
@@ -313,7 +313,7 @@ export function EditListingPage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-semibold text-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-semibold text-lg hover:bg-blue-950 transition-colors disabled:opacity-50"
           >
             <Save size={20} />
             {saving ? 'Saving…' : 'Save listing changes'}

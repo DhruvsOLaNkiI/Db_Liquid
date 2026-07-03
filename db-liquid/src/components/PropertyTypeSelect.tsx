@@ -27,13 +27,13 @@ export function PropertyTypeSelect({ value, onChange }: PropertyTypeSelectProps)
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative z-50">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-4 rounded-2xl border border-gray-200 bg-white text-left text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        className="w-full flex items-center justify-between px-4 py-4 rounded-2xl border border-white/10 bg-white/5 text-left text-lg focus:outline-none focus:ring-2 focus:ring-[#FF7A00]/20 focus:border-[#FF7A00] transition-colors"
       >
-        <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+        <span className={value ? 'text-white' : 'text-gray-500'}>
           {value || 'Select Property Type'}
         </span>
         <ChevronDown
@@ -43,10 +43,10 @@ export function PropertyTypeSelect({ value, onChange }: PropertyTypeSelectProps)
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
+        <div className="absolute z-[100] top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-white/10 rounded-lg shadow-2xl max-h-72 overflow-y-auto">
           {PROPERTY_TYPES.map((group) => (
             <div key={group.category}>
-              <div className="px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#e8f4fc] border-b border-gray-100 sticky top-0">
+              <div className="px-4 py-2.5 text-sm font-semibold text-white bg-black/40 border-b border-white/10 sticky top-0 backdrop-blur-md">
                 {group.category}
               </div>
               {group.options.map((option) => (
@@ -54,10 +54,10 @@ export function PropertyTypeSelect({ value, onChange }: PropertyTypeSelectProps)
                   key={option}
                   type="button"
                   onClick={() => select(option)}
-                  className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${
+                  className={`w-full text-left px-4 py-2.5 text-sm border-b border-white/5 last:border-b-0 transition-colors ${
                     value === option
-                      ? 'bg-[#e8f4fc] text-gray-900 font-medium'
-                      : 'text-gray-800 hover:bg-[#f0f7fc]'
+                      ? 'bg-[#FF7A00]/20 text-white font-medium'
+                      : 'text-gray-300 hover:bg-white/5 hover:text-white'
                   }`}
                 >
                   {option}

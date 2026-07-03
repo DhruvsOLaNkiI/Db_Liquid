@@ -17,6 +17,10 @@ export function normalizeUser(raw: Partial<User> & Pick<User, 'id' | 'email' | '
     credits: isBuyer ? (raw.credits ?? 0) : raw.credits,
     creditHistory: raw.creditHistory ?? [],
     profileImageUrl: raw.profileImageUrl,
+    aadharNumber: raw.aadharNumber,
+    aadharVerified: raw.aadharVerified ?? false,
+    panNumber: raw.panNumber,
+    panVerified: raw.panVerified ?? false,
   };
 }
 

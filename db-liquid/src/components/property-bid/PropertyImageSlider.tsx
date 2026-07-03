@@ -22,13 +22,13 @@ export function PropertyImageSlider({ images, alt, className = '' }: Props) {
 
   return (
     <div
-      className={`relative aspect-[4/3] lg:aspect-auto lg:min-h-[360px] overflow-hidden bg-gray-100 ${className}`}
+      className={`relative w-full aspect-[4/3] max-h-[min(70vh,420px)] overflow-hidden bg-gray-100 ${className}`}
     >
       <img
         key={current}
         src={current}
         alt={alt}
-        className="w-full h-full object-cover transition-opacity duration-300"
+        className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300"
       />
 
       {multiple && (

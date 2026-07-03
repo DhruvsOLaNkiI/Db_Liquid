@@ -61,7 +61,7 @@ export function TestDataPanel() {
           type="button"
           disabled={loading}
           onClick={handleLoadSample}
-          className="px-5 py-3 bg-primary text-white rounded-2xl font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="px-5 py-3 bg-primary text-white rounded-2xl font-medium text-sm hover:bg-blue-950 transition-colors disabled:opacity-50"
         >
           Load sample Excel
         </button>

@@ -20,10 +20,10 @@ import { getSellerName, getSellerPhone, resolveSellerId, setSellerName, setSelle
 import { buildListingDetailsSummary, buildListingLocation, getVerificationBadgeLabels, VERIFICATION_FIELDS } from '../utils/listingDisplay';
 import { randomId } from '../utils/randomId';
 
-const STEPS = ['You', 'Type', 'Location', 'Details', 'Pricing', 'Photos', 'Verify', 'Publish'] as const;
+const STEPS = ['Type', 'Location', 'Details', 'Pricing', 'Photos', 'Verify', 'Publish'] as const;
 
 const inputClass =
-  'w-full px-4 py-4 rounded-2xl border border-gray-200 bg-white text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors';
+  'w-full px-4 py-4 rounded-2xl border border-white/10 bg-white/5 text-lg text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF7A00]/20 focus:border-[#FF7A00] transition-colors';
 
 export function ListYourPropertyPage() {
   const { addListing } = useListings();
@@ -157,11 +157,11 @@ export function ListYourPropertyPage() {
   const pendingVerificationCount = buildVerificationDocuments().length;
 
   const canContinue = () => {
-    if (step === 1) return propertyType.length > 0;
-    if (step === 2) {
+    if (step === 0) return propertyType.length > 0;
+    if (step === 1) {
       return locality.trim().length > 0 && address.trim().length > 0 && stateName.trim().length > 0;
     }
-    if (step === 3) {
+    if (step === 2) {
       if (isPlot) return landSqFt.trim() && plotWidth.trim() && plotLength.trim();
       if (isCommercialShop) {
         return (
@@ -176,8 +176,8 @@ export function ListYourPropertyPage() {
       if (isResidential) return bedrooms > 0 && builtUpArea.trim().length > 0;
       return builtUpArea.trim().length > 0;
     }
-    if (step === 4) return pricePerSqFt.trim().length > 0;
-    if (step === 6) return verificationStepIsValid(verifications, verificationUploads);
+    if (step === 3) return pricePerSqFt.trim().length > 0;
+    if (step === 5) return verificationStepIsValid(verifications, verificationUploads);
     return true;
   };
 
@@ -287,16 +287,16 @@ export function ListYourPropertyPage() {
 
   if (published) {
     return (
-      <div className="min-h-screen bg-white selection:bg-blue-100 selection:text-blue-900">
+      <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900 dark-theme-page">
         <Header />
         <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-lg mx-auto text-center">
-            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <Check size={32} />
             </div>
             <h1 className="text-3xl font-bold tracking-tight mb-3">Listing published</h1>
-            <p className="text-gray-600 mb-4">
-              Your {propertyType} is live at <span className="font-semibold text-gray-900">{formatPrice(totalPrice)}</span>.
+            <p className="text-gray-300 mb-4">
+              Your {propertyType} is live at <span className="font-semibold text-white">{formatPrice(totalPrice)}</span>.
             </p>
             <p className="text-gray-500 text-sm mb-8">
               {verificationSubmitted
@@ -306,13 +306,13 @@ export function ListYourPropertyPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 to="/seller/dashboard"
-                className="inline-block px-8 py-4 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
+                className="inline-block px-8 py-4 bg-[#FF7A00] text-white rounded-full font-medium hover:bg-[#E66E00] transition-colors"
               >
                 Seller dashboard
               </Link>
               <Link
                 to="/browse-property"
-                className="inline-block px-8 py-4 border border-gray-200 text-gray-900 rounded-full font-medium hover:bg-gray-50 transition-colors"
+                className="inline-block px-8 py-4 border border-white/10 text-white rounded-full font-medium hover:bg-white/5 transition-colors"
               >
                 View on Browse listings
               </Link>
@@ -324,20 +324,20 @@ export function ListYourPropertyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900 dark-theme-page">
       <Header />
       <main className="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-xl mx-auto">
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Step {step + 1} of {STEPS.length}
               </span>
-              <span className="text-xs font-medium text-gray-500">{STEPS[step]}</span>
+              <span className="text-xs font-medium text-[#FF7A00]">{STEPS[step]}</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+                className="h-full bg-[#FF7A00] rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -346,7 +346,7 @@ export function ListYourPropertyPage() {
                 <span
                   key={label}
                   className={`text-[10px] font-medium hidden sm:block ${
-                    i <= step ? 'text-primary' : 'text-gray-300'
+                    i <= step ? 'text-[#FF7A00]' : 'text-gray-500'
                   }`}
                 >
                   {label}
@@ -358,44 +358,14 @@ export function ListYourPropertyPage() {
           <div className="min-h-[320px]">
             {step === 0 && (
               <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2">Fast listing</h1>
-                <p className="text-gray-600 mb-8">A few quick steps. No long forms.</p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4 p-5 rounded-2xl border-2 border-primary bg-primary/5">
-                    <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm">
-                      {role[0]}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">I am</p>
-                      <p className="text-xl font-bold">{role}</p>
-                    </div>
-                    <Check className="ml-auto text-primary" size={22} />
-                  </div>
-                  <div className="flex items-center gap-4 p-5 rounded-2xl border-2 border-primary bg-primary/5">
-                    <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center">
-                      <Home size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">I want to</p>
-                      <p className="text-xl font-bold">{intent}</p>
-                    </div>
-                    <Check className="ml-auto text-primary" size={22} />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400 mt-6 text-center">Defaults set for you. Tap continue.</p>
-              </div>
-            )}
-
-            {step === 1 && (
-              <div>
-                <Building2 className="text-primary mb-4" size={28} />
+                <Building2 className="text-[#FF7A00] mb-4" size={28} />
                 <h1 className="text-3xl font-bold tracking-tight mb-2">Property type</h1>
                 <p className="text-gray-600 mb-8">Select what you are listing.</p>
                 <PropertyTypeSelect value={propertyType} onChange={setPropertyType} />
               </div>
             )}
 
-            {step === 2 && (
+            {step === 1 && (
               <SellerLocalityStep
                 propertyType={propertyType}
                 showFloorFields={showFloorFields}
@@ -414,7 +384,7 @@ export function ListYourPropertyPage() {
               />
             )}
 
-            {step === 3 && (
+            {step === 2 && (
               <SellerPropertyDetailsStep
                 isPlot={isPlot}
                 isResidential={isResidential}
@@ -482,9 +452,9 @@ export function ListYourPropertyPage() {
               />
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <div>
-                <IndianRupee className="text-primary mb-4" size={28} />
+                <IndianRupee className="text-[#FF7A00] mb-4" size={28} />
                 <h1 className="text-3xl font-bold tracking-tight mb-2">Set your price</h1>
                 <p className="text-gray-600 mb-8">Enter your price per square foot.</p>
                 <input
@@ -498,7 +468,7 @@ export function ListYourPropertyPage() {
               </div>
             )}
 
-            {step === 5 && (
+            {step === 4 && (
               <SellerPhotosStep
                 photos={propertyPhotos}
                 photoNote={photoNote}
@@ -507,7 +477,7 @@ export function ListYourPropertyPage() {
               />
             )}
 
-            {step === 6 && (
+            {step === 5 && (
               <SellerVerificationStep
                 verifications={verifications}
                 uploads={verificationUploads}
@@ -516,17 +486,17 @@ export function ListYourPropertyPage() {
               />
             )}
 
-            {step === 7 && (
+            {step === 6 && (
               <div>
                 <h1 className="text-3xl font-bold tracking-tight mb-2">Ready to publish?</h1>
-                <p className="text-gray-600 mb-8">Quick review before going live.</p>
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 space-y-4 text-sm">
+                <p className="text-gray-400 mb-8">Quick review before going live.</p>
+                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Listing as</span>
+                    <span className="text-gray-400">Listing as</span>
                     <span className="font-semibold">{role} · {intent}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Property type</span>
+                    <span className="text-gray-400">Property type</span>
                     <span className="font-semibold text-right max-w-[60%]">{propertyType}</span>
                   </div>
                   <div className="flex justify-between gap-4">
@@ -594,7 +564,7 @@ export function ListYourPropertyPage() {
               <button
                 type="button"
                 onClick={back}
-                className="flex items-center justify-center gap-2 px-6 py-4 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-full border border-white/10 text-gray-300 font-medium hover:bg-white/10 hover:text-white transition-colors"
               >
                 <ArrowLeft size={18} />
                 Back
@@ -602,7 +572,7 @@ export function ListYourPropertyPage() {
             ) : (
               <Link
                 to="/list-your-property"
-                className="flex items-center justify-center gap-2 px-6 py-4 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-full border border-white/10 text-gray-300 font-medium hover:bg-white/10 hover:text-white transition-colors"
               >
                 <ArrowLeft size={18} />
                 Back
@@ -614,7 +584,7 @@ export function ListYourPropertyPage() {
                 type="button"
                 onClick={next}
                 disabled={!canContinue()}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FF7A00] text-white rounded-full font-medium text-lg hover:bg-[#E66E00] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Continue
                 <ArrowRight size={18} />
@@ -623,7 +593,7 @@ export function ListYourPropertyPage() {
               <button
                 type="button"
                 onClick={publish}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-gray-800 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FF7A00] text-white rounded-full font-medium text-lg hover:bg-[#E66E00] transition-colors"
               >
                 Publish listing
                 <Check size={18} />
@@ -631,21 +601,21 @@ export function ListYourPropertyPage() {
             )}
           </div>
 
-          {step === 5 && (
+          {step === 4 && (
             <button
               type="button"
               onClick={next}
-              className="w-full mt-3 py-3 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+              className="w-full mt-3 py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors"
             >
               Skip photos for now
             </button>
           )}
 
-          {step === 6 && (
+          {step === 5 && (
             <button
               type="button"
               onClick={skipVerification}
-              className="w-full mt-3 py-3 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+              className="w-full mt-3 py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors"
             >
               Skip this step
             </button>

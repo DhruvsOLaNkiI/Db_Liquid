@@ -153,7 +153,7 @@ export function EditListingPriceForm({
         <button
           type="submit"
           disabled={saving || previewPerSqFt <= 0}
-          className="flex-1 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="flex-1 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-blue-950 transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save ask price'}
         </button>
@@ -180,7 +180,7 @@ export function EditListingPriceTrigger({ listing, sellerId, className = '' }: T
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-gray-800 transition-colors"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-blue-950 transition-colors"
         >
           <Pencil size={11} />
           Edit price

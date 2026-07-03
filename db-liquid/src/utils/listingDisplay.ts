@@ -1,5 +1,5 @@
 import type { ListingVerifications, PropertyListing, VerificationDocument } from '../types/listing';
-import { getBidTotal, getHighestBidPerSqFt, getRecommendedBid } from '../types/listing';
+import { getBidTotal, getHighestBidTotal, getRecommendedBid, getRecommendedBidTotal as getRecommendedBidTotalFromListing } from '../types/listing';
 import { isPlotType } from '../data/propertyTypes';
 
 const STATE_HINTS: Record<string, string> = {
@@ -19,6 +19,14 @@ const STATE_HINTS: Record<string, string> = {
 export function getDisplayListingId(id: string) {
   const short = id.replace(/-/g, '').slice(0, 5).toUpperCase();
   return `DBL-${short}`;
+}
+
+export function getListingViewStats(listing: PropertyListing) {
+  return {
+    viewCount: listing.viewCount ?? 0,
+    uniqueVisitorCount: listing.uniqueVisitorCount ?? 0,
+    returnVisitorCount: listing.returnVisitorCount ?? 0,
+  };
 }
 
 export function parseListingLocation(location: string) {
@@ -101,11 +109,11 @@ export function getMarketAskTotal(listing: PropertyListing) {
 }
 
 export function getCurrentHighestBidTotal(listing: PropertyListing) {
-  return getBidTotal(getHighestBidPerSqFt(listing), listing.areaSqFt);
+  return getHighestBidTotal(listing);
 }
 
 export function getRecommendedBidTotal(listing: PropertyListing) {
-  return getBidTotal(getRecommendedBid(listing), listing.areaSqFt);
+  return getRecommendedBidTotalFromListing(listing);
 }
 
 export function perSqFtFromTotal(total: number, areaSqFt: number) {
@@ -401,6 +409,30 @@ export function buildListingDetailsSummary(input: DetailsInput) {
 }
 
 /** Short buyer-facing label, e.g. "2 BHK · 2000 sq.ft" instead of full room breakdown. */
+export function buildListingFullAddress(listing: PropertyListing) {
+  const parts: string[] = [];
+  if (listing.address?.trim()) parts.push(listing.address.trim());
+  const { city, state } = getListingCityState(listing);
+  if (listing.locality?.trim()) {
+    if (!parts.some((part) => part.toLowerCase().includes(listing.locality!.toLowerCase()))) {
+      parts.push(listing.locality.trim());
+    }
+  } else if (city && city !== '—') {
+    parts.push(city);
+  }
+  if (state && state !== 'India') parts.push(state);
+  if (listing.pincode?.trim()) parts.push(listing.pincode.trim());
+  return parts.join(', ') || listing.location || '—';
+}
+
+export function estimateRegistrationCharges(totalPrice: number) {
+  return Math.round(totalPrice * 0.05);
+}
+
+export function estimateBookingAmount(totalPrice: number) {
+  return Math.round(totalPrice * 0.1);
+}
+
 export function formatBuyerConfiguration(listing: PropertyListing) {
   const summary = listing.detailsSummary;
   const areaLabel =

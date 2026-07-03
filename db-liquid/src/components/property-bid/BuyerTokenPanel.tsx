@@ -16,15 +16,15 @@ export function BuyerTokenPanel({ message, onPay, onSkip, showSkip = true }: Pro
 
   return (
     <>
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mt-4">
+      <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mt-4">
         <div className="flex items-start gap-2 mb-3">
-          <Check className="text-blue-600 shrink-0 mt-0.5" size={18} />
-          <p className="text-sm font-semibold text-blue-900">
+          <Check className="text-orange-600 shrink-0 mt-0.5" size={18} />
+          <p className="text-sm font-semibold text-orange-900">
             {message ?? 'Your bid was accepted! Pay the token to unlock chat with the seller.'}
           </p>
         </div>
 
-        <p className="text-xs font-semibold text-blue-900 mb-2">Token amount</p>
+        <p className="text-xs font-semibold text-orange-900 mb-2">Token amount</p>
         <div className="bg-white rounded-lg p-3 space-y-1.5 text-xs mb-3">
           <div className="flex justify-between">
             <span className="text-gray-500">To seller</span>

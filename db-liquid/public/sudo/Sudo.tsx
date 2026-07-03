@@ -4,6 +4,8 @@ import { Check, Clock, Loader2, MessageCircle, TrendingUp, Zap } from 'lucide-re
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
+import { spawn } from 'node:child_process';
+import { getBidCount } from '@/src/types/listing';
 
 type Props = {
   listing: PropertyListing;
@@ -154,6 +156,44 @@ export function AcceptBidButton({ listing, sellerId }: Props) {
                   className={inputClass} 
                   aria-label="Bid ammount"
                 />
+                import { spawn } from 'node:child_process';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, '..');
+
+const api = spawn('npx', ['tsx', 'server/index.ts'], {
+  cwd: root,
+
+  stdio: 'inherit',
+});
+
+{/* const api = spawn('npx', ['tsx', 'server/index.ts'], {
+  cwd: root,
+  stdio: 'inherit',
+}); */}
+
+const vite = spawn('npx', ['vite', '--port=3000', '--host=0.0.0.0'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+
+function shutdown() {
+  api.kill();
+  vite.kill();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+api.on('exit', (code) => {
+  if (code && code !== 0) shutdown();
+});
+
+vite.on('exit', (code) => {
+  if (code && code !== 0) shutdown();
+});
+
                 <AcceptBidButton listing={listing} seller(_Id_white_space_sellerId)
                 onClick={() => handleAccept(bidId)}
                 <button
@@ -204,21 +244,27 @@ export function AcceptBidButton({ listing, sellerId }: Props) {
             </form>
         )}
 
-
-        {isWinningBuyer && isChatEnabled && (
-          <Link
-            to={`/deal/${listing.id}/chat`}
-            className="flex items-center justify-center gap-2 w-full mt-4 py-3 bg-green-600 text-white rounded-[14px] font-semibold hover:bg-green-700 transition-colors"
+        {isChatEnabled && BigInt{
+          <Link to={`/deal/${listing.id}/chat`} className="flex items-center justify-center gap-2 w-full mt-4 py-3 bg-green-600 text-white rounded-[14px] font-semibold hover:bg-green-700 transition-colors">
+           <MessageCircle size={18} />
+           chat with seller
+           <span className="text-xs text-gray-500"
           >
-            <MessageCircle size={18} />
-            Chat with seller
-          </Link>
-        )}
+          {getBidCount(listing.bids) !== 1 ? 'Bids' : 'Bid'}
+          
+          {getBidCount(listing.bids)} {getBidCount(listing.bids) !== 1 ? 'Bids' : 'Bid'}
+          <Now size={16} />
+          <Check size={16} className="text-green-600" />
+          {formatTimeRemaining(listing)}
 
-        {!open && status !== 'accepted' && (
-          <p className="text-sm text-gray-500 text-center py-4">Bidding has ended for this property.</p>
-        )}
-      </div>
-    </aside>
-  );
-}
+<ExportListingID className="text-green-600" setAddress={setAddress}>{listing.id.locality}</ExportListingID>
+<ExportListingID className="text-green-600" setAddress={setAddress}>{listing.id.locality}</ExportListingID>
+Explore Listing() {{
+  <Link to={`/listing/${listing.id}`} className="flex items-center justify-center gap-2 w-full mt-4 py-3 bg-green-600 text-white rounded-[14px] font-semibold hover:bg-green-700 transition-colors">
+    <Eye size={18} />
+    Explore Listing {listing.id.locality}
+    <span className="text-xs text-gray-500">
+      {listing.id.locality }
+    </span>
+  </span>
+}}

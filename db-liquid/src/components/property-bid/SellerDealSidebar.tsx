@@ -5,11 +5,11 @@ import type { PropertyListing } from '../../types/listing';
 import {
   formatPrice,
   getAcceptedBid,
-  getBidTotal,
-  getHighestBidPerSqFt,
+  getBidAmount,
   getListingStatus,
   isBuyerTokenDue,
   isChatEnabled,
+  sortBidsByAmount,
 } from '../../types/listing';
 import { useListings } from '../../context/ListingsContext';
 import { SellerDeclineBuyerButton } from './SellerDeclineBuyerButton';
@@ -30,8 +30,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
   const acceptedBid = getAcceptedBid(listing);
   const listedTotal = getListedPriceTotal(listing);
   const currentBidTotal = getCurrentHighestBidTotal(listing);
-  const highestBid = getHighestBidPerSqFt(listing);
-  const sortedBids = [...listing.bids].sort((a, b) => b.amountPerSqFt - a.amountPerSqFt);
+  const sortedBids = sortBidsByAmount(listing.bids, listing.areaSqFt);
   const liveLabel = status === 'accepted' ? 'On Hold' : open ? 'LIVE' : 'CLOSED';
   const chatEnabled = isChatEnabled(listing);
   const awaitingBuyerToken = isBuyerTokenDue(listing);
@@ -47,7 +46,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
 
   return (
     <aside className="lg:sticky lg:top-24 space-y-4">
-      <div className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
+      <div className="glass-card rounded-[18px] p-6">
         <div className="mb-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/5 px-2.5 py-1 rounded-full">
             Your listing
@@ -58,33 +57,33 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${
               liveLabel === 'LIVE'
-                ? 'bg-green-100 text-green-700 animate-pulse'
+                ? 'bg-green-500/20 text-green-300 animate-pulse'
                 : liveLabel === 'On Hold'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-orange-500/20 text-orange-300'
+                  : 'bg-white/10 text-white/60'
             }`}
           >
             {liveLabel}
           </span>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
+          <span className="text-xs text-white/50 flex items-center gap-1">
             <Clock size={14} />
             {status === 'accepted' ? 'Bid accepted' : getTimeRemainingDetailed(listing)}
           </span>
         </div>
 
-        <div className="space-y-4 mb-6 pb-6 border-b border-[#E5E7EB]">
+        <div className="space-y-4 mb-6 pb-6 border-b border-white/10">
           <div>
-            <p className="text-[15px] font-medium text-gray-500 mb-1">Ask Bid</p>
-            <p className="text-2xl font-bold text-[#0F172A]">{formatPrice(listedTotal)}</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-[15px] font-medium text-white/75 mb-1">Ask Bid</p>
+            <p className="text-2xl font-bold text-white">{formatPrice(listedTotal)}</p>
+            <p className="text-xs text-white/65 mt-1">
               ₹{listing.pricePerSqFt.toLocaleString('en-IN')}/sq.ft
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-0.5">Current Bid</p>
-            <p className="text-lg font-semibold text-gray-600">{formatPrice(currentBidTotal)}</p>
+            <p className="text-sm font-medium text-white/75 mb-0.5">Current Bid</p>
+            <p className="text-lg font-semibold text-white">{formatPrice(currentBidTotal)}</p>
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-4 text-sm text-white/80">
             <span className="flex items-center gap-1">
               <Users size={14} />
               {listing.bids.length} bid{listing.bids.length !== 1 ? 's' : ''}
@@ -92,7 +91,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
             {listing.bids.length > 0 && (
               <span className="flex items-center gap-1">
                 <TrendingUp size={14} />
-                ₹{highestBid.toLocaleString('en-IN')}/sq.ft
+                {formatPrice(currentBidTotal)}
               </span>
             )}
           </div>
@@ -105,22 +104,21 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
         )}
 
         {acceptedBid && (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-4">
             <div className="flex items-start gap-2">
-              <Check className="text-blue-600 shrink-0 mt-0.5" size={18} />
+              <Check className="text-orange-600 shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="font-semibold text-blue-900 text-sm">
+                <p className="font-semibold text-orange-900 text-sm">
                   Accepted: {acceptedBid.bidderName}
                 </p>
-                <p className="text-xs text-blue-700 mt-0.5">
-                  {formatPrice(getBidTotal(acceptedBid.amountPerSqFt, listing.areaSqFt))} · ₹
-                  {acceptedBid.amountPerSqFt.toLocaleString('en-IN')}/sq.ft
+                <p className="text-xs text-orange-700 mt-0.5">
+                  {formatPrice(getBidAmount(acceptedBid, listing.areaSqFt))}
                 </p>
               </div>
             </div>
 
             {awaitingBuyerToken && (
-              <p className="text-xs text-blue-800 mt-3 bg-white/70 rounded-lg px-3 py-2">
+              <p className="text-xs text-orange-800 mt-3 bg-white/70 rounded-lg px-3 py-2">
                 Waiting for {acceptedBid.bidderName} to pay the token. Chat opens after payment.
               </p>
             )}
@@ -149,7 +147,7 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
             <button
               type="button"
               onClick={() => setShowBids((v) => !v)}
-              className="text-sm font-medium text-[#0F172A] hover:underline"
+              className="text-sm font-medium text-white hover:text-[#FF7A00] hover:underline"
             >
               {showBids ? 'Hide bids' : `Review ${listing.bids.length} bid${listing.bids.length !== 1 ? 's' : ''}`}
             </button>
@@ -159,21 +157,21 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
                 {sortedBids.map((bid, i) => (
                   <li
                     key={bid.id}
-                    className="flex items-center justify-between gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm"
+                    className="flex items-center justify-between gap-2 p-3 rounded-xl glass-card-inner text-sm"
                   >
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">{bid.bidderName}</p>
-                      <p className="text-xs text-gray-500">
-                        ₹{bid.amountPerSqFt.toLocaleString('en-IN')}/sq.ft
+                      <p className="font-semibold text-white truncate">{bid.bidderName}</p>
+                      <p className="text-xs text-white/75">
+                        {formatPrice(getBidAmount(bid, listing.areaSqFt))}
                         {i === 0 && (
-                          <span className="ml-1 text-green-700 font-medium">· Highest</span>
+                          <span className="ml-1 text-green-300 font-medium">· Highest</span>
                         )}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleAccept(bid.id)}
-                      className="shrink-0 px-3 py-1.5 bg-[#0F172A] text-white rounded-full text-xs font-semibold hover:bg-slate-800 transition-colors"
+                      className="shrink-0 px-3 py-1.5 bg-[#FF7A00] text-white rounded-full text-xs font-semibold hover:bg-[#E66E00] transition-colors"
                     >
                       Accept
                     </button>
@@ -185,18 +183,18 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
         )}
 
         {open && listing.bids.length === 0 && (
-          <p className="text-sm text-gray-500 text-center py-2 mb-4">
+          <p className="text-sm text-white/75 text-center py-2 mb-4">
             No bids yet. Share your listing with buyers.
           </p>
         )}
 
         {!open && status !== 'accepted' && (
-          <p className="text-sm text-gray-500 text-center py-2">Bidding has ended.</p>
+          <p className="text-sm text-white/75 text-center py-2">Bidding has ended.</p>
         )}
 
         <Link
           to="/seller/dashboard"
-          className="block text-center text-sm font-medium text-gray-500 hover:text-[#0F172A] mt-2"
+          className="block text-center text-sm font-medium text-white/70 hover:text-white mt-2"
         >
           Open seller dashboard →
         </Link>

@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '../components/Header';
 import { BidHistoryTimeline } from '../components/property-bid/BidHistoryTimeline';
+import { PropertyMoreDetails } from '../components/property-bid/PropertyMoreDetails';
 import { PricingCards } from '../components/property-bid/PricingCards';
 import { PropertyHeroCard } from '../components/property-bid/PropertyHeroCard';
 import { StickyBidSidebar } from '../components/property-bid/StickyBidSidebar';
@@ -16,11 +17,10 @@ import { getBuyerCredits } from '../utils/buyerCredits';
 import { resolveSellerId } from '../utils/seller';
 import { getCurrentHighestBidTotal } from '../utils/listingDisplay';
 import {
-  formatPrice,
-  getBidTotal,
   getListingStatus,
-  getMinNextBid,
-  getRecommendedBid,
+  getRecommendedBidTotal,
+  isValidBidTotal,
+  sortBidsByAmount,
   isAcceptedBuyerForListing,
   isBiddingOpen,
   isBuyerTokenDue,
@@ -30,7 +30,7 @@ import {
 
 export function PropertyBidPage() {
   const { id } = useParams<{ id: string }>();
-  const { getListingById, placeBid, completeToken } = useListings();
+  const { getListingById, placeBid, completeToken, recordListingView } = useListings();
   const { user, isAuthenticated, hasRole, syncCreditWallet, buyerCredits } = useAuth();
   const listing = id ? getListingById(id) : undefined;
 
@@ -43,13 +43,18 @@ export function PropertyBidPage() {
   const [success, setSuccess] = useState(false);
   const [tokenMessage, setTokenMessage] = useState('');
 
+  useEffect(() => {
+    if (!id || isListingOwner) return;
+    void recordListingView(id, user?.id);
+  }, [id, isListingOwner, user?.id, recordListingView]);
+
   if (!listing) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA]">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-24 pb-20 px-4 text-center">
-          <h1 className="text-2xl font-bold mb-4">Listing not found</h1>
-          <Link to="/" className="text-[#0F172A] font-medium hover:underline">
+          <h1 className="text-2xl font-bold text-white mb-4">Listing not found</h1>
+          <Link to="/browse-property" className="text-[#FF7A00] font-medium hover:underline">
             ← Back to listings
           </Link>
         </main>
@@ -57,23 +62,22 @@ export function PropertyBidPage() {
     );
   }
 
-  const minBid = getMinNextBid(listing);
-  const recommendedBid = getRecommendedBid(listing);
+  const recommendedBidTotal = getRecommendedBidTotal(listing);
   const open = isBiddingOpen(listing);
   const status = getListingStatus(listing);
-  const sortedBids = [...listing.bids].sort((a, b) => b.amountPerSqFt - a.amountPerSqFt);
+  const sortedBids = sortBidsByAmount(listing.bids, listing.areaSqFt);
   const isWinningBuyer = Boolean(user && isAcceptedBuyerForListing(listing, user));
   const chatEnabled = isChatEnabled(listing);
   const showBuyerTokenStep = Boolean(isWinningBuyer && isBuyerTokenDue(listing));
   const wasDeclined = Boolean(user && wasBuyerDeclinedBySeller(listing, user.id));
 
-  const resolveBidPerSqFt = (amount?: number) => {
-    if (amount && amount >= minBid) return amount;
-    if (bidAmount && Number(bidAmount) >= minBid) return Number(bidAmount);
+  const resolveBidTotal = (total?: number) => {
+    if (total && total > 0) return total;
+    if (bidAmount && Number(bidAmount) > 0) return Number(bidAmount);
     return 0;
   };
 
-  const submitBid = async (amountPerSqFt?: number) => {
+  const submitBid = async (bidTotal?: number) => {
     if (isSubmitting) return;
 
     setError('');
@@ -91,15 +95,15 @@ export function PropertyBidPage() {
       return;
     }
 
-    const amount = resolveBidPerSqFt(amountPerSqFt);
-    if (!amount || amount < minBid) {
-      setError(`Enter at least ${formatPrice(getBidTotal(minBid, listing.areaSqFt))} (₹${minBid.toLocaleString('en-IN')}/sq.ft)`);
+    const total = resolveBidTotal(bidTotal);
+    if (!isValidBidTotal(total)) {
+      setError('Enter a bid amount greater than ₹0.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const result = await placeBid(listing.id, user.name, user.phone, amount, user.id);
+      const result = await placeBid(listing.id, user.name, user.phone, total, user.id);
       if (!result.ok) {
         setError(result.error);
         syncCreditWallet();
@@ -122,7 +126,7 @@ export function PropertyBidPage() {
   };
 
   const handleSelectRecommended = () => {
-    setBidAmount(String(recommendedBid));
+    setBidAmount(String(recommendedBidTotal));
     setError('');
   };
 
@@ -140,14 +144,14 @@ export function PropertyBidPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900 property-bid-page">
       <Header />
       <main className="pt-20 pb-28 lg:pt-24 lg:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
-          <div className="mb-4">
+          <div className="mb-5">
             <Link
-              to={isListingOwner ? '/seller/dashboard' : '/'}
-              className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#0F172A] transition-colors"
+              to={isListingOwner ? '/seller/dashboard' : '/browse-property'}
+              className="inline-flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
             >
               <ArrowLeft size={16} />
               {isListingOwner ? 'Back to my listings' : 'Back to listings'}
@@ -173,8 +177,7 @@ export function PropertyBidPage() {
                   error={error}
                   success={success}
                   isSubmitting={isSubmitting}
-                  minBid={minBid}
-                  recommendedBid={recommendedBid}
+                  recommendedBidTotal={recommendedBidTotal}
                   isWinningBuyer={isWinningBuyer}
                   isChatEnabled={chatEnabled}
                   showBuyerTokenStep={showBuyerTokenStep}
@@ -184,27 +187,32 @@ export function PropertyBidPage() {
                   onSkipToken={() => handleBuyerToken('skip')}
                   onBidChange={setBidAmount}
                   onSubmit={handleSubmit}
-                  onFastBid={() => void submitBid(recommendedBid)}
+                  onFastBid={() => void submitBid(recommendedBidTotal)}
                   onSelectRecommended={handleSelectRecommended}
                 />
               )}
             </div>
 
-            <div className="order-3 lg:col-start-1 space-y-6 lg:space-y-8 min-w-0">
-              <section>
-                <h2 className="text-lg lg:text-[22px] font-bold text-[#0F172A] mb-3 lg:mb-4">Verification</h2>
+            <div className="order-3 lg:col-start-1 space-y-5 min-w-0">
+              <section className="glass-card rounded-[18px] p-5 lg:p-6">
+                <h2 className="text-lg lg:text-xl font-bold text-white mb-4">Verification</h2>
                 <VerificationBadges listing={listing} />
               </section>
 
-              <section className={!isListingOwner ? 'hidden lg:block' : ''}>
-                <h2 className="text-lg lg:text-[22px] font-bold text-[#0F172A] mb-3 lg:mb-4">Pricing</h2>
-                <PricingCards listing={listing} forBuyer={!isListingOwner} />
+              <section
+                className={`glass-card rounded-[18px] p-5 lg:p-6 ${!isListingOwner ? 'hidden lg:block' : ''}`}
+              >
+                <h2 className="text-lg lg:text-xl font-bold text-white mb-4">Pricing</h2>
+                <PricingCards listing={listing} />
               </section>
             </div>
           </div>
 
-          <div className="mt-6 lg:mt-8">
-            <BidHistoryTimeline listing={listing} sortedBids={sortedBids} />
+          <div className="mt-5 space-y-5">
+            {!isListingOwner && (
+              <BidHistoryTimeline listing={listing} sortedBids={sortedBids} />
+            )}
+            <PropertyMoreDetails listing={listing} />
           </div>
         </div>
       </main>

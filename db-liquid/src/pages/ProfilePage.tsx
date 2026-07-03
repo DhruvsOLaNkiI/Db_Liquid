@@ -4,12 +4,14 @@ import {
   Building2,
   Camera,
   Check,
+  CheckCircle2,
   ChevronRight,
   Eye,
   EyeOff,
   Gavel,
   Lock,
   MessageCircle,
+  ShieldCheck,
   User as UserIcon,
 } from 'lucide-react';
 import { Header } from '../components/Header';
@@ -28,9 +30,18 @@ import {
   getUserListings,
 } from '../utils/profileStats';
 import { ProfileListingCard } from '../components/profile/ProfileListingCard';
+import {
+  formatAadharInput,
+  isValidAadhar,
+  isValidPan,
+  maskAadhar,
+  maskPan,
+  normalizeAadhar,
+  normalizePan,
+} from '../utils/kyc';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors';
+  'w-full px-4 py-3 rounded-xl border border-white/25 bg-white/95 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors';
 
 type ProfileTab = 'details' | 'security';
 
@@ -51,7 +62,7 @@ function PasswordField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-white/85 mb-1.5">
         {label}
       </label>
       <div className="relative">
@@ -109,18 +120,31 @@ export function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const [aadharNumber, setAadharNumber] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [editingAadhar, setEditingAadhar] = useState(false);
+  const [editingPan, setEditingPan] = useState(false);
+  const [verifyingAadhar, setVerifyingAadhar] = useState(false);
+  const [verifyingPan, setVerifyingPan] = useState(false);
+  const [kycError, setKycError] = useState('');
+  const [kycMessage, setKycMessage] = useState('');
+
   useEffect(() => {
     if (!user) return;
     setName(user.name);
     setEmail(user.email);
     setPhone(user.phone);
     setProfileImageUrl(user.profileImageUrl);
+    setAadharNumber(user.aadharNumber ? formatAadharInput(user.aadharNumber) : '');
+    setPanNumber(user.panNumber ?? '');
+    setEditingAadhar(false);
+    setEditingPan(false);
   }, [user]);
 
   if (!sessionReady) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading your account…</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-white/70">Loading your account…</p>
       </div>
     );
   }
@@ -214,6 +238,58 @@ export function ProfilePage() {
     setPasswordMessage('Password changed successfully.');
   };
 
+  const handleVerifyAadhar = async () => {
+    setKycError('');
+    setKycMessage('');
+
+    const normalized = normalizeAadhar(aadharNumber);
+    if (!isValidAadhar(normalized)) {
+      setKycError('Enter a valid 12-digit Aadhar number.');
+      return;
+    }
+
+    setVerifyingAadhar(true);
+    const result = await updateProfile({
+      aadharNumber: normalized,
+      aadharVerified: true,
+    });
+    setVerifyingAadhar(false);
+
+    if (!result.ok) {
+      setKycError(result.error);
+      return;
+    }
+
+    setEditingAadhar(false);
+    setKycMessage('Aadhar verified successfully.');
+  };
+
+  const handleVerifyPan = async () => {
+    setKycError('');
+    setKycMessage('');
+
+    const normalized = normalizePan(panNumber);
+    if (!isValidPan(normalized)) {
+      setKycError('Enter a valid PAN (e.g. ABCDE1234F).');
+      return;
+    }
+
+    setVerifyingPan(true);
+    const result = await updateProfile({
+      panNumber: normalized,
+      panVerified: true,
+    });
+    setVerifyingPan(false);
+
+    if (!result.ok) {
+      setKycError(result.error);
+      return;
+    }
+
+    setEditingPan(false);
+    setKycMessage('PAN verified successfully.');
+  };
+
   const hasDetailsChanges =
     user &&
     (name !== user.name ||
@@ -222,18 +298,18 @@ export function ProfilePage() {
       (profileImageUrl ?? undefined) !== (user.profileImageUrl ?? undefined));
 
   return (
-    <div className="min-h-screen bg-gray-50 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900">
       <Header />
       <main className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">My profile</h1>
-            <p className="text-gray-600">Your bids, listings, chats, and account details in one place.</p>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2 text-white">My profile</h1>
+            <p className="text-white/70">Your bids, listings, chats, and account details in one place.</p>
           </div>
 
-          <div className="grid lg:grid-cols-[320px_1fr] gap-8 items-start">
+          <div className="grid lg:grid-cols-[320px_1fr] gap-8 lg:gap-12 items-start">
             <aside className="space-y-6">
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+              <div className="p-1">
                 <div className="flex flex-col items-center text-center mb-6">
                   <button
                     type="button"
@@ -241,14 +317,14 @@ export function ProfilePage() {
                     className="relative group mb-4"
                     aria-label="Change profile photo"
                   >
-                    <div className="w-28 h-28 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-md flex items-center justify-center">
+                    <div className="w-28 h-28 rounded-full overflow-hidden bg-white/10 border-4 border-white/20 shadow-md flex items-center justify-center">
                       {profileImageUrl ? (
                         <img src={profileImageUrl} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
-                        <UserIcon size={40} className="text-gray-400" />
+                        <UserIcon size={40} className="text-white/50" />
                       )}
                     </div>
-                    <span className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-md group-hover:bg-gray-800 transition-colors">
+                    <span className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-md group-hover:bg-blue-950 transition-colors">
                       <Camera size={16} />
                     </span>
                   </button>
@@ -259,18 +335,18 @@ export function ProfilePage() {
                     className="hidden"
                     onChange={handleImageChange}
                   />
-                  <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-                  <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+                  <h2 className="text-xl font-bold text-white">{user.name}</h2>
+                  <p className="text-sm text-white/65 mt-1">{user.email}</p>
                 </div>
 
                 <div className="mb-5">
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">Profile completion</span>
-                    <span className="font-bold text-primary">{completion.percent}%</span>
+                    <span className="font-medium text-white/80">Profile completion</span>
+                    <span className="font-bold text-accent">{completion.percent}%</span>
                   </div>
-                  <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-2.5 rounded-full bg-white/15 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-primary transition-all duration-500"
+                      className="h-full rounded-full bg-accent transition-all duration-500"
                       style={{ width: `${completion.percent}%` }}
                     />
                   </div>
@@ -281,12 +357,12 @@ export function ProfilePage() {
                     <li
                       key={check.key}
                       className={`flex items-center gap-2 text-sm ${
-                        check.done ? 'text-green-700' : 'text-gray-500'
+                        check.done ? 'text-green-300' : 'text-white/55'
                       }`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          check.done ? 'bg-green-100' : 'bg-gray-100'
+                          check.done ? 'bg-green-500/25' : 'bg-white/10'
                         }`}
                       >
                         {check.done && <Check size={12} />}
@@ -296,14 +372,14 @@ export function ProfilePage() {
                   ))}
                 </ul>
 
-                <div className="flex rounded-xl bg-gray-100 p-1 mb-5">
+                <div className="flex rounded-xl bg-white/10 p-1 mb-5">
                   <button
                     type="button"
                     onClick={() => setActiveTab('details')}
                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === 'details'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white/20 text-white shadow-sm'
+                        : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Personal details
@@ -313,8 +389,8 @@ export function ProfilePage() {
                     onClick={() => setActiveTab('security')}
                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === 'security'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white/20 text-white shadow-sm'
+                        : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Password
@@ -322,9 +398,9 @@ export function ProfilePage() {
                 </div>
 
                 {activeTab === 'details' ? (
-                <form onSubmit={handleSubmit} className="space-y-4 border-t border-gray-100 pt-6">
+                <form onSubmit={handleSubmit} className="space-y-4 border-t border-white/15 pt-6">
                   <div>
-                    <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="profile-name" className="block text-sm font-medium text-white/85 mb-1.5">
                       Full name
                     </label>
                     <input
@@ -337,7 +413,7 @@ export function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="profile-email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="profile-email" className="block text-sm font-medium text-white/85 mb-1.5">
                       Email
                     </label>
                     <input
@@ -350,7 +426,7 @@ export function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="profile-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="profile-phone" className="block text-sm font-medium text-white/85 mb-1.5">
                       Phone
                     </label>
                     <input
@@ -363,15 +439,181 @@ export function ProfilePage() {
                     />
                   </div>
 
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  {message && <p className="text-sm text-green-600">{message}</p>}
+                  <div className="border-t border-white/15 pt-5 space-y-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ShieldCheck size={18} className="text-accent" />
+                      <h3 className="text-sm font-semibold text-white">Identity verification</h3>
+                    </div>
+                    <p className="text-xs text-white/60">
+                      Verify your Aadhar and PAN to build trust with buyers and sellers on DB Liquid.
+                    </p>
+
+                    <div
+                      className={`rounded-xl border p-4 ${
+                        user.aadharVerified && !editingAadhar
+                          ? 'border-green-400/40 bg-green-500/10'
+                          : 'border-white/20 bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">Aadhar</p>
+                          <p className="text-xs text-white/55 mt-0.5">12-digit Aadhar number</p>
+                        </div>
+                        {user.aadharVerified && !editingAadhar ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold shrink-0">
+                            <CheckCircle2 size={14} />
+                            Verified
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {user.aadharVerified && !editingAadhar ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-white/90 tracking-wide">
+                            {maskAadhar(user.aadharNumber ?? '')}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingAadhar(true);
+                              setAadharNumber(user.aadharNumber ? formatAadharInput(user.aadharNumber) : '');
+                              setKycError('');
+                              setKycMessage('');
+                            }}
+                            className="text-xs font-medium text-accent hover:underline shrink-0"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <input
+                            id="profile-aadhar"
+                            type="text"
+                            inputMode="numeric"
+                            value={aadharNumber}
+                            onChange={(e) => setAadharNumber(formatAadharInput(e.target.value))}
+                            placeholder="XXXX XXXX XXXX"
+                            className={inputClass}
+                            maxLength={14}
+                          />
+                          <div className="flex gap-2">
+                            {editingAadhar && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingAadhar(false);
+                                  setAadharNumber(user.aadharNumber ? formatAadharInput(user.aadharNumber) : '');
+                                  setKycError('');
+                                }}
+                                className="flex-1 py-2.5 border border-white/25 text-white/90 rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => void handleVerifyAadhar()}
+                              disabled={verifyingAadhar || !aadharNumber.trim()}
+                              className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-blue-950 transition-colors disabled:opacity-50"
+                            >
+                              {verifyingAadhar ? 'Verifying…' : 'Verify Aadhar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      className={`rounded-xl border p-4 ${
+                        user.panVerified && !editingPan
+                          ? 'border-green-400/40 bg-green-500/10'
+                          : 'border-white/20 bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">PAN</p>
+                          <p className="text-xs text-white/55 mt-0.5">Permanent Account Number</p>
+                        </div>
+                        {user.panVerified && !editingPan ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold shrink-0">
+                            <CheckCircle2 size={14} />
+                            Verified
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {user.panVerified && !editingPan ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-white/90 tracking-wide uppercase">
+                            {maskPan(user.panNumber ?? '')}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPan(true);
+                              setPanNumber(user.panNumber ?? '');
+                              setKycError('');
+                              setKycMessage('');
+                            }}
+                            className="text-xs font-medium text-accent hover:underline shrink-0"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <input
+                            id="profile-pan"
+                            type="text"
+                            value={panNumber}
+                            onChange={(e) => setPanNumber(e.target.value.toUpperCase().slice(0, 10))}
+                            placeholder="ABCDE1234F"
+                            className={`${inputClass} uppercase`}
+                            maxLength={10}
+                          />
+                          <div className="flex gap-2">
+                            {editingPan && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPan(false);
+                                  setPanNumber(user.panNumber ?? '');
+                                  setKycError('');
+                                }}
+                                className="flex-1 py-2.5 border border-white/25 text-white/90 rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => void handleVerifyPan()}
+                              disabled={verifyingPan || !panNumber.trim()}
+                              className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-blue-950 transition-colors disabled:opacity-50"
+                            >
+                              {verifyingPan ? 'Verifying…' : 'Verify PAN'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {kycError && <p className="text-sm text-red-300">{kycError}</p>}
+                    {kycMessage && <p className="text-sm text-green-300">{kycMessage}</p>}
+                  </div>
+
+                  {error && <p className="text-sm text-red-300">{error}</p>}
+                  {message && <p className="text-sm text-green-300">{message}</p>}
 
                   <div className="flex gap-2">
                     {hasDetailsChanges && (
                       <button
                         type="button"
                         onClick={resetDetailsForm}
-                        className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-3 border border-white/25 text-white/90 rounded-xl font-semibold hover:bg-white/10 transition-colors"
                       >
                         Cancel
                       </button>
@@ -379,7 +621,7 @@ export function ProfilePage() {
                     <button
                       type="submit"
                       disabled={saving || !hasDetailsChanges}
-                      className={`py-3 bg-primary text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 ${
+                      className={`py-3 bg-primary text-white rounded-xl font-semibold hover:bg-blue-950 transition-colors disabled:opacity-50 ${
                         hasDetailsChanges ? 'flex-1' : 'w-full'
                       }`}
                     >
@@ -388,10 +630,10 @@ export function ProfilePage() {
                   </div>
                 </form>
                 ) : (
-                <form onSubmit={handlePasswordSubmit} className="space-y-4 border-t border-gray-100 pt-6">
-                  <div className="flex items-start gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 mb-1">
-                    <Lock size={18} className="text-gray-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-600">
+                <form onSubmit={handlePasswordSubmit} className="space-y-4 border-t border-white/15 pt-6">
+                  <div className="flex items-start gap-3 rounded-xl bg-white/10 border border-white/15 px-4 py-3 mb-1">
+                    <Lock size={18} className="text-white/60 shrink-0 mt-0.5" />
+                    <p className="text-sm text-white/75">
                       Use a strong password with at least 6 characters. You will stay logged in after changing it.
                     </p>
                   </div>
@@ -418,13 +660,13 @@ export function ProfilePage() {
                     placeholder="Re-enter new password"
                   />
 
-                  {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
-                  {passwordMessage && <p className="text-sm text-green-600">{passwordMessage}</p>}
+                  {passwordError && <p className="text-sm text-red-300">{passwordError}</p>}
+                  {passwordMessage && <p className="text-sm text-green-300">{passwordMessage}</p>}
 
                   <button
                     type="submit"
                     disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
-                    className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-blue-950 transition-colors disabled:opacity-50"
                   >
                     {savingPassword ? 'Updating…' : 'Change password'}
                   </button>
@@ -433,50 +675,50 @@ export function ProfilePage() {
               </div>
             </aside>
 
-            <div className="space-y-8">
+            <div className="space-y-10">
               <div className="grid sm:grid-cols-3 gap-4">
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+                <div className="p-2">
+                  <div className="flex items-center gap-2 text-white/65 text-sm mb-2">
                     <Gavel size={16} />
                     Total bids
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{totalBids}</p>
-                  <p className="text-xs text-gray-400 mt-1">{bidSummaries.length} properties</p>
+                  <p className="text-3xl font-bold text-white">{totalBids}</p>
+                  <p className="text-xs text-white/50 mt-1">{bidSummaries.length} properties</p>
                 </div>
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+                <div className="p-2">
+                  <div className="flex items-center gap-2 text-white/65 text-sm mb-2">
                     <Building2 size={16} />
                     My listings
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{myListings.length}</p>
-                  <Link to="/seller/dashboard" className="text-xs text-primary font-medium mt-1 inline-block hover:underline">
+                  <p className="text-3xl font-bold text-white">{myListings.length}</p>
+                  <Link to="/seller/dashboard" className="text-xs text-accent font-medium mt-1 inline-block hover:underline">
                     Manage listings
                   </Link>
                 </div>
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+                <div className="p-2">
+                  <div className="flex items-center gap-2 text-white/65 text-sm mb-2">
                     <MessageCircle size={16} />
                     Chat threads
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{chatSummaries.length}</p>
-                  <p className="text-xs text-gray-400 mt-1">Active deal chats</p>
+                  <p className="text-3xl font-bold text-white">{chatSummaries.length}</p>
+                  <p className="text-xs text-white/50 mt-1">Active deal chats</p>
                 </div>
               </div>
 
-              <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">Where you bid</h3>
-                  <p className="text-sm text-gray-500">Properties you have placed bids on</p>
+              <section>
+                <div className="mb-5">
+                  <h3 className="text-lg font-bold text-white">Where you bid</h3>
+                  <p className="text-sm text-white/60">Properties you have placed bids on</p>
                 </div>
                 {bidSummaries.length === 0 ? (
-                  <p className="px-6 py-10 text-sm text-gray-500 text-center">
+                  <p className="py-6 text-sm text-white/60 text-center">
                     No bids yet.{' '}
-                    <Link to="/" className="text-primary font-medium hover:underline">
+                    <Link to="/" className="text-accent font-medium hover:underline">
                       Browse properties
                     </Link>
                   </p>
                 ) : (
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-y divide-white/10">
                     {bidSummaries.map((summary) => {
                       const latestTotal = getBidTotal(summary.latestBid.amountPerSqFt, summary.areaSqFt);
                       const highestTotal = getBidTotal(summary.highestUserBidPerSqFt, summary.areaSqFt);
@@ -484,22 +726,22 @@ export function ProfilePage() {
                         <li key={summary.listingId}>
                           <Link
                             to={`/browse-property/${summary.listingId}`}
-                            className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between gap-4 py-4 hover:bg-white/5 transition-colors rounded-xl px-2 -mx-2"
                           >
                             <div className="min-w-0">
-                              <p className="font-semibold text-gray-900 truncate">{summary.location}</p>
-                              <p className="text-sm text-gray-500">{summary.propertyType}</p>
-                              <p className="text-xs text-gray-400 mt-1">
+                              <p className="font-semibold text-white truncate">{summary.location}</p>
+                              <p className="text-sm text-white/60">{summary.propertyType}</p>
+                              <p className="text-xs text-white/45 mt-1">
                                 {summary.bidCount} bid{summary.bidCount === 1 ? '' : 's'} · Latest{' '}
                                 {formatDateTime(summary.latestBid.createdAt)}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="font-bold text-gray-900">{formatPriceShort(highestTotal)}</p>
-                              <p className="text-xs text-gray-500">{formatPrice(highestTotal)}</p>
-                              <p className="text-xs text-gray-400 mt-1">Last {formatPriceShort(latestTotal)}</p>
+                              <p className="font-bold text-white">{formatPriceShort(highestTotal)}</p>
+                              <p className="text-xs text-white/55">{formatPrice(highestTotal)}</p>
+                              <p className="text-xs text-white/45 mt-1">Last {formatPriceShort(latestTotal)}</p>
                             </div>
-                            <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                            <ChevronRight size={18} className="text-white/35 shrink-0" />
                           </Link>
                         </li>
                       );
@@ -508,11 +750,11 @@ export function ProfilePage() {
                 )}
               </section>
 
-              <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+              <section>
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">My listings</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-bold text-white">My listings</h3>
+                    <p className="text-sm text-white/60">
                       {myListings.length === 0
                         ? 'Properties you have published'
                         : `${myListings.length} published · track bids and manage deals`}
@@ -522,13 +764,13 @@ export function ProfilePage() {
                     <div className="flex items-center gap-2">
                       <Link
                         to="/seller/dashboard"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-white/25 text-white/90 hover:bg-white/10 transition-colors"
                       >
                         Seller dashboard
                       </Link>
                       <Link
                         to="/list-your-property"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-gray-800 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-accent text-white hover:bg-orange-600 transition-colors"
                       >
                         List new
                       </Link>
@@ -536,23 +778,23 @@ export function ProfilePage() {
                   )}
                 </div>
                 {myListings.length === 0 ? (
-                  <div className="px-6 py-12 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                      <Building2 size={24} className="text-gray-400" />
+                  <div className="py-10 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
+                      <Building2 size={24} className="text-white/50" />
                     </div>
-                    <p className="text-gray-600 font-medium mb-1">No listings yet</p>
-                    <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                    <p className="text-white/90 font-medium mb-1">No listings yet</p>
+                    <p className="text-sm text-white/60 mb-6 max-w-sm mx-auto">
                       Publish your first property to start receiving bids from verified buyers.
                     </p>
                     <Link
                       to="/list-your-property"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-full font-medium hover:bg-orange-600 transition-colors"
                     >
                       List a property
                     </Link>
                   </div>
                 ) : (
-                  <div className="p-4 sm:p-6 space-y-4 bg-gray-50/60">
+                  <div className="space-y-4">
                     {myListings.map((listing) => (
                       <ProfileListingCard key={listing.id} listing={listing} sellerId={user.id} />
                     ))}
@@ -560,37 +802,37 @@ export function ProfilePage() {
                 )}
               </section>
 
-              <section className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">Chat history</h3>
-                  <p className="text-sm text-gray-500">Deal conversations you are part of</p>
+              <section>
+                <div className="mb-5">
+                  <h3 className="text-lg font-bold text-white">Chat history</h3>
+                  <p className="text-sm text-white/60">Deal conversations you are part of</p>
                 </div>
                 {chatSummaries.length === 0 ? (
-                  <p className="px-6 py-10 text-sm text-gray-500 text-center">
+                  <p className="py-6 text-sm text-white/60 text-center">
                     No chats yet. Chats open after a bid is accepted and the token step is complete.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-y divide-white/10">
                     {chatSummaries.map((chat) => (
                       <li key={chat.listingId}>
                         <Link
                           to={chat.chatPath}
-                          className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                          className="flex items-center justify-between gap-4 py-4 hover:bg-white/5 transition-colors rounded-xl px-2 -mx-2"
                         >
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">{chat.location}</p>
-                            <p className="text-sm text-gray-500 capitalize">
+                            <p className="font-semibold text-white truncate">{chat.location}</p>
+                            <p className="text-sm text-white/60 capitalize">
                               {chat.role} · {chat.propertyType}
                             </p>
-                            <p className="text-sm text-gray-600 mt-1 truncate">{chat.lastMessageText}</p>
+                            <p className="text-sm text-white/55 mt-1 truncate">{chat.lastMessageText}</p>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-xs font-medium text-gray-500">
+                            <p className="text-xs font-medium text-white/55">
                               {chat.messageCount} message{chat.messageCount === 1 ? '' : 's'}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">{formatDateTime(chat.lastMessageAt)}</p>
+                            <p className="text-xs text-white/45 mt-1">{formatDateTime(chat.lastMessageAt)}</p>
                           </div>
-                          <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                          <ChevronRight size={18} className="text-white/35 shrink-0" />
                         </Link>
                       </li>
                     ))}

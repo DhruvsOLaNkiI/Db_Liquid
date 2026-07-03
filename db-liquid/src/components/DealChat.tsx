@@ -24,7 +24,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-32 pb-20 px-4 text-center">
           <p className="text-gray-600 mb-4">Deal not found.</p>
@@ -38,7 +38,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
 
   if (!listing.acceptedBidId) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-32 pb-20 px-4 text-center max-w-md mx-auto">
           <p className="text-gray-600 mb-4">
@@ -61,7 +61,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
 
   if (!chatOpen) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-32 pb-20 px-4 text-center max-w-md mx-auto">
           <p className="text-gray-600 mb-4">Chat is not available yet. Complete the token step first.</p>
@@ -75,7 +75,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
 
   if (!isSeller && !isBuyer) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <Header />
         <main className="pt-32 pb-20 px-4 text-center max-w-md mx-auto">
           <p className="text-gray-600 mb-4">
@@ -107,7 +107,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
       <main className="pt-28 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
@@ -192,7 +192,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
               />
               <button
                 type="submit"
-                className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors shrink-0"
+                className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center hover:bg-blue-950 transition-colors shrink-0"
               >
                 <Send size={18} />
               </button>

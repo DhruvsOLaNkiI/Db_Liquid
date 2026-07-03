@@ -44,6 +44,10 @@ interface AuthContextValue {
     phone?: string;
     name?: string;
     profileImageUrl?: string | null;
+    aadharNumber?: string | null;
+    aadharVerified?: boolean;
+    panNumber?: string | null;
+    panVerified?: boolean;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   changePassword: (
     currentPassword: string,
@@ -145,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone?: string;
       name?: string;
       profileImageUrl?: string | null;
+      aadharNumber?: string | null;
+      aadharVerified?: boolean;
+      panNumber?: string | null;
+      panVerified?: boolean;
     }) => {
       if (!user?.id) {
         return { ok: false as const, error: 'Log in to update your profile.' };

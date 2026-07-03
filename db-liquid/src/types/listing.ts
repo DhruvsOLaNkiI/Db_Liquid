@@ -6,6 +6,8 @@ export type Bid = {
   bidderPhone: string;
   bidderUserId?: string;
   amountPerSqFt: number;
+  /** Exact rupee total entered by the buyer (source of truth for display and ranking). */
+  bidTotal?: number;
   createdAt: string;
 };
 
@@ -101,10 +103,20 @@ export type PropertyListing = {
   chatBuyerPhone: string;
   lastDeclinedBuyerUserId?: string;
   lastDeclinedAt?: string;
+  /** Total property page views (excludes seller self-views) */
+  viewCount?: number;
+  /** Distinct visitors who opened the listing */
+  uniqueVisitorCount?: number;
+  /** Visitors who came back at least once */
+  returnVisitorCount?: number;
+  /** Internal map of anonymous visitor id → visit count */
+  visitorVisits?: Record<string, number>;
 };
 
 export const BIDDING_DAYS = 7;
 export const MIN_BID_INCREMENT = 100;
+/** Lowest allowed bid per sq.ft when there are no competing bids yet. */
+export const ABSOLUTE_MIN_BID_PER_SQFT = 1;
 
 export function formatPrice(amount: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -163,6 +175,7 @@ export function normalizeBid(
     bidderPhone: raw.bidderPhone ?? '',
     bidderUserId: raw.bidderUserId,
     amountPerSqFt: raw.amountPerSqFt,
+    bidTotal: raw.bidTotal,
     createdAt: raw.createdAt,
   };
 }
@@ -248,6 +261,10 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     chatBuyerPhone: raw.chatBuyerPhone ?? '',
     lastDeclinedBuyerUserId: raw.lastDeclinedBuyerUserId,
     lastDeclinedAt: raw.lastDeclinedAt,
+    viewCount: raw.viewCount ?? 0,
+    uniqueVisitorCount: raw.uniqueVisitorCount ?? 0,
+    returnVisitorCount: raw.returnVisitorCount ?? 0,
+    visitorVisits: raw.visitorVisits ?? {},
   };
 }
 
@@ -300,19 +317,64 @@ export function getListingStatus(listing: PropertyListing): 'active' | 'accepted
   return 'active';
 }
 
+export function getBidTotal(amountPerSqFt: number, areaSqFt: number) {
+  return amountPerSqFt * areaSqFt;
+}
+
+/** Rupee total for a bid — uses stored bidTotal when present. */
+export function getBidAmount(bid: Bid, areaSqFt: number) {
+  if (bid.bidTotal != null && bid.bidTotal > 0) return bid.bidTotal;
+  return getBidTotal(bid.amountPerSqFt, areaSqFt);
+}
+
+export function getHighestBid(listing: PropertyListing): Bid | undefined {
+  if (listing.bids.length === 0) return undefined;
+  return listing.bids.reduce((best, bid) =>
+    getBidAmount(bid, listing.areaSqFt) >= getBidAmount(best, listing.areaSqFt) ? bid : best,
+  );
+}
+
+export function getHighestBidTotal(listing: PropertyListing) {
+  const bid = getHighestBid(listing);
+  return bid ? getBidAmount(bid, listing.areaSqFt) : 0;
+}
+
+export function sortBidsByAmount(bids: Bid[], areaSqFt: number) {
+  return [...bids].sort(
+    (a, b) => getBidAmount(b, areaSqFt) - getBidAmount(a, areaSqFt),
+  );
+}
+
 export function getHighestBidPerSqFt(listing: PropertyListing) {
-  if (listing.bids.length === 0) return listing.pricePerSqFt;
-  return Math.max(...listing.bids.map((b) => b.amountPerSqFt));
+  const bid = getHighestBid(listing);
+  if (!bid) return 0;
+  if (listing.areaSqFt > 0) return getBidAmount(bid, listing.areaSqFt) / listing.areaSqFt;
+  return bid.amountPerSqFt;
 }
 
-export function getMinNextBid(listing: PropertyListing) {
-  const highest = getHighestBidPerSqFt(listing);
-  return highest + MIN_BID_INCREMENT;
+export function getMinNextBid(_listing: PropertyListing) {
+  return ABSOLUTE_MIN_BID_PER_SQFT;
 }
 
-/** Lowest valid next bid — shown as the recommended amount. */
+export function isValidBidTotal(bidTotal: number) {
+  return Number.isFinite(bidTotal) && bidTotal > 0;
+}
+
+/** @deprecated Use isValidBidTotal — kept for legacy call sites. */
+export function isValidBidAmount(amountPerSqFt: number, areaSqFt: number) {
+  return amountPerSqFt > 0 && areaSqFt > 0 && getBidTotal(amountPerSqFt, areaSqFt) > 0;
+}
+
+/** Suggested bid total — ask price when no bids, otherwise the current highest bid total. */
+export function getRecommendedBidTotal(listing: PropertyListing) {
+  if (listing.bids.length === 0) return listing.totalPrice;
+  return getHighestBidTotal(listing);
+}
+
+/** Suggested per-sq.ft rate derived from the recommended total. */
 export function getRecommendedBid(listing: PropertyListing) {
-  return getMinNextBid(listing);
+  if (listing.areaSqFt <= 0) return listing.pricePerSqFt;
+  return getRecommendedBidTotal(listing) / listing.areaSqFt;
 }
 
 export type FastBidPreset = {
@@ -322,19 +384,15 @@ export type FastBidPreset = {
   hint?: string;
 };
 
-/** Quick bid amounts above the current minimum. */
+/** Quick bid amount suggestions (totals in rupees). */
 export function getFastBidPresets(listing: PropertyListing): FastBidPreset[] {
-  const min = getMinNextBid(listing);
+  const base = getRecommendedBidTotal(listing);
   return [
-    { id: 'min', label: 'Minimum', amount: min, hint: 'Recommended' },
-    { id: 'plus500', label: '+ ₹500', amount: min + 500 },
-    { id: 'plus1000', label: '+ ₹1,000', amount: min + 1000 },
-    { id: 'plus5000', label: '+ ₹5,000', amount: min + 5000 },
+    { id: 'suggested', label: 'Suggested', amount: base, hint: 'Recommended' },
+    { id: 'plus500', label: '+ ₹500', amount: base + 500 },
+    { id: 'plus1000', label: '+ ₹1,000', amount: base + 1000 },
+    { id: 'plus5000', label: '+ ₹5,000', amount: base + 5000 },
   ];
-}
-
-export function getBidTotal(amountPerSqFt: number, areaSqFt: number) {
-  return amountPerSqFt * areaSqFt;
 }
 
 export function isBiddingOpen(listing: PropertyListing) {

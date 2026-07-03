@@ -15,6 +15,9 @@ import { SellerChatPage } from './pages/SellerChatPage';
 import { EditListingPage } from './pages/EditListingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { UsersPage } from './pages/UsersPage';
+import { VerificationDashboardPage } from './pages/VerificationDashboardPage';
+import { HowItWorksPage } from './pages/HowItWorksPage';
+import { FAQPage } from './pages/FAQPage';
 
 export default function App() {
   return (
@@ -22,10 +25,13 @@ export default function App() {
       <ListingsProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<BrowsePropertyPage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/prototype" element={<PrototypePage />} />
             <Route path="/prototype/users" element={<UsersPage />} />
+            <Route path="/admin/verification" element={<VerificationDashboardPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/faq" element={<FAQPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/profile" element={<ProfilePage />} />

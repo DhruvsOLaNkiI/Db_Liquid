@@ -1,9 +1,10 @@
 import type { Bid, PropertyListing } from '../types/listing';
+import { getBidAmount } from '../types/listing';
 import type { User } from '../types/user';
 import { countUserBidsOnListing } from './buyerCredits';
 
 export type ProfileCompletionCheck = {
-  key: 'name' | 'email' | 'phone' | 'profileImage';
+  key: 'name' | 'email' | 'phone' | 'profileImage' | 'aadhar' | 'pan';
   label: string;
   done: boolean;
 };
@@ -35,6 +36,8 @@ export function getProfileCompletion(user: User) {
     { key: 'email', label: 'Email address', done: Boolean(user.email?.trim()) },
     { key: 'phone', label: 'Phone number', done: Boolean(user.phone?.trim()) },
     { key: 'profileImage', label: 'Profile photo', done: Boolean(user.profileImageUrl) },
+    { key: 'aadhar', label: 'Aadhar verified', done: Boolean(user.aadharVerified) },
+    { key: 'pan', label: 'PAN verified', done: Boolean(user.panVerified) },
   ];
   const doneCount = checks.filter((c) => c.done).length;
   return {
@@ -64,7 +67,7 @@ export function getUserBidSummaries(listings: PropertyListing[], userId: string)
         areaSqFt: listing.areaSqFt,
         bidCount: userBids.length,
         latestBid,
-        highestUserBidPerSqFt: Math.max(...userBids.map((bid) => bid.amountPerSqFt)),
+        highestUserBidPerSqFt: Math.max(...userBids.map((bid) => getBidAmount(bid, listing.areaSqFt))),
       };
     })
     .filter((item): item is UserBidSummary => item !== null)

@@ -1,5 +1,5 @@
 import type { PropertyListing } from '../../types/listing';
-import { formatPrice, getAcceptedBid, getBidTotal, getListingStatus } from '../../types/listing';
+import { formatPrice, getAcceptedBid, getBidAmount, getListingStatus } from '../../types/listing';
 
 type Props = {
   listing: PropertyListing;
@@ -9,45 +9,48 @@ type Props = {
 export function BidHistoryTimeline({ listing, sortedBids }: Props) {
   const status = getListingStatus(listing);
   const acceptedBid = getAcceptedBid(listing);
-  const displayBid = acceptedBid ?? sortedBids[0];
+  const highestBid = sortedBids[0];
+  const displayBid = acceptedBid ?? highestBid;
   const isOnHold = status === 'accepted';
 
   return (
-    <section className="bg-white rounded-[18px] border border-[#E5E7EB] p-6 sm:p-8 shadow-[0_10px_30px_rgba(0,0,0,0.05)] w-full">
-      <h2 className="text-xl sm:text-[22px] font-bold text-[#0F172A] mb-5 sm:mb-6">
+    <section className="w-full glass-card rounded-[18px] p-5 lg:p-6">
+      <h2 className="text-lg lg:text-xl font-bold text-white mb-4">
         {isOnHold ? 'Winning Bid' : 'Highest Bid'}
       </h2>
 
       {!displayBid ? (
-        <p className="text-gray-500 text-sm">No bids yet. Be the first to place an offer.</p>
+        <p className="text-white/80 text-sm py-2">No bids yet. Be the first to place an offer.</p>
       ) : (
         <div
-          className={`relative w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 sm:p-8 rounded-[14px] border shadow-[0_8px_24px_rgba(22,163,74,0.1)] ${
-            isOnHold ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
+          className={`flex items-center justify-between gap-4 px-4 py-4 sm:px-5 sm:py-5 rounded-xl ${
+            isOnHold ? 'glass-card-inner-orange' : 'glass-card-inner-green'
           }`}
         >
-          <span
-            className={`absolute top-4 right-4 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
-              isOnHold ? 'text-blue-700 bg-blue-100' : 'text-green-700 bg-green-100'
-            }`}
-          >
-            {isOnHold ? 'On Hold' : 'Highest'}
-          </span>
-          <div>
-            <p className="text-base sm:text-lg font-semibold text-[#0F172A]">
+          <div className="min-w-0">
+            <span
+              className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 ${
+                isOnHold ? 'status-pill-orange' : 'status-pill-green'
+              }`}
+            >
+              {isOnHold ? 'On Hold' : 'Highest'}
+            </span>
+            <p className="text-sm font-medium text-white/85">
               {new Date(displayBid.createdAt).toLocaleString('en-IN', {
                 dateStyle: 'medium',
                 timeStyle: 'short',
               })}
             </p>
           </div>
-          <div className="sm:text-right">
-            <p className={`text-2xl sm:text-3xl font-bold ${isOnHold ? 'text-blue-700' : 'text-green-700'}`}>
-              {formatPrice(getBidTotal(displayBid.amountPerSqFt, listing.areaSqFt))}
+          <div className="text-right shrink-0">
+            <p className={`text-xl sm:text-2xl font-bold leading-tight ${isOnHold ? 'text-orange-300' : 'text-green-300'}`}>
+              {formatPrice(getBidAmount(displayBid, listing.areaSqFt))}
             </p>
-            <p className="text-sm text-gray-500 mt-1">
-              ₹{displayBid.amountPerSqFt.toLocaleString('en-IN')}/sq.ft
-            </p>
+            {listing.areaSqFt > 0 && (
+              <p className="text-xs text-white/75 mt-1">
+                ₹{Math.round(getBidAmount(displayBid, listing.areaSqFt) / listing.areaSqFt).toLocaleString('en-IN')}/sq.ft
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -33,7 +33,7 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900 dark-theme-page">
       <Header />
       <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
@@ -111,7 +111,7 @@ export function SignupPage() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-gray-800 transition-colors"
+              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-blue-950 transition-colors"
             >
               Create account
             </button>

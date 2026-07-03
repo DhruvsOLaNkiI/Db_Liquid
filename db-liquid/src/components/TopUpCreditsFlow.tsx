@@ -121,7 +121,7 @@ export function TopUpCreditsFlow({ onClose, onSuccess, compact, mini }: Props) {
           type="button"
           onClick={() => void handleProceedToPay()}
           disabled={isPaying}
-          className="w-full py-2 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
+          className="w-full py-2 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-blue-950 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
         >
           {isPaying ? (
             <>
@@ -196,7 +196,7 @@ export function TopUpCreditsFlow({ onClose, onSuccess, compact, mini }: Props) {
         type="button"
         onClick={() => void handleProceedToPay()}
         disabled={isPaying}
-        className="w-full py-3.5 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+        className="w-full py-3.5 bg-primary text-white rounded-full font-medium hover:bg-blue-950 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
       >
         {isPaying ? (
           <>

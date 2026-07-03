@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Bid, PropertyListing, VerificationDocument } from '../types/listing';
-import { getAcceptedBid, getMinNextBid, getTotalPrice, isBiddingOpen, isBuyerTokenDue, normalizeListing } from '../types/listing';
-import { buildApprovedVerifications } from '../utils/listingDisplay';
+import type { Bid, PropertyListing } from '../types/listing';
+import { getAcceptedBid, getTotalPrice, isBiddingOpen, isBuyerTokenDue, isValidBidTotal, normalizeListing } from '../types/listing';
 import {
   appendListingToStorage,
   LISTINGS_STORAGE_KEY,
@@ -12,6 +11,7 @@ import {
 import { randomId } from '../utils/randomId';
 import { spendBidCredit } from '../utils/buyerCredits';
 import { DATA_REFRESH_EVENT } from '../utils/sharedStore';
+import { recordListingView as recordListingViewApi } from '../utils/listingViews';
 
 export { LISTINGS_STORAGE_KEY } from '../utils/listingsStorage';
 
@@ -29,7 +29,7 @@ type ListingsContextValue = {
     listingId: string,
     bidderName: string,
     bidderPhone: string,
-    amountPerSqFt: number,
+    bidTotal: number,
     buyerUserId: string,
   ) => Promise<ActionResult>;
   acceptBid: (listingId: string, bidId: string, sellerId: string) => ActionResult;
@@ -60,6 +60,7 @@ type ListingsContextValue = {
     sellerId: string,
     patch: Partial<PropertyListing>,
   ) => ActionResult;
+  recordListingView: (listingId: string, viewerUserId?: string) => Promise<void>;
 };
 
 const ListingsContext = createContext<ListingsContextValue | null>(null);
@@ -127,34 +128,6 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     const normalized = normalizeListing(listing);
     const saved = appendListingToStorage(normalized);
     setListings(saved);
-
-    if (normalized.verificationReviewStatus === 'pending' && normalized.verificationDocuments?.length) {
-      window.setTimeout(() => {
-        updateListings((prev) =>
-          prev.map((item) => {
-            if (item.id !== normalized.id) return item;
-
-            const reviewedAt = new Date().toISOString();
-            const verificationDocuments: VerificationDocument[] = (item.verificationDocuments ?? []).map(
-              (doc) => ({
-                ...doc,
-                status: 'approved',
-                reviewedAt,
-              }),
-            );
-            const approvedCount = verificationDocuments.filter((doc) => doc.status === 'approved').length;
-
-            return {
-              ...item,
-              verificationDocuments,
-              verificationReviewStatus:
-                approvedCount === verificationDocuments.length ? 'approved' : 'partial',
-              verifications: buildApprovedVerifications(verificationDocuments),
-            };
-          }),
-        );
-      }, 5000);
-    }
   };
 
   const getListingById = (id: string) => listings.find((l) => l.id === id);
@@ -166,7 +139,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     listingId: string,
     bidderName: string,
     bidderPhone: string,
-    amountPerSqFt: number,
+    bidTotal: number,
     buyerUserId: string,
   ): Promise<ActionResult> => {
     const listing = listings.find((l) => l.id === listingId);
@@ -182,9 +155,8 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: 'Log in as a buyer and top up credits to place a bid.' };
     }
 
-    const minBid = getMinNextBid(listing);
-    if (amountPerSqFt < minBid) {
-      return { ok: false, error: `Minimum bid is ₹${minBid.toLocaleString('en-IN')}/sq.ft` };
+    if (!isValidBidTotal(bidTotal)) {
+      return { ok: false, error: 'Enter a bid amount greater than ₹0.' };
     }
 
     const creditResult = await spendBidCredit(buyerUserId, {
@@ -193,12 +165,15 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     });
     if (!creditResult.ok) return creditResult;
 
+    const amountPerSqFt = listing.areaSqFt > 0 ? bidTotal / listing.areaSqFt : bidTotal;
+
     const bid: Bid = {
       id: randomId(),
       bidderName: name,
       bidderPhone: phone,
       bidderUserId: buyerUserId,
       amountPerSqFt,
+      bidTotal,
       createdAt: new Date().toISOString(),
     };
 
@@ -454,6 +429,24 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
+  const recordListingView = useCallback(async (listingId: string, viewerUserId?: string) => {
+    const result = await recordListingViewApi(listingId, viewerUserId);
+    if (!result.ok || !result.recorded) return;
+
+    updateListings((prev) =>
+      prev.map((listing) =>
+        listing.id === listingId
+          ? {
+              ...listing,
+              viewCount: result.stats.viewCount,
+              uniqueVisitorCount: result.stats.uniqueVisitorCount,
+              returnVisitorCount: result.stats.returnVisitorCount,
+            }
+          : listing,
+      ),
+    );
+  }, []);
+
   return (
     <ListingsContext.Provider
       value={{
@@ -470,6 +463,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
         getSellerListings,
         updateListingAskPrice,
         updateListingDetails,
+        recordListingView,
       }}
     >
       {children}

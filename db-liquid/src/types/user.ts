@@ -15,6 +15,12 @@ export interface User {
   creditHistory?: CreditTransaction[];
   /** Base64 or URL for profile avatar */
   profileImageUrl?: string;
+  /** 12-digit Aadhar number */
+  aadharNumber?: string;
+  aadharVerified?: boolean;
+  /** PAN in ABCDE1234F format */
+  panNumber?: string;
+  panVerified?: boolean;
 }
 
 export interface AuthSession {

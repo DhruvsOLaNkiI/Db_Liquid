@@ -4,10 +4,12 @@ import {
   ArrowUpRight,
   Clock,
   ExternalLink,
+  Eye,
   Gavel,
   MapPin,
   MessageCircle,
   Pencil,
+  Repeat,
   TrendingUp,
 } from 'lucide-react';
 import type { PropertyListing } from '../../types/listing';
@@ -27,6 +29,7 @@ import {
   getCurrentHighestBidTotal,
   getDisplayListingId,
   getListedPriceTotal,
+  getListingViewStats,
 } from '../../utils/listingDisplay';
 import { EditListingPriceForm, canEditListingPrice } from '../listing/EditListingPriceForm';
 
@@ -82,18 +85,19 @@ export function ProfileListingCard({
   });
   const [editingPrice, setEditingPrice] = useState(false);
   const canEditPrice = canEditListingPrice(listing, sellerId);
+  const viewStats = getListingViewStats(listing);
 
   return (
     <article className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
       <div className="flex flex-col sm:flex-row">
         <Link
           to={`/browse-property/${listing.id}`}
-          className="relative sm:w-44 md:w-52 shrink-0 aspect-[16/10] sm:aspect-auto sm:min-h-[168px] bg-gray-100 overflow-hidden"
+          className="relative sm:w-44 md:w-52 shrink-0 aspect-[4/3] bg-gray-100 overflow-hidden"
         >
           <img
             src={listing.propertyPhotos?.[0]?.dataUrl ?? PLACEHOLDER_IMAGES[imageIndex]}
             alt={listing.propertyType}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent sm:bg-gradient-to-r sm:from-transparent sm:to-black/5" />
           <span
@@ -138,7 +142,7 @@ export function ProfileListingCard({
                   <button
                     type="button"
                     onClick={() => setEditingPrice(true)}
-                    className="text-[11px] font-medium text-primary hover:text-gray-800 transition-colors"
+                    className="text-[11px] font-medium text-primary hover:text-blue-950 transition-colors"
                   >
                     Edit price
                   </button>
@@ -181,6 +185,29 @@ export function ProfileListingCard({
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="rounded-xl bg-sky-50 px-2.5 py-2 border border-sky-100">
+              <p className="text-[10px] uppercase tracking-wider text-sky-700/80 flex items-center gap-1">
+                <Eye size={10} />
+                Views
+              </p>
+              <p className="text-sm font-bold text-sky-900">{viewStats.viewCount}</p>
+            </div>
+            <div className="rounded-xl bg-sky-50 px-2.5 py-2 border border-sky-100">
+              <p className="text-[10px] uppercase tracking-wider text-sky-700/80 flex items-center gap-1">
+                Visitors
+              </p>
+              <p className="text-sm font-bold text-sky-900">{viewStats.uniqueVisitorCount}</p>
+            </div>
+            <div className="rounded-xl bg-violet-50 px-2.5 py-2 border border-violet-100">
+              <p className="text-[10px] uppercase tracking-wider text-violet-700/80 flex items-center gap-1">
+                <Repeat size={10} />
+                Return
+              </p>
+              <p className="text-sm font-bold text-violet-900">{viewStats.returnVisitorCount}</p>
+            </div>
+          </div>
+
           {editingPrice && (
             <EditListingPriceForm
               listing={listing}
@@ -205,7 +232,7 @@ export function ProfileListingCard({
           <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
             <Link
               to={`/browse-property/${listing.id}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium bg-primary text-white hover:bg-blue-950 transition-colors"
             >
               View listing
               <ExternalLink size={14} />

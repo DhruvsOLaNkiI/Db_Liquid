@@ -13,14 +13,14 @@ const chartData = [
 
 export function Features() {
   return (
-    <section id="features" className="py-20 bg-white">
+    <section id="features" className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-gray-100 border border-gray-200 mb-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">Featured</span>
+          <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/80">Featured</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Discover the Power of <br/> Our Platform</h2>
-          <p className="text-gray-600 text-lg">Experience a secure, transparent, and competitive property bidding environment designed to maximize value for everyone.</p>
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight text-white">Discover the Power of <br/> Our Platform</h2>
+          <p className="text-white/70 text-lg">Experience a secure, transparent, and competitive property bidding environment designed to maximize value for everyone.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -50,14 +50,14 @@ export function Features() {
                     <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorBid" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
                       <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Area type="monotone" dataKey="bid" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBid)" />
+                      <Area type="monotone" dataKey="bid" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorBid)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -79,14 +79,14 @@ export function Features() {
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                     <span className="font-medium text-sm">Transferred to Seller</span>
                   </div>
                   <span className="font-bold">₹75,000</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <div className="w-2 h-2 rounded-full bg-orange-600"></div>
                     <span className="font-medium text-sm">Platform Processing</span>
                   </div>
                   <span className="font-bold">₹25,000</span>

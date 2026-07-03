@@ -4,6 +4,7 @@ type Bid = {
   bidderPhone: string;
   bidderUserId?: string;
   amountPerSqFt: number;
+  bidTotal?: number;
   createdAt: string;
 };
 
@@ -58,6 +59,7 @@ function redactBid(bid: Bid, index: number, viewerId?: string, isSeller?: boolea
   return {
     id: bid.id,
     amountPerSqFt: bid.amountPerSqFt,
+    ...(bid.bidTotal != null ? { bidTotal: bid.bidTotal } : {}),
     createdAt: bid.createdAt,
     bidderName: reveal ? bid.bidderName : `Bidder ${index + 1}`,
     bidderPhone: reveal ? bid.bidderPhone : '',
@@ -89,7 +91,12 @@ export function sanitizeListing(listing: Listing, viewerId?: string): Listing {
   if (!isSeller) {
     delete sanitized.lastDeclinedBuyerUserId;
     delete sanitized.lastDeclinedAt;
+    delete sanitized.viewCount;
+    delete sanitized.uniqueVisitorCount;
+    delete sanitized.returnVisitorCount;
   }
+
+  delete sanitized.visitorVisits;
 
   return sanitized;
 }

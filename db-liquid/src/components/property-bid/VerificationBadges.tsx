@@ -17,7 +17,7 @@ export function VerificationBadges({ listing }: { listing: PropertyListing }) {
 
   if (badges.length === 0) {
     return (
-      <p className="text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
+      <p className="text-sm text-white/80 glass-card-inner rounded-xl px-4 py-3">
         Verification badges will appear after document review.
       </p>
     );
@@ -32,9 +32,9 @@ export function VerificationBadges({ listing }: { listing: PropertyListing }) {
         {badges.map((label) => (
           <span
             key={label}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-800 text-sm font-medium border border-green-100 shadow-[0_4px_14px_rgba(22,163,74,0.08)] transition-transform duration-300 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-green-500/15 text-green-300 text-sm font-medium border border-green-400/25"
           >
-            <CheckCircle2 size={16} className="text-green-600 shrink-0" />
+            <CheckCircle2 size={16} className="text-green-400 shrink-0" />
             {label}
           </span>
         ))}

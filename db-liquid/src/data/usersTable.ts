@@ -1,6 +1,7 @@
 import type { AuthSession, User, UserRole } from '../types/user';
 import { getSharedUsers, isSharedStoreReady, mutateUsers, persistUsers, reloadUsersFromServer } from '../utils/sharedStore';
 import { normalizeUser } from '../utils/buyerCredits';
+import { isValidAadhar, isValidPan, normalizeAadhar, normalizePan } from '../utils/kyc';
 import { randomId } from '../utils/randomId';
 
 /** Shared users table — stored in MongoDB (all users see the same accounts). */
@@ -177,6 +178,10 @@ export async function updateUserProfile(
     phone?: string;
     name?: string;
     profileImageUrl?: string | null;
+    aadharNumber?: string | null;
+    aadharVerified?: boolean;
+    panNumber?: string | null;
+    panVerified?: boolean;
   },
 ): Promise<{ ok: true; user: User } | { ok: false; error: string }> {
   const email = patch.email !== undefined ? patch.email.trim().toLowerCase() : undefined;
@@ -193,6 +198,26 @@ export async function updateUserProfile(
     return { ok: false, error: 'Enter your phone number.' };
   }
 
+  const aadharNumber =
+    patch.aadharNumber !== undefined
+      ? patch.aadharNumber
+        ? normalizeAadhar(patch.aadharNumber)
+        : undefined
+      : undefined;
+  const panNumber =
+    patch.panNumber !== undefined
+      ? patch.panNumber
+        ? normalizePan(patch.panNumber)
+        : undefined
+      : undefined;
+
+  if (aadharNumber !== undefined && aadharNumber && !isValidAadhar(aadharNumber)) {
+    return { ok: false, error: 'Enter a valid 12-digit Aadhar number.' };
+  }
+  if (panNumber !== undefined && panNumber && !isValidPan(panNumber)) {
+    return { ok: false, error: 'Enter a valid PAN (e.g. ABCDE1234F).' };
+  }
+
   const result = await mutateUsers((users) => {
     const normalized = users.map((u) => normalizeUser(u as User));
     const index = normalized.findIndex((u) => u.id === userId);
@@ -203,6 +228,16 @@ export async function updateUserProfile(
       return { ok: false, error: 'An account with this email already exists.' };
     }
 
+    const nextAadhar = aadharNumber !== undefined ? aadharNumber : user.aadharNumber;
+    const nextPan = panNumber !== undefined ? panNumber : user.panNumber;
+
+    if (patch.aadharVerified && (!nextAadhar || !isValidAadhar(nextAadhar))) {
+      return { ok: false, error: 'Enter a valid Aadhar number before verifying.' };
+    }
+    if (patch.panVerified && (!nextPan || !isValidPan(nextPan))) {
+      return { ok: false, error: 'Enter a valid PAN before verifying.' };
+    }
+
     const updated = normalizeUser({
       ...user,
       ...(email !== undefined ? { email } : {}),
@@ -211,6 +246,10 @@ export async function updateUserProfile(
       ...(patch.profileImageUrl !== undefined
         ? { profileImageUrl: patch.profileImageUrl || undefined }
         : {}),
+      ...(aadharNumber !== undefined ? { aadharNumber } : {}),
+      ...(patch.aadharVerified !== undefined ? { aadharVerified: patch.aadharVerified } : {}),
+      ...(panNumber !== undefined ? { panNumber } : {}),
+      ...(patch.panVerified !== undefined ? { panVerified: patch.panVerified } : {}),
     });
 
     normalized[index] = updated;

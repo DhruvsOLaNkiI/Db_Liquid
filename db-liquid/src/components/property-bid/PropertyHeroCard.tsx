@@ -28,8 +28,8 @@ function PropertyDetailRows({
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4">
         {rows.map(({ label, value }) => (
           <div key={label} className="min-w-0">
-            <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</dt>
-            <dd className="text-sm font-semibold text-[#0F172A] mt-0.5 break-words">{value}</dd>
+            <dt className="text-xs font-medium text-white/75 uppercase tracking-wide">{label}</dt>
+            <dd className="text-sm font-semibold text-white mt-0.5 break-words">{value}</dd>
           </div>
         ))}
       </dl>
@@ -40,8 +40,8 @@ function PropertyDetailRows({
     <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
       {rows.map(({ label, value }) => (
         <div key={label}>
-          <dt className="text-[15px] font-medium text-[#0F172A]">{label}</dt>
-          <dd className="text-base font-semibold text-gray-500 mt-0.5">{value}</dd>
+          <dt className="text-[15px] font-medium text-white/85">{label}</dt>
+          <dd className="text-base font-semibold text-white mt-0.5">{value}</dd>
         </div>
       ))}
     </dl>
@@ -84,20 +84,20 @@ export function PropertyHeroCard({ listing }: { listing: PropertyListing }) {
   ];
 
   return (
-    <section className="bg-white rounded-[18px] border border-[#E5E7EB] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
+    <section className="glass-card rounded-[18px] overflow-hidden">
       {/* Mobile: image first, then compact title + details */}
       <div className="lg:hidden">
         <PropertyImageSlider images={images} alt={propertyName} />
         <div className="p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{listing.propertyType}</p>
-          <h1 className="text-2xl font-bold text-[#0F172A] leading-tight mt-1">{propertyName}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/75">{listing.propertyType}</p>
+          <h1 className="text-2xl font-bold text-white leading-tight mt-1">{propertyName}</h1>
+          <p className="text-sm text-white/80 mt-1">
             {city}
             {state ? `, ${state}` : ''}
           </p>
           <PropertyDetailRows rows={mobileDetailRows} variant="mobile" />
           {listing.description && (
-            <p className="text-sm text-gray-500 mt-4 pt-4 border-t border-[#E5E7EB] leading-relaxed line-clamp-3">
+            <p className="text-sm text-white/80 mt-4 pt-4 border-t border-white/10 leading-relaxed line-clamp-3">
               {listing.description}
             </p>
           )}
@@ -105,13 +105,13 @@ export function PropertyHeroCard({ listing }: { listing: PropertyListing }) {
       </div>
 
       {/* Desktop: image + details side by side */}
-      <div className="hidden lg:grid lg:grid-cols-2">
-        <PropertyImageSlider images={images} alt={propertyName} />
+      <div className="hidden lg:grid lg:grid-cols-2 lg:items-start">
+        <PropertyImageSlider images={images} alt={propertyName} className="lg:rounded-none" />
         <div className="p-6 sm:p-8 flex flex-col justify-center">
-          <h1 className="text-[32px] font-bold text-[#0F172A] leading-tight mb-6">{propertyName}</h1>
+          <h1 className="text-[32px] font-bold text-white leading-tight mb-6">{propertyName}</h1>
           <PropertyDetailRows rows={desktopDetailRows} variant="desktop" />
           {listing.description && (
-            <p className="text-sm text-gray-500 mt-6 leading-relaxed">{listing.description}</p>
+            <p className="text-sm text-white/80 mt-6 leading-relaxed">{listing.description}</p>
           )}
         </div>
       </div>

@@ -44,11 +44,11 @@ export function HowItWorks() {
   const [activeTab, setActiveTab] = useState<'sellers' | 'buyers'>('sellers');
 
   return (
-    <section id="how-it-works" className="py-20 bg-gray-50">
+    <section id="how-it-works" className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight">How It Works</h2>
-          <p className="text-gray-600 text-lg">A simple, transparent process whether you're looking to sell your property or find your dream home.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight text-white">How It Works</h2>
+          <p className="text-white/70 text-lg">A simple, transparent process whether you're looking to sell your property or find your dream home.</p>
         </div>
 
         <div className="flex justify-center mb-12">
@@ -75,7 +75,7 @@ export function HowItWorks() {
               {steps[activeTab].map((step, index) => (
                 <div key={index} className="flex gap-4">
                   <div className="flex-shrink-0 mt-1">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
                       {index + 1}
                     </div>
                   </div>
@@ -101,7 +101,7 @@ export function HowItWorks() {
               </div>
               
               <div className="space-y-4">
-                <button className="w-full py-4 bg-primary text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                <button className="w-full py-4 bg-primary text-white rounded-xl font-medium hover:bg-blue-950 transition-colors">
                   {activeTab === 'sellers' ? 'List Your Property' : 'Browse Properties'}
                 </button>
                 <button className="w-full py-4 bg-white border border-gray-200 text-gray-900 rounded-xl font-medium hover:bg-gray-50 transition-colors">

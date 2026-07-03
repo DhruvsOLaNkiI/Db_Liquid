@@ -1,118 +1,252 @@
-import { ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Search } from 'lucide-react';
+import { PROPERTY_TYPES } from '../data/propertyTypes';
+import { useAuth } from '../context/AuthContext';
+
+type SearchTab = 'buy' | 'sell';
+
+function InlineLoginForm() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    const result = await login(email, password);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    navigate('/');
+  };
+
+  return (
+    <div className="bg-white rounded-3xl p-8 shadow-2xl relative z-10 w-full">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold tracking-tight mb-2 text-gray-900">Welcome back</h2>
+        <p className="text-sm text-gray-500">
+          One account to browse, bid, and list properties.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1.5 text-left">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1.5 text-left">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
+          />
+        </div>
+
+        {error && <p className="text-xs text-red-600 text-left">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full py-3 mt-2 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Logging in…' : 'Log in'}
+        </button>
+      </form>
+
+      <p className="text-center text-xs text-gray-500 mt-6">
+        Don&apos;t have an account?{' '}
+        <Link to="/signup" className="font-medium text-primary hover:underline">
+          Sign up
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+function SearchBanner() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<SearchTab>('buy');
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState('All Residential');
+  const [searchQuery, setSearchQuery] = useState('');
+  const typeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (typeRef.current && !typeRef.current.contains(e.target as Node)) {
+        setTypeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleTabClick = (tab: SearchTab) => {
+    setActiveTab(tab);
+    setTypeOpen(true);
+  };
+
+  const selectType = (option: string) => {
+    setSelectedType(option);
+    setTypeOpen(false);
+  };
+
+  const handleSearch = () => {
+    if (activeTab === 'sell') {
+      navigate('/list-your-property');
+      return;
+    }
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (selectedType !== 'All Residential') params.set('type', selectedType);
+    const query = params.toString();
+    navigate(query ? `/browse-property?${query}` : '/browse-property');
+  };
+
+  return (
+    <div className="bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-2 md:p-4 max-w-[1000px] mx-auto w-full">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 mb-3">
+        <div className="flex items-center gap-6">
+          {(['buy', 'sell'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => handleTabClick(tab)}
+              className={`py-3 text-sm capitalize whitespace-nowrap transition-colors ${
+                activeTab === tab
+                  ? 'font-semibold text-gray-900 border-b-2 border-[#FF7A00]'
+                  : 'font-medium text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <Link
+          to="/list-your-property"
+          className="hidden sm:inline-flex mb-1 items-center px-6 py-2 bg-[#FF7A00] text-white text-xs font-bold rounded-full hover:bg-[#E66E00] transition-colors shadow-sm"
+        >
+          Post Your Property For Free
+        </Link>
+      </div>
+
+      <div className="flex flex-col md:flex-row items-center gap-3 px-2 pb-2">
+        <div ref={typeRef} className="relative w-full md:w-[220px] shrink-0">
+          <button
+            type="button"
+            onClick={() => setTypeOpen((open) => !open)}
+            className="flex items-center justify-between w-full px-4 py-3.5 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+          >
+            <span className="text-sm text-gray-700 font-medium truncate pr-2">{selectedType}</span>
+            <ChevronDown
+              size={16}
+              className={`text-gray-500 shrink-0 transition-transform ${typeOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {typeOpen && (
+            <div className="absolute z-[200] top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => selectType('All Residential')}
+                className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-100 transition-colors ${
+                  selectedType === 'All Residential'
+                    ? 'bg-orange-50 text-gray-900 font-medium'
+                    : 'text-gray-800 hover:bg-gray-50'
+                }`}
+              >
+                All Residential
+              </button>
+              {PROPERTY_TYPES.map((group) => (
+                <div key={group.category}>
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 sticky top-0">
+                    {group.category}
+                  </div>
+                  {group.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => selectType(option)}
+                      className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${
+                        selectedType === option
+                          ? 'bg-orange-50 text-gray-900 font-medium'
+                          : 'text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 flex items-center w-full bg-white rounded-xl border border-gray-200 px-4 py-3.5 hover:border-gray-300 transition-colors">
+          <Search size={18} className="text-gray-400 mr-3 shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search 'Noida'"
+            className="bg-transparent border-none outline-none w-full text-sm text-gray-900 placeholder:text-gray-500"
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSearch}
+          className="w-full md:w-auto px-8 py-3.5 bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl font-bold text-sm transition-colors shadow-md shadow-orange-500/20 shrink-0"
+        >
+          {activeTab === 'sell' ? 'List Property' : 'Search'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function Hero() {
   return (
-    <section className="pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-          
-          <div className="flex-1 text-center lg:text-left">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 mb-6">
-                <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
-                <span className="text-sm font-medium text-gray-800">Part of the DB Ecosystem</span>
-              </div>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1] mb-6">
-                The Smart Way to <br className="hidden lg:block" />
-                <span className="text-gray-400">Buy & Sell Properties</span>
-              </h1>
-              <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                DB Liquid is a revolutionary real estate platform connecting sellers with serious buyers through a transparent, competitive bidding system.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                <Link
-                  to="/list-your-property"
-                  className="w-full sm:w-auto px-8 py-4 bg-primary text-white rounded-full font-medium text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95"
-                >
-                  List Your Property
-                  <ArrowRight size={20} />
-                </Link>
-                <Link
-                  to="/browse-property"
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-gray-900 border border-gray-200 rounded-full font-medium text-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  Browse Listings
-                </Link>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-12 flex items-center justify-center lg:justify-start gap-8"
-            >
-              <div className="flex -space-x-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center bg-gray-100 z-[${5-i}]`}>
-                    <img src={`https://i.pravatar.cc/150?img=${i+10}`} alt="User" className="w-full h-full rounded-full object-cover" />
-                  </div>
-                ))}
-              </div>
-              <div className="text-sm">
-                <div className="flex items-center gap-1 text-yellow-400 mb-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="font-medium text-gray-900">Trusted by 10k+ users</p>
-              </div>
-            </motion.div>
-          </div>
+    <section className="relative w-full mb-16">
+      {/* Background Image Container */}
+      <div className="relative w-full h-[300px] md:h-[400px]">
+        <img 
+          src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+          alt="Real Estate Handshake"
+          className="w-full h-full object-cover"
+        />
+        {/* Dark overlay gradient to blend with the rest of the dark page */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#000000]" />
+      </div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex-1 w-full max-w-lg lg:max-w-none relative"
-          >
-            <div className="relative aspect-[4/5] md:aspect-[4/4] lg:aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl bg-gray-100">
-               <img 
-                 src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                 alt="Modern House" 
-                 className="w-full h-full object-cover"
-               />
-               
-               {/* Floating UI Element 1 */}
-               <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl">
-                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                   </div>
-                   <div>
-                     <p className="text-xs text-gray-500 font-medium">Highest Bid</p>
-                     <p className="text-sm font-bold text-gray-900">₹12,500 / sq.ft</p>
-                   </div>
-                 </div>
-               </div>
-
-               {/* Floating UI Element 2 */}
-               <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl">
-                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                   </div>
-                   <div>
-                     <p className="text-xs text-gray-500 font-medium">Time Remaining</p>
-                     <p className="text-sm font-bold text-gray-900">2d 14h 23m</p>
-                   </div>
-                 </div>
-               </div>
-            </div>
-            
-            {/* Background decoration */}
-            <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-blue-100 to-purple-50 rounded-full blur-3xl opacity-50"></div>
-          </motion.div>
-        </div>
+      {/* Search Banner overlapping the bottom edge */}
+      <div className="absolute bottom-0 left-0 right-0 px-4 z-20 translate-y-1/2">
+        <SearchBanner />
       </div>
     </section>
   );

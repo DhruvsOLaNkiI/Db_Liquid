@@ -1,4 +1,5 @@
 import type { Listing } from './sanitize';
+import { mergeViewAnalytics } from './listingViews';
 
 type Bid = Listing['bids'][number];
 
@@ -17,6 +18,7 @@ function mergeBid(existing: Bid, incoming: Bid, viewerId?: string, isSeller?: bo
   return {
     ...existing,
     amountPerSqFt: incoming.amountPerSqFt,
+    bidTotal: incoming.bidTotal ?? existing.bidTotal,
     createdAt: incoming.createdAt,
   };
 }
@@ -53,6 +55,7 @@ function mergeListing(existing: Listing, incoming: Listing, viewerId?: string): 
       ? incoming.lastDeclinedBuyerUserId ?? existing.lastDeclinedBuyerUserId
       : existing.lastDeclinedBuyerUserId,
     lastDeclinedAt: isSeller ? incoming.lastDeclinedAt ?? existing.lastDeclinedAt : existing.lastDeclinedAt,
+    ...mergeViewAnalytics(existing as Record<string, unknown>, incoming as Record<string, unknown>),
   };
 
   if (chatAllowed) {

@@ -320,7 +320,7 @@ export function SellerPropertyDetailsStep({
             <button
               type="button"
               onClick={handleApplyPlotArea}
-              className="px-5 py-2.5 rounded-full text-sm font-semibold bg-primary text-white hover:bg-gray-800 transition-colors"
+              className="px-5 py-2.5 rounded-full text-sm font-semibold bg-primary text-white hover:bg-blue-950 transition-colors"
             >
               Apply
             </button>

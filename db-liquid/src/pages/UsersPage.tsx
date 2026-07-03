@@ -9,7 +9,7 @@ export function UsersPage() {
   const sellers = users.filter((u) => u.roles.includes('seller'));
 
   return (
-    <div className="min-h-screen bg-gray-50 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900">
       <Header />
       <main className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -33,7 +33,7 @@ export function UsersPage() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to="/signup"
-                  className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
+                  className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-blue-950 transition-colors"
                 >
                   Create account
                 </Link>
@@ -98,7 +98,7 @@ function UserTable({
                         <span
                           key={role}
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
-                            role === 'buyer' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                            role === 'buyer' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
                           }`}
                         >
                           {role}
