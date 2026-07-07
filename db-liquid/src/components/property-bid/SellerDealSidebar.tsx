@@ -104,21 +104,21 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
         )}
 
         {acceptedBid && (
-          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-4">
+          <div className="glass-card-inner-orange rounded-xl p-4 mb-4">
             <div className="flex items-start gap-2">
-              <Check className="text-orange-600 shrink-0 mt-0.5" size={18} />
+              <Check className="text-orange-300 shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="font-semibold text-orange-900 text-sm">
+                <p className="font-semibold text-white text-sm">
                   Accepted: {acceptedBid.bidderName}
                 </p>
-                <p className="text-xs text-orange-700 mt-0.5">
+                <p className="text-xs text-white/80 mt-0.5">
                   {formatPrice(getBidAmount(acceptedBid, listing.areaSqFt))}
                 </p>
               </div>
             </div>
 
             {awaitingBuyerToken && (
-              <p className="text-xs text-orange-800 mt-3 bg-white/70 rounded-lg px-3 py-2">
+              <p className="text-xs text-white/90 mt-3 bg-white/10 border border-white/15 rounded-lg px-3 py-2">
                 Waiting for {acceptedBid.bidderName} to pay the token. Chat opens after payment.
               </p>
             )}

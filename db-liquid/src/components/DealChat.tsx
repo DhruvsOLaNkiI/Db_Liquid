@@ -113,7 +113,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
         <div className="max-w-2xl mx-auto">
           <Link
             to={backTo}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary mb-6"
+            className="inline-flex items-center gap-2 text-sm font-medium text-white/75 hover:text-white mb-6"
           >
             <ArrowLeft size={16} />
             {backLabel}
@@ -122,7 +122,7 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
           <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
             <div className="p-5 border-b border-gray-100">
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Chat with</p>
-              <h1 className="text-xl font-bold">{otherName}</h1>
+              <h1 className="text-xl font-bold text-gray-900">{otherName}</h1>
               <p className="text-sm text-gray-500">{otherPhone}</p>
               <p className="text-xs text-gray-400 mt-1">{listing.propertyType} · {listing.location}</p>
               {isSeller && listing.acceptedBidId && (
@@ -188,7 +188,8 @@ export function DealChat({ listingId, backTo, backLabel }: DealChatProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="flex-1 px-4 py-3 rounded-full border border-gray-200 bg-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
               />
               <button
                 type="submit"
