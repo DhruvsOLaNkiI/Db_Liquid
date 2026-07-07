@@ -55,7 +55,7 @@ export function BrowsePropertyPage() {
       <Header />
       <main className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[1400px] mx-auto">
-          {listings.length > 0 && (
+          {(listings.length > 0 || search || typeFilter !== 'all') && (
             <ListingFilters
               search={search}
               statusFilter={statusFilter}

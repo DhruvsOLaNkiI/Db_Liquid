@@ -47,6 +47,9 @@ export function filterListings(
       listing.state,
       listing.propertyType,
       listing.address,
+      listing.detailsSummary,
+      listing.description,
+      listing.pincode,
     ]
       .filter(Boolean)
       .join(' ')

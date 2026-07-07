@@ -108,7 +108,7 @@ function SearchBanner() {
 
   const handleTabClick = (tab: SearchTab) => {
     setActiveTab(tab);
-    setTypeOpen(true);
+    setTypeOpen(tab === 'buy');
   };
 
   const selectType = (option: string) => {
@@ -129,15 +129,17 @@ function SearchBanner() {
   };
 
   return (
-    <div className="bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-2 md:p-4 max-w-[1000px] mx-auto w-full">
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 mb-3">
+    <div className={`bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-[1000px] mx-auto w-full ${activeTab === 'sell' ? 'p-2 md:p-3' : 'p-2 md:p-4'}`}>
+      <div className={`flex items-center justify-between border-b border-gray-100 px-4 ${activeTab === 'sell' ? 'mb-2' : 'mb-3'}`}>
         <div className="flex items-center gap-6">
           {(['buy', 'sell'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => handleTabClick(tab)}
-              className={`py-3 text-sm capitalize whitespace-nowrap transition-colors ${
+              className={`text-sm capitalize whitespace-nowrap transition-colors ${
+                activeTab === 'sell' ? 'py-2' : 'py-3'
+              } ${
                 activeTab === tab
                   ? 'font-semibold text-gray-900 border-b-2 border-[#FF7A00]'
                   : 'font-medium text-gray-500 hover:text-gray-900'
@@ -155,77 +157,82 @@ function SearchBanner() {
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center gap-3 px-2 pb-2">
-        <div ref={typeRef} className="relative w-full md:w-[220px] shrink-0">
-          <button
-            type="button"
-            onClick={() => setTypeOpen((open) => !open)}
-            className="flex items-center justify-between w-full px-4 py-3.5 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
-          >
-            <span className="text-sm text-gray-700 font-medium truncate pr-2">{selectedType}</span>
-            <ChevronDown
-              size={16}
-              className={`text-gray-500 shrink-0 transition-transform ${typeOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {typeOpen && (
-            <div className="absolute z-[200] top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => selectType('All Residential')}
-                className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-100 transition-colors ${
-                  selectedType === 'All Residential'
-                    ? 'bg-orange-50 text-gray-900 font-medium'
-                    : 'text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                All Residential
-              </button>
-              {PROPERTY_TYPES.map((group) => (
-                <div key={group.category}>
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 sticky top-0">
-                    {group.category}
-                  </div>
-                  {group.options.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => selectType(option)}
-                      className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${
-                        selectedType === option
-                          ? 'bg-orange-50 text-gray-900 font-medium'
-                          : 'text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 flex items-center w-full bg-white rounded-xl border border-gray-200 px-4 py-3.5 hover:border-gray-300 transition-colors">
-          <Search size={18} className="text-gray-400 mr-3 shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search 'Noida'"
-            className="bg-transparent border-none outline-none w-full text-sm text-gray-900 placeholder:text-gray-500"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleSearch}
-          className="w-full md:w-auto px-8 py-3.5 bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl font-bold text-sm transition-colors shadow-md shadow-orange-500/20 shrink-0"
+      {activeTab === 'buy' ? (
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+          className="flex flex-col md:flex-row items-center gap-3 px-2 pb-2"
         >
-          {activeTab === 'sell' ? 'List Property' : 'Search'}
-        </button>
-      </div>
+          <div ref={typeRef} className="relative w-full md:w-[220px] shrink-0">
+            <button
+              type="button"
+              onClick={() => setTypeOpen((open) => !open)}
+              className="flex items-center justify-between w-full px-4 py-3.5 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+            >
+              <span className="text-sm text-gray-700 font-medium truncate pr-2">{selectedType}</span>
+              <ChevronDown size={16} className={`text-gray-500 shrink-0 transition-transform ${typeOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {typeOpen && (
+              <div className="absolute z-[200] top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => selectType('All Residential')}
+                  className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-100 transition-colors ${selectedType === 'All Residential' ? 'bg-orange-50 text-gray-900 font-medium' : 'text-gray-800 hover:bg-gray-50'}`}
+                >
+                  All Residential
+                </button>
+                {PROPERTY_TYPES.map((group) => (
+                  <div key={group.category}>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 sticky top-0">
+                      {group.category}
+                    </div>
+                    {group.options.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => selectType(option)}
+                        className={`w-full text-left px-4 py-2.5 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${selectedType === option ? 'bg-orange-50 text-gray-900 font-medium' : 'text-gray-800 hover:bg-gray-50'}`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 flex items-center w-full bg-white rounded-xl border border-gray-200 px-4 py-3.5 hover:border-gray-300 transition-colors">
+            <Search size={18} className="text-gray-400 mr-3 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search 'Noida'"
+              className="bg-transparent border-none outline-none w-full text-sm text-gray-900 placeholder:text-gray-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full md:w-auto px-8 py-3.5 bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl font-bold text-sm transition-colors shadow-md shadow-orange-500/20 shrink-0"
+          >
+            Search
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 px-3 py-2 sm:py-2.5">
+          <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+            List your property for free and receive competitive bids from verified buyers.
+          </p>
+          <Link
+            to="/list-your-property"
+            className="shrink-0 px-6 py-2.5 bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl font-bold text-sm transition-colors shadow-md shadow-orange-500/20 whitespace-nowrap"
+          >
+            List Property
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

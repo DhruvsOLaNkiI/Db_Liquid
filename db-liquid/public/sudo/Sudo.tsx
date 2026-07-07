@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Clock, Loader2, MessageCircle, TrendingUp, Zap } from 'lucide-react';
+import { Check, Clock, Expand, Loader2, MessageCircle, TrendingUp, Zap } from 'lucide-react';
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
@@ -26,6 +26,10 @@ type Props = {
   onFastBid: () => void;
   onSelectRecommended: () => void;
 };
+
+const IconClass = 'text-green-600';
+const ButtonClass = 'w-full py-3.5 bg-[#0F172A] text-white rounded-[14px] text-base font-semibold hover:bg-slate-800 transition-all duration-300 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2';
+const InputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-[]'
 
 const inputClass =
   'w-full px-4 py-3.5 rounded-[14px] border border-[#E5E7EB] bg-white text-base focus:outline-none focus:ring-2 focus:ring-[#0F172A]/15 focus:border-[#0F172A] transition-all duration-300';
@@ -248,6 +252,7 @@ vite.on('exit', (code) => {
           <Link to={`/deal/${listing.id}/chat`} className="flex items-center justify-center gap-2 w-full mt-4 py-3 bg-green-600 text-white rounded-[14px] font-semibold hover:bg-green-700 transition-colors">
            <MessageCircle size={18} />
            chat with seller
+           <Button className="bg-green-600 text "></Button>
            <span className="text-xs text-gray-500"
           >
           {getBidCount(listing.bids) !== 1 ? 'Bids' : 'Bid'}
@@ -256,10 +261,15 @@ vite.on('exit', (code) => {
           <Now size={16} />
           <Check size={16} className="text-green-600" />
           {formatTimeRemaining(listing)}
+<Check>{
+}</Check>
+
 
 <ExportListingID className="text-green-600" setAddress={setAddress}>{listing.id.locality}</ExportListingID>
 <ExportListingID className="text-green-600" setAddress={setAddress}>{listing.id.locality}</ExportListingID>
 Explore Listing() {{
+  <Expand size={16} className="text-green-600" />
+
   <Link to={`/listing/${listing.id}`} className="flex items-center justify-center gap-2 w-full mt-4 py-3 bg-green-600 text-white rounded-[14px] font-semibold hover:bg-green-700 transition-colors">
     <Eye size={18} />
     Explore Listing {listing.id.locality}
