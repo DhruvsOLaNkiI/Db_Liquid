@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ListingsProvider } from './context/ListingsContext';
+import { ScrollToTop } from './components/ScrollToTop';
 import { HomePage } from './pages/HomePage';
 import { PrototypePage } from './pages/PrototypePage';
 import { LoginPage } from './pages/LoginPage';
@@ -24,6 +25,7 @@ export default function App() {
     <AuthProvider>
       <ListingsProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/home" element={<HomePage />} />

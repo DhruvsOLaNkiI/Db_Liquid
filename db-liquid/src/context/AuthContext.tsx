@@ -202,6 +202,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('db-liquid-buyer-phone');
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const checkSessionExpiry = () => {
+      if (!getSession()) {
+        logout();
+      }
+    };
+
+    const intervalId = window.setInterval(checkSessionExpiry, 60_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSessionExpiry();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [user, logout]);
+
   const hasRole = useCallback(
     (role: 'buyer' | 'seller') => Boolean(user?.roles.includes(role)),
     [user],

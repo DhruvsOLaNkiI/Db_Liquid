@@ -8,6 +8,13 @@ import { randomId } from '../utils/randomId';
 export const USERS_TABLE_KEY = 'db-liquid-users';
 export const SESSION_TABLE_KEY = 'db-liquid-session';
 
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+function isSessionExpired(session: AuthSession): boolean {
+  if (!session.expiresAt) return true;
+  return Date.now() >= new Date(session.expiresAt).getTime();
+}
+
 export const USERS_TABLE_COLUMNS = [
   'id',
   'email',
@@ -144,6 +151,11 @@ export function getSession(): AuthSession | null {
     const session = JSON.parse(raw) as AuthSession;
     if (!session?.userId || !session?.activeRole) return null;
 
+    if (isSessionExpired(session)) {
+      clearSession();
+      return null;
+    }
+
     // Wait until Mongo/API users are loaded — otherwise refresh would clear a valid session.
     if (isSharedStoreReady()) {
       const user = findUserById(session.userId);
@@ -159,8 +171,12 @@ export function getSession(): AuthSession | null {
   }
 }
 
-export function setSession(session: AuthSession) {
-  localStorage.setItem(SESSION_TABLE_KEY, JSON.stringify(session));
+export function setSession(session: Pick<AuthSession, 'userId' | 'activeRole'>) {
+  const full: AuthSession = {
+    ...session,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+  };
+  localStorage.setItem(SESSION_TABLE_KEY, JSON.stringify(full));
 }
 
 export function clearSession() {

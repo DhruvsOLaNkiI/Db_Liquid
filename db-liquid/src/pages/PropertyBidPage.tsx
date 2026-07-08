@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useLayoutEffect, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '../components/Header';
@@ -42,6 +42,19 @@ export function PropertyBidPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [tokenMessage, setTokenMessage] = useState('');
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [id, listing?.id]);
+
+  useEffect(() => {
+    setBidAmount('');
+    setError('');
+    setSuccess(false);
+    setTokenMessage('');
+  }, [id]);
 
   useEffect(() => {
     if (!id || isListingOwner) return;

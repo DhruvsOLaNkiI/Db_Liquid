@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Clock, Expand, Loader2, MessageCircle, TrendingUp, Zap } from 'lucide-react';
+import { Check, Clock, Divide, Expand, Loader2, MessageCircle, Square, TrendingUp, Zap } from 'lucide-react';
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
@@ -68,6 +68,8 @@ export function StickyBidSidebar({
                 : liveLabel === 'SOLD'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-gray-100 text-gray-600'
+                  : 'bg red-100',
+
             }`}
           >
             {liveLabel}
@@ -86,6 +88,16 @@ export function StickyBidSidebar({
               ₹{listing.pricePerSqFt.toLocaleString('en-IN')}/sq.ft
             </p>
           </div>
+
+          <Divide>
+            <Divide size={16} className="text-gray-500" />
+            <class name{
+              <p className=Square={listing.id.locality}>
+              <Square size={16} className='text-green-600'
+              </p>
+
+            }
+          </Divide>
           <div>
             <p className="text-sm font-medium text-gray-500 mb-0.5">Current Bid</p>
             <p className="text-lg font-semibold text-gray-600">{formatPrice(currentBidTotal)}</p>
@@ -101,6 +113,9 @@ export function StickyBidSidebar({
           </div>
         </div>
 
+const status = getListingStatus(listing);
+            {listing.bids.length > 0 && (
+              <div 
         {!loggedInBuyer && open && (
           <div className="space-y-3 mb-4">
             <p className="text-sm text-gray-600">Log in as a buyer to place a bid.</p>

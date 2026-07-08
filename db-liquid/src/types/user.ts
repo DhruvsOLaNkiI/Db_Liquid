@@ -26,4 +26,6 @@ export interface User {
 export interface AuthSession {
   userId: string;
   activeRole: UserRole;
+  /** ISO timestamp when the session expires (24h after login). */
+  expiresAt: string;
 }
