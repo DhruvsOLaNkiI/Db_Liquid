@@ -1,12 +1,20 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
+import crypto from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
+import { clearAuthCookie, setAuthCookie } from './auth';
+import {
+  getViewerIdFromRequest,
+  optionalAuth,
+  requireAdmin,
+  requireAuth,
+  type AuthenticatedRequest,
+} from './authMiddleware';
 import { connectMongo, getMongoInfo } from './db';
-import { mergeListingsForSave } from './mergeListings';
 import { applyListingView } from './listingViews';
-import { mergeUsersForSave } from './mergeUsers';
 import {
   getListings,
   getUsers,
@@ -21,6 +29,21 @@ import {
   toAdminUser,
 } from './verificationAdmin';
 import { sanitizeListing, sanitizeListings, sanitizeUser, sanitizeUsers } from './sanitize';
+import {
+  hashPassword,
+  isPasswordHashed,
+  verifyPassword,
+} from './password';
+import {
+  deprecatedBulkListingsPut,
+  putAdminListings,
+  putListingsSync,
+} from './routes/v1/listings';
+import {
+  deprecatedBulkUsersPut,
+  patchCurrentUser,
+  putAdminUsers,
+} from './routes/v1/users';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, '../dist');
@@ -28,12 +51,21 @@ const PORT = Number(process.env.PORT || process.env.API_PORT) || 3001;
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser());
 
-function getViewerId(req: express.Request) {
-  const headerId = req.header('x-viewer-user-id');
-  if (headerId && typeof headerId === 'string') return headerId.trim();
-  const queryId = req.query.viewerId;
-  return typeof queryId === 'string' ? queryId.trim() : undefined;
+function getViewerId(req: AuthenticatedRequest) {
+  return getViewerIdFromRequest(req);
+}
+
+function randomId() {
+  return crypto.randomUUID();
+}
+
+function ensureDualRoles(roles: string[]): string[] {
+  const set = new Set(roles.map(String));
+  set.add('buyer');
+  set.add('seller');
+  return [...set];
 }
 
 app.get('/api/health', async (_req, res) => {
@@ -52,7 +84,7 @@ app.get('/api/health', async (_req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
-
+  
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required.' });
     return;
@@ -60,26 +92,121 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     const users = await getUsers();
-    const user = users.find(
+    const index = users.findIndex(
       (entry) =>
-        typeof entry.email === 'string' &&
-        entry.email.toLowerCase() === email &&
-        entry.password === password,
+        typeof entry.email === 'string' && entry.email.toLowerCase() === email,
     );
 
-    if (!user) {
+    if (index === -1) {
       res.status(401).json({ error: 'Invalid email or password.' });
       return;
     }
 
+    const user = users[index];
+    const valid = await verifyPassword(password, user.password);
+    if (!valid) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    let savedUser = users[index];
+    let needsSave = false;
+
+    if (user.password && !isPasswordHashed(user.password)) {
+      savedUser = { ...savedUser, password: await hashPassword(password) };
+      needsSave = true;
+    }
+
+    const dualRoles = ensureDualRoles(Array.isArray(savedUser.roles) ? savedUser.roles.map(String) : []);
+    if (JSON.stringify(savedUser.roles) !== JSON.stringify(dualRoles)) {
+      savedUser = { ...savedUser, roles: dualRoles };
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      users[index] = savedUser;
+      await saveUsers(users);
+    }
+
+    setAuthCookie(res, savedUser.id, dualRoles);
+    res.json({ ok: true, user: sanitizeUser(savedUser, savedUser.id) });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
+app.post('/api/auth/logout', (_req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
+});
+
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  try {
+    const users = await getUsers();
+    const user = users.find((entry) => entry.id === req.auth!.userId);
+    if (!user) {
+      clearAuthCookie(res);
+      res.status(401).json({ error: 'Session invalid.' });
+      return;
+    }
     res.json({ ok: true, user: sanitizeUser(user, user.id) });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.post('/api/auth/change-password', async (req, res) => {
-  const userId = typeof req.body?.userId === 'string' ? req.body.userId.trim() : '';
+app.post('/api/auth/register', async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+
+  if (!email || !email.includes('@')) {
+    res.status(400).json({ error: 'Enter a valid email address.' });
+    return;
+  }
+  if (!name) {
+    res.status(400).json({ error: 'Enter your name.' });
+    return;
+  }
+  if (!phone) {
+    res.status(400).json({ error: 'Enter your phone number.' });
+    return;
+  }
+  if (!password || password.length < 6) {
+    res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    return;
+  }
+
+  try {
+    const users = await getUsers();
+    if (users.some((entry) => String(entry.email).toLowerCase() === email)) {
+      res.status(409).json({ error: 'An account with this email already exists.' });
+      return;
+    }
+
+    const user = {
+      id: randomId(),
+      email,
+      phone,
+      name,
+      password: await hashPassword(password),
+      roles: ['buyer', 'seller'],
+      createdAt: new Date().toISOString(),
+      credits: 0,
+    };
+
+    users.push(user);
+    await saveUsers(users);
+    setAuthCookie(res, user.id, user.roles);
+    res.status(201).json({ ok: true, user: sanitizeUser(user, user.id) });
+  } catch (error) {
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+  }
+});
+
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  const userId = req.auth!.userId;
   const currentPassword =
     typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
   const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
@@ -106,12 +233,13 @@ app.post('/api/auth/change-password', async (req, res) => {
     }
 
     const user = users[index];
-    if (user.password !== currentPassword) {
+    const valid = await verifyPassword(currentPassword, user.password);
+    if (!valid) {
       res.status(401).json({ error: 'Current password is incorrect.' });
       return;
     }
 
-    users[index] = { ...user, password: newPassword };
+    users[index] = { ...user, password: await hashPassword(newPassword) };
     await saveUsers(users);
     res.json({ ok: true });
   } catch (error) {
@@ -119,7 +247,7 @@ app.post('/api/auth/change-password', async (req, res) => {
   }
 });
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', optionalAuth, async (req, res) => {
   try {
     const viewerId = getViewerId(req);
     const users = await getUsers();
@@ -129,22 +257,13 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.put('/api/users', async (req, res) => {
-  if (!Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected an array of users.' });
-    return;
-  }
-  try {
-    const existing = await getUsers();
-    const merged = mergeUsersForSave(existing, req.body);
-    await saveUsers(merged);
-    res.json({ ok: true, count: merged.length });
-  } catch (error) {
-    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
-  }
-});
+app.put('/api/users', requireAuth, deprecatedBulkUsersPut);
 
-app.get('/api/listings', async (req, res) => {
+app.patch('/api/v1/users/me', requireAuth, patchCurrentUser);
+
+app.put('/api/v1/admin/users', requireAdmin, putAdminUsers);
+
+app.get('/api/listings', optionalAuth, async (req, res) => {
   try {
     const viewerId = getViewerId(req);
     const listings = await getListings();
@@ -154,7 +273,7 @@ app.get('/api/listings', async (req, res) => {
   }
 });
 
-app.get('/api/listings/:id', async (req, res) => {
+app.get('/api/listings/:id', optionalAuth, async (req, res) => {
   try {
     const viewerId = getViewerId(req);
     const listings = await getListings();
@@ -169,10 +288,9 @@ app.get('/api/listings/:id', async (req, res) => {
   }
 });
 
-app.post('/api/listings/:id/record-view', async (req, res) => {
+app.post('/api/listings/:id/record-view', optionalAuth, async (req, res) => {
   const visitorId = typeof req.body?.visitorId === 'string' ? req.body.visitorId.trim() : '';
-  const viewerUserId =
-    typeof req.body?.viewerUserId === 'string' ? req.body.viewerUserId.trim() : undefined;
+  const viewerUserId = getViewerId(req);
 
   if (!visitorId) {
     res.status(400).json({ error: 'visitorId is required.' });
@@ -215,23 +333,13 @@ app.post('/api/listings/:id/record-view', async (req, res) => {
   }
 });
 
-app.put('/api/listings', async (req, res) => {
-  if (!Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected an array of listings.' });
-    return;
-  }
-  try {
-    const viewerId = getViewerId(req);
-    const existing = await getListings();
-    const merged = mergeListingsForSave(existing, req.body, viewerId);
-    await saveListings(merged);
-    res.json({ ok: true, count: merged.length });
-  } catch (error) {
-    res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
-  }
-});
+app.put('/api/listings', requireAuth, deprecatedBulkListingsPut);
 
-app.get('/api/admin/verification-queue', async (_req, res) => {
+app.put('/api/v1/listings/sync', requireAuth, putListingsSync);
+
+app.put('/api/v1/admin/listings', requireAdmin, putAdminListings);
+
+app.get('/api/admin/verification-queue', requireAdmin, async (_req, res) => {
   try {
     const [listings, users] = await Promise.all([getListings(), getUsers()]);
     const usersById = new Map(users.map((user) => [user.id, user]));
@@ -253,7 +361,7 @@ app.get('/api/admin/verification-queue', async (_req, res) => {
   }
 });
 
-app.post('/api/admin/verification/review', async (req, res) => {
+app.post('/api/admin/verification/review', requireAdmin, async (req, res) => {
   const listingId = typeof req.body?.listingId === 'string' ? req.body.listingId.trim() : '';
   const documentId = typeof req.body?.documentId === 'string' ? req.body.documentId.trim() : '';
   const status = req.body?.status;
@@ -290,7 +398,7 @@ app.post('/api/admin/verification/review', async (req, res) => {
   }
 });
 
-app.get('/api/admin/users', async (_req, res) => {
+app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   try {
     const [users, listings] = await Promise.all([getUsers(), getListings()]);
     const listingCountBySeller = new Map<string, number>();
@@ -313,7 +421,7 @@ app.get('/api/admin/users', async (_req, res) => {
   }
 });
 
-app.post('/api/admin/users/review-kyc', async (req, res) => {
+app.post('/api/admin/users/review-kyc', requireAdmin, async (req, res) => {
   const userId = typeof req.body?.userId === 'string' ? req.body.userId.trim() : '';
   const field = req.body?.field;
   const verified = req.body?.verified;

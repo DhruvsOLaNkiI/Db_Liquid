@@ -18,12 +18,16 @@ export function SignupPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
 
-    const result = signup({ name, email, phone, password });
+    const result = await signup({ name, email, phone, password });
+    setSubmitting(false);
+
     if (!result.ok) {
       setError(result.error);
       return;
@@ -111,9 +115,10 @@ export function SignupPage() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-blue-950 transition-colors"
+              disabled={submitting}
+              className="w-full py-4 bg-primary text-white rounded-full font-medium text-lg hover:bg-blue-950 transition-colors disabled:opacity-60"
             >
-              Create account
+              {submitting ? 'Creating account…' : 'Create account'}
             </button>
           </form>
 

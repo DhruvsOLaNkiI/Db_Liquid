@@ -1,6 +1,6 @@
 import type { CreditTransaction } from './credits';
 
-export type UserRole = 'buyer' | 'seller';
+export type UserRole = 'buyer' | 'seller' | 'admin';
 
 export interface User {
   id: string;

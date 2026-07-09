@@ -1,5 +1,6 @@
 import type { AuthSession, User, UserRole } from '../types/user';
 import { getSharedUsers, isSharedStoreReady, mutateUsers, persistUsers, reloadUsersFromServer } from '../utils/sharedStore';
+import { apiFetch } from '../utils/api';
 import { normalizeUser } from '../utils/buyerCredits';
 import { isValidAadhar, isValidPan, normalizeAadhar, normalizePan } from '../utils/kyc';
 import { randomId } from '../utils/randomId';
@@ -101,7 +102,7 @@ export function createUser(input: {
   const users = loadTable();
   users.push(user);
   saveTable(users);
-  return { ok: true, user };
+  return { ok: true, user: { ...user, password: '' } };
 }
 
 export function addRoleToUser(userId: string, role: UserRole): User | undefined {
@@ -121,27 +122,19 @@ export function addRoleToUser(userId: string, role: UserRole): User | undefined 
   return user;
 }
 
-/** Ensures legacy single-role accounts can buy and list after login. */
+/** Ensures legacy single-role accounts can buy and list (in-memory; server fixes on login). */
 export function ensureDualRole(user: User): User {
-  let current = user;
-  if (!current.roles.includes('buyer')) {
-    current = addRoleToUser(current.id, 'buyer') ?? current;
-  }
-  if (!current.roles.includes('seller')) {
-    current = addRoleToUser(current.id, 'seller') ?? current;
-  }
-  return findUserById(current.id) ?? current;
+  const roles = new Set(user.roles);
+  roles.add('buyer');
+  roles.add('seller');
+  return { ...user, roles: [...roles] as User['roles'] };
 }
 
 export function validateLogin(
   email: string,
-  password: string,
+  _password: string,
 ): { ok: true; user: User } | { ok: false; error: string } {
-  const user = findUserByEmail(email);
-  if (!user || user.password !== password) {
-    return { ok: false, error: 'Invalid email or password.' };
-  }
-  return { ok: true, user: ensureDualRole(user) };
+  return { ok: false, error: 'Use server login via loginViaApi.' };
 }
 
 export function getSession(): AuthSession | null {
@@ -183,8 +176,8 @@ export function clearSession() {
   localStorage.removeItem(SESSION_TABLE_KEY);
 }
 
-export function replaceAllUsers(users: User[]) {
-  saveTable(users);
+export async function replaceAllUsers(users: User[]) {
+  await persistUsers(users);
 }
 
 export async function updateUserProfile(
@@ -294,11 +287,10 @@ export async function changeUserPassword(
     return { ok: false, error: 'New password must be different from your current password.' };
   }
 
-  const res = await fetch('/api/auth/change-password', {
+  const res = await apiFetch('/api/auth/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId,
       currentPassword: trimmedCurrent,
       newPassword: trimmedNew,
     }),

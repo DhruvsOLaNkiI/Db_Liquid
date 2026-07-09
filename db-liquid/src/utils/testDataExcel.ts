@@ -201,7 +201,7 @@ export function importTestDataFromExcel(
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const data = reader.result;
         const workbook = XLSX.read(data, { type: 'array' });
@@ -212,7 +212,7 @@ export function importTestDataFromExcel(
 
         if (importUsers) {
           const parsedUsers = parseUsersFromWorkbook(workbook);
-          replaceAllUsers(parsedUsers);
+          await replaceAllUsers(parsedUsers);
           users = parsedUsers.length;
         }
 

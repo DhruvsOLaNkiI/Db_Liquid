@@ -12,6 +12,7 @@ import {
   reloadListingsFromServer,
   reloadUsersFromServer,
 } from './sharedStore';
+import { apiFetch } from './api';
 
 export type AdminSellerProfile = {
   id: string;
@@ -161,7 +162,7 @@ async function buildFromSharedStore() {
 export async function fetchVerificationQueue(): Promise<
   { ok: true; listings: VerificationQueueListing[] } | { ok: false; error: string }
 > {
-  const res = await fetch('/api/admin/verification-queue');
+  const res = await apiFetch('/api/admin/verification-queue');
   const parsed = await parseAdminJson<{ listings?: VerificationQueueListing[] }>(
     res,
     'Failed to load verification queue.',
@@ -190,7 +191,7 @@ export async function fetchVerificationQueue(): Promise<
 export async function fetchAdminUsers(): Promise<
   { ok: true; users: AdminUserProfile[] } | { ok: false; error: string }
 > {
-  const res = await fetch('/api/admin/users');
+  const res = await apiFetch('/api/admin/users');
   const parsed = await parseAdminJson<{ users?: AdminUserProfile[] }>(
     res,
     'Failed to load users.',
@@ -221,7 +222,7 @@ export async function reviewVerificationDocument(
   documentId: string,
   status: 'approved' | 'rejected',
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const res = await fetch('/api/admin/verification/review', {
+  const res = await apiFetch('/api/admin/verification/review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ listingId, documentId, status }),
@@ -238,7 +239,7 @@ export async function reviewUserKyc(
   field: 'aadhar' | 'pan',
   verified: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const res = await fetch('/api/admin/users/review-kyc', {
+  const res = await apiFetch('/api/admin/users/review-kyc', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, field, verified }),

@@ -3,7 +3,6 @@ import type { CreditTransaction } from '../types/credits';
 import type { User } from '../types/user';
 import {
   clearSession,
-  createUser,
   ensureDualRole,
   findUserById,
   getSession,
@@ -13,7 +12,7 @@ import {
   changeUserPassword,
 } from '../utils/users';
 import { getBuyerCredits } from '../utils/buyerCredits';
-import { loginViaApi, notifyDataRefresh, reloadListingsFromServer, reloadUsersFromServer } from '../utils/sharedStore';
+import { loginViaApi, notifyDataRefresh, reloadListingsFromServer, reloadUsersFromServer, registerViaApi, fetchAuthMe, logoutViaApi } from '../utils/sharedStore';
 import { setBuyerName, setBuyerPhone } from '../utils/buyer';
 import { migrateListingsSellerId, syncUserProfileOnListings } from '../utils/listingsStorage';
 import { setSellerName, setSellerPhone } from '../utils/seller';
@@ -28,9 +27,10 @@ interface AuthContextValue {
     phone: string;
     name: string;
     password: string;
-  }) => { ok: true } | { ok: false; error: string };
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
   logout: () => void;
   hasRole: (role: 'buyer' | 'seller') => boolean;
+  isAdmin: boolean;
   buyerCredits: number;
   creditHistory: CreditTransaction[];
   topUpCredits: (
@@ -74,18 +74,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    const session = getSession();
-    if (session) {
-      const found = findUserById(session.userId);
-      if (found) {
-        const fullUser = ensureDualRole(found);
+    let cancelled = false;
+
+    async function restoreSession() {
+      const me = await fetchAuthMe();
+      if (cancelled) return;
+
+      if (me.ok) {
+        const session = getSession();
+        const activeRole = session?.activeRole ?? 'buyer';
+        setSession({ userId: me.user.id, activeRole });
+        const fullUser = ensureDualRole({ ...me.user, password: '' } as User);
         setUser(fullUser);
         syncIdentityForUser(fullUser);
       } else {
-        clearSession();
+        const session = getSession();
+        if (session) {
+          clearSession();
+        }
       }
+
+      setSessionReady(true);
     }
-    setSessionReady(true);
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -111,13 +126,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = useCallback(
-    (input: { email: string; phone: string; name: string; password: string }) => {
-      const result = createUser(input);
+    async (input: { email: string; phone: string; name: string; password: string }) => {
+      const result = await registerViaApi(input);
       if (!result.ok) return result;
 
       setSession({ userId: result.user.id, activeRole: 'buyer' });
-      setUser(result.user);
-      syncIdentityForUser(result.user);
+      const fullUser = ensureDualRole({ ...result.user, password: '' } as User);
+      setUser(fullUser);
+      syncIdentityForUser(fullUser);
+      await Promise.all([
+        reloadUsersFromServer({ force: true }),
+        reloadListingsFromServer({ force: true }),
+      ]);
+      notifyDataRefresh();
       return { ok: true as const };
     },
     [],
@@ -193,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, syncCreditWallet]);
 
   const logout = useCallback(() => {
+    void logoutViaApi();
     clearSession();
     setUser(null);
     sessionStorage.removeItem('db-liquid-seller-id');
@@ -230,6 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const isAdmin = Boolean(user?.roles.includes('admin'));
+
   const buyerCredits = user ? (user.credits ?? 0) : 0;
   const creditHistory = user?.creditHistory ?? [];
 
@@ -242,6 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signup,
       logout,
       hasRole,
+      isAdmin,
       buyerCredits,
       creditHistory,
       topUpCredits,
@@ -258,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signup,
       logout,
       hasRole,
+      isAdmin,
       buyerCredits,
       creditHistory,
       topUpCredits,

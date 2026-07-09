@@ -1,3 +1,5 @@
+import { apiFetch } from './api';
+
 const VISITOR_ID_KEY = 'db-liquid-visitor-id';
 
 export function getOrCreateVisitorId() {
@@ -31,10 +33,10 @@ export async function recordListingView(
   }
 
   const visitorId = getOrCreateVisitorId();
-  const res = await fetch(`/api/listings/${listingId}/record-view`, {
+  const res = await apiFetch(`/api/listings/${listingId}/record-view`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ visitorId, viewerUserId }),
+    body: JSON.stringify({ visitorId }),
   });
 
   const data = await res.json().catch(() => ({}));

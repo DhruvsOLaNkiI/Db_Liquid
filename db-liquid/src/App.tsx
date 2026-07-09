@@ -16,6 +16,7 @@ import { SellerChatPage } from './pages/SellerChatPage';
 import { EditListingPage } from './pages/EditListingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { UsersPage } from './pages/UsersPage';
+import { AdminRoute } from './components/AdminRoute';
 import { VerificationDashboardPage } from './pages/VerificationDashboardPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
 import { FAQPage } from './pages/FAQPage';
@@ -31,7 +32,14 @@ export default function App() {
             <Route path="/home" element={<HomePage />} />
             <Route path="/prototype" element={<PrototypePage />} />
             <Route path="/prototype/users" element={<UsersPage />} />
-            <Route path="/admin/verification" element={<VerificationDashboardPage />} />
+            <Route
+              path="/admin/verification"
+              element={
+                <AdminRoute>
+                  <VerificationDashboardPage />
+                </AdminRoute>
+              }
+            />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/login" element={<LoginPage />} />

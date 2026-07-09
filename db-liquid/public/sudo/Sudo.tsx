@@ -6,6 +6,7 @@ import { formatPrice } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
 import { spawn } from 'node:child_process';
 import { getBidCount } from '@/src/types/listing';
+import { big } from 'motion/react-client';
 
 type Props = {
   listing: PropertyListing;
@@ -189,6 +190,7 @@ const api = spawn('npx', ['tsx', 'server/index.ts'], {
 {/* const api = spawn('npx', ['tsx', 'server/index.ts'], {
   cwd: root,
   stdio: 'inherit',
+  import 
 }); */}
 
 const vite = spawn('npx', ['vite', '--port=3000', '--host=0.0.0.0'], {
@@ -234,12 +236,15 @@ vite.on('exit', (code) => {
 
               <button
                 type="submit"
+                onClick={() => handleBid(bidAmount)}
+                chatEnabled={chatEnabled}
+                bidAmount={bidAmount}
                 disabled={isSubmitting || buyerCredits < 1}
                 className="w-full py-3.5 bg-[#0F172A] text-white rounded-[14px] text-base font-semibold hover:bg-slate-800 transition-all duration-300 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {isSubmitting && <Loader2 size={18} className="animate-spin" />}
                 Place Bid
-              </button>
+              </button>disabled={isSubmitting || buyerCredits || bidAmount < minBid.toExponentialy}
               <button>
                 Accept Bid <Check size={16} 
                 className="text-green-600"/>

@@ -28,7 +28,14 @@ function mergeBids(existingBids: Bid[], incomingBids: Bid[], viewerId?: string, 
 
   for (const incoming of incomingBids) {
     const prev = byId.get(incoming.id);
-    byId.set(incoming.id, prev ? mergeBid(prev, incoming, viewerId, isSeller) : incoming);
+    if (!prev) {
+      const isOwnBid = Boolean(viewerId && incoming.bidderUserId === viewerId);
+      if (isSeller || isOwnBid) {
+        byId.set(incoming.id, incoming);
+      }
+      continue;
+    }
+    byId.set(incoming.id, mergeBid(prev, incoming, viewerId, isSeller));
   }
 
   return [...byId.values()].sort(
@@ -39,43 +46,53 @@ function mergeBids(existingBids: Bid[], incomingBids: Bid[], viewerId?: string, 
 function mergeListing(existing: Listing, incoming: Listing, viewerId?: string): Listing {
   const isSeller = Boolean(viewerId && existing.sellerId === viewerId);
   const chatAllowed = isSeller || isAcceptedBuyer(existing, viewerId);
+  const analytics = mergeViewAnalytics(
+    existing as Record<string, unknown>,
+    incoming as Record<string, unknown>,
+  );
 
-  const merged: Listing = {
-    ...existing,
-    ...incoming,
-    sellerName: isSeller ? incoming.sellerName || existing.sellerName : existing.sellerName,
-    sellerPhone: isSeller ? incoming.sellerPhone || existing.sellerPhone : existing.sellerPhone,
-    address: isSeller ? incoming.address ?? existing.address : existing.address,
-    pincode: isSeller ? incoming.pincode ?? existing.pincode : existing.pincode,
-    bids: mergeBids(existing.bids, incoming.bids, viewerId, isSeller),
-    verificationDocuments: isSeller
-      ? incoming.verificationDocuments ?? existing.verificationDocuments
-      : existing.verificationDocuments,
-    lastDeclinedBuyerUserId: isSeller
-      ? incoming.lastDeclinedBuyerUserId ?? existing.lastDeclinedBuyerUserId
-      : existing.lastDeclinedBuyerUserId,
-    lastDeclinedAt: isSeller ? incoming.lastDeclinedAt ?? existing.lastDeclinedAt : existing.lastDeclinedAt,
-    ...mergeViewAnalytics(existing as Record<string, unknown>, incoming as Record<string, unknown>),
-  };
-
-  if (chatAllowed) {
-    merged.chatMessages =
-      incoming.chatMessages.length >= existing.chatMessages.length
-        ? incoming.chatMessages
-        : existing.chatMessages;
-    merged.chatSellerName = incoming.chatSellerName || existing.chatSellerName;
-    merged.chatSellerPhone = incoming.chatSellerPhone || existing.chatSellerPhone;
-    merged.chatBuyerName = incoming.chatBuyerName || existing.chatBuyerName;
-    merged.chatBuyerPhone = incoming.chatBuyerPhone || existing.chatBuyerPhone;
-  } else {
-    merged.chatMessages = existing.chatMessages;
-    merged.chatSellerName = existing.chatSellerName;
-    merged.chatSellerPhone = existing.chatSellerPhone;
-    merged.chatBuyerName = existing.chatBuyerName;
-    merged.chatBuyerPhone = existing.chatBuyerPhone;
+  if (isSeller) {
+    const merged: Listing = {
+      ...existing,
+      ...incoming,
+      sellerId: existing.sellerId,
+      sellerName: incoming.sellerName || existing.sellerName,
+      sellerPhone: incoming.sellerPhone || existing.sellerPhone,
+      address: incoming.address ?? existing.address,
+      pincode: incoming.pincode ?? existing.pincode,
+      bids: mergeBids(existing.bids, incoming.bids, viewerId, true),
+      verificationDocuments: incoming.verificationDocuments ?? existing.verificationDocuments,
+      lastDeclinedBuyerUserId:
+        incoming.lastDeclinedBuyerUserId ?? existing.lastDeclinedBuyerUserId,
+      lastDeclinedAt: incoming.lastDeclinedAt ?? existing.lastDeclinedAt,
+      ...analytics,
+    };
+    return merged;
   }
 
-  return merged;
+  if (chatAllowed) {
+    return {
+      ...existing,
+      bids: mergeBids(existing.bids, incoming.bids, viewerId, false),
+      proceededAt: incoming.proceededAt ?? existing.proceededAt,
+      tokenStatus: incoming.tokenStatus ?? existing.tokenStatus,
+      chatMessages:
+        incoming.chatMessages.length >= existing.chatMessages.length
+          ? incoming.chatMessages
+          : existing.chatMessages,
+      chatSellerName: incoming.chatSellerName || existing.chatSellerName,
+      chatSellerPhone: incoming.chatSellerPhone || existing.chatSellerPhone,
+      chatBuyerName: incoming.chatBuyerName || existing.chatBuyerName,
+      chatBuyerPhone: incoming.chatBuyerPhone || existing.chatBuyerPhone,
+      ...analytics,
+    };
+  }
+
+  return {
+    ...existing,
+    bids: mergeBids(existing.bids, incoming.bids, viewerId, false),
+    ...analytics,
+  };
 }
 
 export function mergeListingsForSave(
@@ -88,7 +105,9 @@ export function mergeListingsForSave(
 
   const mergedIncoming = incomingListings.map((incoming) => {
     const existing = existingById.get(incoming.id);
-    if (!existing) return incoming;
+    if (!existing) {
+      return incoming;
+    }
     return mergeListing(existing, incoming, viewerId);
   });
 
