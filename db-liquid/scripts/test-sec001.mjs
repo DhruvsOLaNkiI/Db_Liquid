@@ -7,6 +7,7 @@
 import 'dotenv/config';
 import { getUsers } from '../server/mongoStore.ts';
 import { isPasswordHashed } from '../server/password.ts';
+import { createApiClient } from './api-test-client.mjs';
 
 const API = process.env.API_URL ?? 'http://localhost:3001';
 
@@ -15,20 +16,11 @@ function passwordKind(password) {
   return isPasswordHashed(password) ? 'bcrypt' : 'plaintext';
 }
 
-async function apiLogin(email, password) {
-  const res = await fetch(`${API}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { status: res.status, ok: res.ok, data };
-}
-
 async function main() {
   console.log('=== SEC-001 Password Hashing Test ===\n');
 
-  // 1. Health
+  const client = createApiClient(API);
+
   try {
     const health = await fetch(`${API}/api/health`).then((r) => r.json());
     console.log('1. API health:', health.ok ? 'OK' : 'FAIL', `(${health.storage})`);
@@ -37,19 +29,21 @@ async function main() {
     process.exit(1);
   }
 
-  // 2. DB password types (no secrets printed)
   const usersBefore = await getUsers();
   console.log('\n2. Users in MongoDB:', usersBefore.length);
   for (const u of usersBefore) {
     console.log(`   - ${u.email} → password: ${passwordKind(u.password)}`);
   }
 
-  // 3. Login test (edit these if you use different test accounts)
   const testEmail = process.env.SEC001_TEST_EMAIL ?? 'a@b.com';
   const testPassword = process.env.SEC001_TEST_PASSWORD ?? 'x';
 
   console.log(`\n3. Login test: ${testEmail}`);
-  const login1 = await apiLogin(testEmail, testPassword);
+  const login1 = await client.api('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: testEmail, password: testPassword }),
+  });
   console.log('   First login:', login1.ok ? 'SUCCESS' : `FAIL (${login1.data.error ?? login1.status})`);
 
   const usersAfterLogin = await getUsers();
@@ -62,12 +56,21 @@ async function main() {
     console.log('   ⚠ Still plaintext — login may have failed or user was re-imported as plain');
   }
 
-  // 4. Second login (proves bcrypt verify works)
-  const login2 = await apiLogin(testEmail, testPassword);
-  console.log('\n4. Second login (bcrypt verify):', login2.ok ? 'SUCCESS' : `FAIL (${login2.data.error ?? login2.status})`);
+  const login2 = await client.api('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: testEmail, password: testPassword }),
+  });
+  console.log(
+    '\n4. Second login (bcrypt verify):',
+    login2.ok ? 'SUCCESS' : `FAIL (${login2.data.error ?? login2.status})`,
+  );
 
-  // 5. Wrong password
-  const bad = await apiLogin(testEmail, 'wrong-password-xyz');
+  const bad = await client.api('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: testEmail, password: 'wrong-password-xyz' }),
+  });
   console.log('\n5. Wrong password rejected:', !bad.ok ? 'YES ✓' : 'NO ✗ (should fail)');
 
   console.log('\n=== Browser tests (manual) ===');

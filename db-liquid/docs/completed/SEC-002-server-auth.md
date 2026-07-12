@@ -24,7 +24,7 @@
 ---
 
 ## Problem before (what was wrong)
-
+<now user = Lopes, >
 | Area | Before |
 |------|--------|
 | **Session** | Only `localStorage` on client — server never knew who you were |
@@ -37,6 +37,7 @@
 **Risk:** Anyone could call the API directly and modify users, listings, or admin data without logging in.
 
 ---
+<asop><asop/>
 
 ## What we applied
 

@@ -2,34 +2,16 @@
  * SEC-002 manual test helper — run from db-liquid/:  npm run test:sec002
  */
 import 'dotenv/config';
+import { createApiClient } from './api-test-client.mjs';
 
 const API = process.env.API_URL ?? 'http://localhost:3001';
 const TEST_EMAIL = process.env.SEC002_TEST_EMAIL ?? process.env.SEC001_TEST_EMAIL ?? 'a@b.com';
 const TEST_PASSWORD = process.env.SEC002_TEST_PASSWORD ?? process.env.SEC001_TEST_PASSWORD ?? 'x';
 
-let sessionCookie = '';
-
-async function api(path, init = {}) {
-  const headers = { ...(init.headers ?? {}) };
-  if (sessionCookie) headers.Cookie = sessionCookie;
-
-  const res = await fetch(`${API}${path}`, { ...init, headers });
-  const setCookies = typeof res.headers.getSetCookie === 'function'
-    ? res.headers.getSetCookie()
-    : [res.headers.get('set-cookie')].filter(Boolean);
-
-  for (const raw of setCookies) {
-    if (typeof raw === 'string' && raw.startsWith('db_liquid_session=')) {
-      sessionCookie = raw.split(';')[0];
-    }
-  }
-
-  const data = await res.json().catch(() => ({}));
-  return { status: res.status, ok: res.ok, data };
-}
-
 async function main() {
   console.log('=== SEC-002 Server Auth Middleware Test ===\n');
+
+  const client = createApiClient(API);
 
   try {
     const health = await fetch(`${API}/api/health`).then((r) => r.json());
@@ -40,7 +22,8 @@ async function main() {
   }
 
   console.log('\n2. PUT /api/users without login');
-  const unauthPut = await api('/api/users', {
+  client.clearAll();
+  const unauthPut = await client.api('/api/users', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify([{ id: 'fake', email: 'hack@test.com', credits: 999999 }]),
@@ -48,41 +31,45 @@ async function main() {
   console.log('   Status:', unauthPut.status, unauthPut.status === 401 ? '✓ blocked' : '✗ should be 401');
 
   console.log('\n3. GET /api/admin/users without login');
-  const unauthAdmin = await api('/api/admin/users');
+  const unauthAdmin = await client.api('/api/admin/users');
   console.log('   Status:', unauthAdmin.status, unauthAdmin.status === 401 ? '✓ blocked' : '✗ should be 401');
 
   console.log(`\n4. Login as ${TEST_EMAIL}`);
-  sessionCookie = '';
-  const login = await api('/api/auth/login', {
+  client.clearAll();
+  const login = await client.api('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
   });
   console.log('   Login:', login.ok ? 'SUCCESS' : `FAIL (${login.data.error ?? login.status})`);
-  console.log('   Session cookie set:', sessionCookie.startsWith('db_liquid_session=') ? 'YES ✓' : 'NO ✗');
+  console.log('   Session cookie set:', client.getCookie('db_liquid_session') ? 'YES ✓' : 'NO ✗');
 
   console.log('\n5. GET /api/auth/me with cookie');
-  const me = await api('/api/auth/me');
+  const me = await client.api('/api/auth/me');
   console.log('   /me:', me.ok ? `SUCCESS (${me.data.user?.email})` : `FAIL (${me.status})`);
 
   console.log('\n6. PUT /api/listings with cookie (legacy endpoint blocked)');
-  const authListingsPut = await api('/api/listings', {
+  const authListingsPut = await client.api('/api/listings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify([]),
   });
-  console.log('   Status:', authListingsPut.status, authListingsPut.status === 403 ? '✓ deprecated/blocked' : '✗ should be 403');
+  console.log(
+    '   Status:',
+    authListingsPut.status,
+    authListingsPut.status === 403 ? '✓ deprecated/blocked' : '✗ should be 403',
+  );
 
   console.log('\n7. GET /api/admin/users with non-admin cookie');
-  const nonAdmin = await api('/api/admin/users');
+  const nonAdmin = await client.api('/api/admin/users');
   console.log('   Status:', nonAdmin.status, nonAdmin.status === 403 ? '✓ blocked (403)' : `got ${nonAdmin.status}`);
 
   console.log('\n8. POST /api/auth/logout');
-  const logout = await api('/api/auth/logout', { method: 'POST' });
+  const logout = await client.api('/api/auth/logout', { method: 'POST' });
   console.log('   Logout:', logout.ok ? 'SUCCESS' : 'FAIL');
 
   console.log('\n9. GET /api/auth/me after logout');
-  const meAfter = await api('/api/auth/me');
+  const meAfter = await client.api('/api/auth/me');
   console.log('   /me:', meAfter.status === 401 ? '✓ blocked' : '✗ should be 401');
 
   console.log('\n=== Browser test ===');

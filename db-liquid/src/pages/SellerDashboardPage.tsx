@@ -84,13 +84,15 @@ export function SellerDashboardPage() {
   const myListings = getSellerListings(sellerId);
 
   const handleAccept = (listingId: string, bidId: string) => {
-    const result = acceptBid(listingId, bidId, sellerId);
-    if (result.ok) {
-      setMessage('Bid accepted! Waiting for the buyer to pay the token.');
-      setExpandedId(listingId);
-    } else {
-      setMessage(result.error);
-    }
+    void (async () => {
+      const result = await acceptBid(listingId, bidId, sellerId);
+      if (result.ok) {
+        setMessage('Bid accepted! Waiting for the buyer to pay the token.');
+        setExpandedId(listingId);
+      } else {
+        setMessage(result.error);
+      }
+    })();
   };
 
   return (

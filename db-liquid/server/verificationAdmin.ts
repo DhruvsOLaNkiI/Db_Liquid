@@ -7,6 +7,7 @@ type VerificationDocument = {
   fileName: string;
   mimeType: string;
   dataUrl: string;
+  storageKey?: string;
   uploadedAt: string;
   status: VerificationDocStatus;
   reviewedAt?: string;
@@ -17,6 +18,7 @@ type PropertyPhoto = {
   fileName: string;
   mimeType: string;
   dataUrl: string;
+  storageKey?: string;
   uploadedAt: string;
 };
 

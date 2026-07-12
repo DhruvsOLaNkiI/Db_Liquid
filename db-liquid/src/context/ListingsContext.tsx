@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Bid, PropertyListing } from '../types/listing';
+import { useLocation } from 'react-router-dom';
+import type { PropertyListing } from '../types/listing';
 import { getAcceptedBid, getTotalPrice, isBiddingOpen, isBuyerTokenDue, isValidBidTotal, normalizeListing } from '../types/listing';
 import {
   appendListingToStorage,
@@ -8,13 +9,17 @@ import {
   saveListingsToStorage,
   sortListingsByNewest,
 } from '../utils/listingsStorage';
-import { randomId } from '../utils/randomId';
-import { spendBidCredit } from '../utils/buyerCredits';
-import { DATA_REFRESH_EVENT } from '../utils/sharedStore';
+import { acceptBidOnServer, createBidOnServer, DATA_REFRESH_EVENT } from '../utils/sharedStore';
 import { recordListingView as recordListingViewApi } from '../utils/listingViews';
 
 export { LISTINGS_STORAGE_KEY } from '../utils/listingsStorage';
 
+const AUTH_ONLY_PATHS = new Set(['/login', '/signup']);
+
+function isAuthOnlyPath(pathname: string) {
+  const path = pathname.replace(/\/$/, '') || '/';
+  return AUTH_ONLY_PATHS.has(path);
+}
 type ActionResult =
   | { ok: true; creditsRemaining?: number }
   | { ok: false; error: string };
@@ -24,7 +29,7 @@ type ReloadOptions = { force?: boolean };
 type ListingsContextValue = {
   listings: PropertyListing[];
   reloadListings: (options?: ReloadOptions) => void;
-  addListing: (listing: PropertyListing) => void;
+  addListing: (listing: PropertyListing) => Promise<{ ok: true } | { ok: false; error: string }>;
   placeBid: (
     listingId: string,
     bidderName: string,
@@ -32,7 +37,7 @@ type ListingsContextValue = {
     bidTotal: number,
     buyerUserId: string,
   ) => Promise<ActionResult>;
-  acceptBid: (listingId: string, bidId: string, sellerId: string) => ActionResult;
+  acceptBid: (listingId: string, bidId: string, sellerId: string) => Promise<ActionResult>;
   proceedDeal: (listingId: string, sellerId: string) => ActionResult;
   completeToken: (
     listingId: string,
@@ -68,6 +73,9 @@ const ListingsContext = createContext<ListingsContextValue | null>(null);
 const LISTINGS_POLL_MS = 30_000;
 
 export function ListingsProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const authOnly = isAuthOnlyPath(location.pathname);
+
   const [listings, setListings] = useState<PropertyListing[]>(() =>
     sortListingsByNewest(loadListingsFromStorage()),
   );
@@ -78,7 +86,10 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     setListings(sortListingsByNewest(data));
   }, []);
 
+  // Fetch + poll only on pages that need listings — not login/signup
   useEffect(() => {
+    if (authOnly) return;
+
     let intervalId: number | undefined;
 
     const refreshIfVisible = (options?: ReloadOptions) => {
@@ -87,7 +98,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    refreshIfVisible();
+    refreshIfVisible({ force: true });
 
     intervalId = window.setInterval(() => refreshIfVisible(), LISTINGS_POLL_MS);
 
@@ -102,9 +113,11 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       if (intervalId) window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [reloadListings]);
+  }, [authOnly, reloadListings]);
 
   useEffect(() => {
+    if (authOnly) return;
+
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && event.key !== LISTINGS_STORAGE_KEY) return;
       void reloadListings({ force: true });
@@ -118,16 +131,24 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener(DATA_REFRESH_EVENT, onDataRefresh);
     };
-  }, [reloadListings]);
+  }, [authOnly, reloadListings]);
 
   const updateListings = (updater: (prev: PropertyListing[]) => PropertyListing[]) => {
     setListings((prev) => saveListingsToStorage(updater(prev)));
   };
 
-  const addListing = (listing: PropertyListing) => {
+  const addListing = async (listing: PropertyListing) => {
     const normalized = normalizeListing(listing);
-    const saved = appendListingToStorage(normalized);
-    setListings(saved);
+    try {
+      const saved = await appendListingToStorage(normalized);
+      setListings(saved);
+      return { ok: true as const };
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: error instanceof Error ? error.message : 'Could not save listing to the database.',
+      };
+    }
   };
 
   const getListingById = (id: string) => listings.find((l) => l.id === id);
@@ -159,32 +180,24 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: 'Enter a bid amount greater than ₹0.' };
     }
 
-    const creditResult = await spendBidCredit(buyerUserId, {
-      listingId,
-      note: `Bid on ${listing.location}`,
-    });
-    if (!creditResult.ok) return creditResult;
+    const result = await createBidOnServer(listingId, bidTotal);
+    if (!result.ok) return result;
 
-    const amountPerSqFt = listing.areaSqFt > 0 ? bidTotal / listing.areaSqFt : bidTotal;
-
-    const bid: Bid = {
-      id: randomId(),
-      bidderName: name,
-      bidderPhone: phone,
-      bidderUserId: buyerUserId,
-      amountPerSqFt,
-      bidTotal,
-      createdAt: new Date().toISOString(),
-    };
-
-    updateListings((prev) =>
-      prev.map((l) => (l.id === listingId ? { ...l, bids: [bid, ...l.bids] } : l)),
+    setListings((prev) =>
+      sortListingsByNewest([
+        result.listing,
+        ...prev.filter((entry) => entry.id !== result.listing.id),
+      ]),
     );
 
-    return { ok: true, creditsRemaining: creditResult.credits };
+    return { ok: true, creditsRemaining: result.creditsRemaining };
   };
 
-  const acceptBid = (listingId: string, bidId: string, sellerId: string): ActionResult => {
+  const acceptBid = async (
+    listingId: string,
+    bidId: string,
+    sellerId: string,
+  ): Promise<ActionResult> => {
     const listing = listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, error: 'Listing not found.' };
     if (listing.sellerId !== sellerId) return { ok: false, error: 'Not your listing.' };
@@ -193,18 +206,14 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     const bid = listing.bids.find((b) => b.id === bidId);
     if (!bid) return { ok: false, error: 'Bid not found.' };
 
-    updateListings((prev) =>
-      prev.map((l) =>
-        l.id === listingId
-          ? {
-              ...l,
-              acceptedBidId: bidId,
-              acceptedAt: new Date().toISOString(),
-              proceededAt: new Date().toISOString(),
-              tokenStatus: 'pending',
-            }
-          : l,
-      ),
+    const result = await acceptBidOnServer(listingId, bidId);
+    if (!result.ok) return result;
+
+    setListings((prev) =>
+      sortListingsByNewest([
+        result.listing,
+        ...prev.filter((entry) => entry.id !== result.listing.id),
+      ]),
     );
 
     return { ok: true };

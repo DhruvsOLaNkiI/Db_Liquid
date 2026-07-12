@@ -20,6 +20,14 @@ export async function connectMongo(): Promise<Db> {
   return db;
 }
 
+export async function getMongoClient(): Promise<MongoClient> {
+  await connectMongo();
+  if (!client) {
+    throw new Error('MongoDB client is not connected');
+  }
+  return client;
+}
+
 export async function closeMongo() {
   if (client) {
     await client.close();

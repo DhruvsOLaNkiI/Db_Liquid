@@ -4,12 +4,20 @@ import App from './App.tsx';
 import './index.css';
 import { bootstrapSharedStore } from './utils/sharedStore';
 
+const AUTH_ONLY_PATHS = new Set(['/login', '/signup']);
+
 function Bootstrap() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    bootstrapSharedStore()
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    const authOnly = AUTH_ONLY_PATHS.has(path);
+
+    bootstrapSharedStore({
+      includeListings: !authOnly,
+      includeUsers: !authOnly,
+    })
       .then(() => setReady(true))
       .catch(() => {
         setError('Could not connect to the API / MongoDB Atlas. Run: npm run dev and check MONGODB_URI_ATLAS in .env');

@@ -17,6 +17,7 @@ export function normalizeUser(raw: Partial<User> & Pick<User, 'id' | 'email' | '
     credits: isBuyer ? (raw.credits ?? 0) : raw.credits,
     creditHistory: raw.creditHistory ?? [],
     profileImageUrl: raw.profileImageUrl,
+    profileImageKey: raw.profileImageKey,
     aadharNumber: raw.aadharNumber,
     aadharVerified: raw.aadharVerified ?? false,
     panNumber: raw.panNumber,
@@ -77,8 +78,17 @@ export async function spendBidCredit(
   userId: string,
   meta?: { listingId?: string; note?: string },
 ): Promise<{ ok: true; credits: number } | { ok: false; error: string }> {
+  // Refresh from server so credits/history match Mongo before spending
+  const { reloadUsersFromServer } = await import('../utils/sharedStore');
+  await reloadUsersFromServer({ force: true });
+
   const result = await mutateUsers((users) => {
-    const normalized = users.map((u) => normalizeUser(u as User));
+    const normalized = users.map((u) =>
+      normalizeUser({
+        ...u,
+        creditHistory: [...(u.creditHistory ?? [])],
+      } as User),
+    );
     const index = normalized.findIndex((u) => u.id === userId);
     if (index === -1) return { ok: false, error: 'User not found.' };
 
@@ -87,7 +97,7 @@ export async function spendBidCredit(
       return { ok: false, error: 'Only buyers can spend bid credits.' };
     }
 
-    const balance = user.credits ?? 0;
+    const balance = Number(user.credits ?? 0);
     if (balance < CREDIT_COST_PER_BID) {
       return {
         ok: false,

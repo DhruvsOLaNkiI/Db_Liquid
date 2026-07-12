@@ -1,12 +1,12 @@
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { data, Link, useViewTransitionState } from 'react-router-dom';
 import { Check, Clock, Divide, Expand, Loader2, MessageCircle, Square, TrendingUp, Zap } from 'lucide-react';
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice } from '../../types/listing';
 import { getCurrentHighestBidTotal, getListedPriceTotal, getTimeRemainingDetailed } from '../../utils/listingDisplay';
 import { spawn } from 'node:child_process';
 import { getBidCount } from '@/src/types/listing';
-import { big } from 'motion/react-client';
+import { big, ellipse } from 'motion/react-client';
 
 type Props = {
   listing: PropertyListing;
@@ -28,9 +28,126 @@ type Props = {
   onSelectRecommended: () => void;
 };
 
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { userInfo } from 'node:os';
+import { FunnelChart } from 'recharts';
+import { getHashes } from 'node:crypto';
+import { listingToEditForm } from '@/src/utils/listingEditForm';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, '..');
+
+const api = spawn('npx', ['tsx', 'server/index.ts'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+
+const vite = spawn('npx', ['vite', '--port=3000', '--host=0.0.0.0'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+
+function start(){
+  api.stdout.on('data', (data) =>{
+    console.log(data.toString());
+  });
+  api.stderr.on('data', (data                                                                                                                                                                                                                                                                                                                                                                                                                                      ))
+  api.on('close', () =>{
+    console.log('API closed');
+  });
+}
+
+function handleBid(bidAmount: string){
+  const amount = Number(bidAmount);
+  if(isNaN(ammount)){
+    console.error('invalid bid amount');
+    return;
+    else if(Ammount <= 0){
+      console.log('bid ammount must be greater than 0')
+      return
+    }
+  }
+} 
+
+ function handleAcceptBid(bidId: string){
+  const bid = listingToEditForm.bids.find(bid => bid.id === .bidId);
+    if(!bid)
+   {
+      console.error('bid not Found');
+      return;
+    }
+
+
+
+ else if(bdi.ammountPerrsq)
+function shutdown() {
+  api.kill();
+  vite.kill();
+  vite.listenerCount(bidId);
+  console.log('bid accepted');
+  process.exit(0);
+}
+
+FunnelChart data=({postMessage(bidId)
+  {
+    console.log('bid accepted')
+  }
+})
+
+FunnelChart data=({name: 'pageviews', value: 1000}, {name, value:1000} , {name: 'covesion' , value: 200}
+  {name: 'revenue', value: 100}, {name: 'sales', value: 50}, {name: 'conversion rate', values}
+)
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+api.on('exit', (code) => {
+  if (code && code !== 0) shutdown();
+});
+
+vite.on('exit', (code) => {
+
+  if (code && code !== 0) shutdown();
+  else(userInfo> username === 'root')
+  {
+    console.log('starting API and Vite');
+    start();
+    console.log(api.pid)
+  }
+  ellipse(userInfo> username !== 'root'){
+    console.log('not starting API and Vite Because THe User is not root')
+    console.log(userInfo>username)
+  }
+  else{
+    console.log('not Starting THe User CAN Do this Make It THere Own TO THe USer Which IS not Define by It So  We Can Create There Own USer After THat We Can Creatre Tghe User oF The ')
+
+  }
+
+});
+
+const sudoUser = userInfo>username !== 'root' ? userInfo>username : 'root';
+
+
 const IconClass = 'text-green-600';
 const ButtonClass = 'w-full py-3.5 bg-[#0F172A] text-white rounded-[14px] text-base font-semibold hover:bg-slate-800 transition-all duration-300 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2';
 const InputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-[]'
+const createUser = (username: string) =>{
+  const user = userInfo>username; {console.log(userInfo>username)}
+  if(user){
+    console.log('user already exists')
+  }
+  else{
+    console.log('creating user'){
+      console.log('creating user with username: $(username)')
+    }
+  }EditListingPriceForm() => {
+    const [price, setPrice] = useViewTransitionState<number>(listingToEditForm.priceperSqFt){
+      onChange: (e)=>setPrice(Number(e.target.value.locality))
+    }
+  }
+}
 
 const inputClass =
   'w-full px-4 py-3.5 rounded-[14px] border border-[#E5E7EB] bg-white text-base focus:outline-none focus:ring-2 focus:ring-[#0F172A]/15 focus:border-[#0F172A] transition-all duration-300';

@@ -16,7 +16,7 @@ import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, VerificationDocType, VerificationDocument } from '../types/listing';
 import { useAuth } from '../context/AuthContext';
-import { getSellerName, getSellerPhone, resolveSellerId, setSellerName, setSellerPhone } from '../utils/seller';
+import { resolveSellerId, setSellerName, setSellerPhone } from '../utils/seller';
 import { buildListingDetailsSummary, buildListingLocation, getVerificationBadgeLabels, VERIFICATION_FIELDS } from '../utils/listingDisplay';
 import { randomId } from '../utils/randomId';
 
@@ -27,9 +27,10 @@ const inputClass =
 
 export function ListYourPropertyPage() {
   const { addListing } = useListings();
-  const { user, hasRole } = useAuth();
-  const sellerAccountId = hasRole('seller') ? user?.id : null;
+  const { user, isAuthenticated } = useAuth();
   const [step, setStep] = useState(0);
+  const [publishError, setPublishError] = useState('');
+  const [publishing, setPublishing] = useState(false);
   const [role] = useState('Owner');
   const [intent] = useState('Sell');
   const [propertyType, setPropertyType] = useState('');
@@ -146,7 +147,8 @@ export function ListYourPropertyPage() {
           type: key,
           fileName: upload.fileName,
           mimeType: upload.mimeType,
-          dataUrl: upload.dataUrl,
+          dataUrl: '',
+          storageKey: upload.storageKey,
           uploadedAt: now,
           status: 'pending' as const,
         };
@@ -200,15 +202,21 @@ export function ListYourPropertyPage() {
     if (step < STEPS.length - 1) setStep(step + 1);
   }
 
-  const publish = () => {
-    const sellerId = resolveSellerId(sellerAccountId);
-    const sellerName = user && hasRole('seller') ? user.name : getSellerName();
-    const sellerPhone = user && hasRole('seller') ? user.phone : getSellerPhone();
-
-    if (user && hasRole('seller')) {
-      setSellerName(sellerName);
-      setSellerPhone(sellerPhone);
+  const publish = async () => {
+    if (!isAuthenticated || !user?.id) {
+      setPublishError('Log in before publishing a listing so it can be saved to the database.');
+      return;
     }
+
+    setPublishError('');
+    setPublishing(true);
+
+    const sellerId = resolveSellerId(user.id);
+    const sellerName = user.name;
+    const sellerPhone = user.phone;
+
+    setSellerName(sellerName);
+    setSellerPhone(sellerPhone);
 
     const publishedAt = new Date().toISOString();
     const description = [propertyHighlights.trim(), photoNote.trim()].filter(Boolean).join('\n\n');
@@ -280,7 +288,15 @@ export function ListYourPropertyPage() {
       chatBuyerName: '',
       chatBuyerPhone: '',
     };
-    addListing(listing);
+
+    const result = await addListing(listing);
+    setPublishing(false);
+
+    if (!result.ok) {
+      setPublishError(result.error);
+      return;
+    }
+
     setVerificationSubmitted(hasVerificationDocs);
     setPublished(true);
   };
@@ -592,14 +608,18 @@ export function ListYourPropertyPage() {
             ) : (
               <button
                 type="button"
-                onClick={publish}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FF7A00] text-white rounded-full font-medium text-lg hover:bg-[#E66E00] transition-colors"
+                onClick={() => void publish()}
+                disabled={publishing}
+                className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FF7A00] text-white rounded-full font-medium text-lg hover:bg-[#E66E00] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Publish listing
-                <Check size={18} />
+                {publishing ? 'Saving…' : 'Publish listing'}
+                {!publishing && <Check size={18} />}
               </button>
             )}
           </div>
+          {publishError && (
+            <p className="mt-4 text-sm text-red-400 text-center">{publishError}</p>
+          )}
 
           {step === 4 && (
             <button

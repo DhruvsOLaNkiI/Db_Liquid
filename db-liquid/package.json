@@ -17,9 +17,21 @@
     "test:sec001": "npx tsx scripts/test-sec001.mjs",
     "test:sec002": "npx tsx scripts/test-sec002.mjs",
     "test:sec003": "npx tsx scripts/test-sec003.mjs",
-    "test:sec004": "npx tsx scripts/test-sec004.mjs"
+    "test:sec004": "npx tsx scripts/test-sec004.mjs",
+    "test:sec008": "npx tsx scripts/test-sec008.mjs",
+    "test:sec009": "npx tsx scripts/test-sec009.mjs",
+    "test:sec010": "npx tsx scripts/test-sec010.mjs",
+    "test:sec011": "npx tsx scripts/test-sec011.mjs",
+    "test:sec012": "npx tsx scripts/test-sec012.mjs",
+    "test:auth001": "npx tsx scripts/test-auth001.mjs",
+    "test:auth005": "npx tsx scripts/test-auth005.mjs",
+    "test:auth006": "npx tsx scripts/test-auth006.mjs",
+    "test:bid001": "npx tsx scripts/test-bid001.mjs",
+    "test:bid005": "npx tsx scripts/test-bid005.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1084.0",
+    "@aws-sdk/s3-request-presigner": "^3.1084.0",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -27,6 +39,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "mongodb": "^7.4.0",
@@ -37,7 +50,8 @@
     "recharts": "^3.9.0",
     "tsx": "^4.21.0",
     "vite": "^6.2.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

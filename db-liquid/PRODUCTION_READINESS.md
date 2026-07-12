@@ -101,7 +101,7 @@ Estimates assume **full-time** work. Add ~40% calendar buffer for part-time or s
 
 | Category | Total | Active | Deferred | Done | In progress | Not started |
 |----------|-------|--------|----------|------|-------------|-------------|
-| Security | 12 | 12 | 0 | 7 | 0 | 5 |
+| Security | 12 | 12 | 0 | 10 | 0 | 2 |
 | Authentication & sessions | 7 | 4 | 3 | 0 | 0 | 4 |
 | Bidding platform | 12 | 11 | 1 | 0 | 0 | 11 |
 | Real-time & live auctions | 4 | 4 | 0 | 0 | 0 | 4 |
@@ -111,7 +111,7 @@ Estimates assume **full-time** work. Add ~40% calendar buffer for part-time or s
 | Monitoring & reliability | 6 | 6 | 0 | 0 | 0 | 6 |
 | Legal, trust & compliance | 8 | 6 | 2 | 0 | 0 | 6 |
 | Ecosystem (DB Asset / DB Expo) | 4 | 4 | 0 | 0 | 0 | 4 |
-| **Total** | **76** | **69** | **7** | **7** | **0** | **62** |
+| **Total** | **76** | **69** | **7** | **10** | **0** | **59** |
 
 _Update the Summary dashboard counts when items change status. "Not started" counts **active** items only._
 
@@ -163,11 +163,11 @@ What exists today in code:
 | SEC-005 | P0 | [x] | Protect `/api/admin/*` | Require `admin` role; no public KYC queue |
 | SEC-006 | P0 | [x] | Protect `/admin/verification` UI | Route guard + server auth |
 | SEC-007 | P0 | [x] | Stop trusting `X-Viewer-User-Id` | Derive viewer from session/token only |
-| SEC-008 | P1 | [ ] | Security headers (helmet) | CSP, HSTS, X-Frame-Options, etc. |
-| SEC-009 | P1 | [ ] | Input validation (Zod/Joi) | All POST/PUT bodies validated |
-| SEC-010 | P1 | [ ] | CSRF protection | If using cookie sessions |
-| SEC-011 | P1 | [ ] | Move KYC/docs to private object storage | S3/R2 + signed URLs; not base64 in MongoDB |
-| SEC-012 | P2 | [ ] | Sanitize `/api/health` response | Do not expose DB URI/details publicly |
+| SEC-008 | P1 | [x] | Security headers (helmet) | Done — see [SEC-008 completion doc](docs/completed/SEC-008-security-headers.md) |
+| SEC-009 | P1 | [x] | Input validation (Zod/Joi) | Done — see [SEC-009 completion doc](docs/completed/SEC-009-input-validation.md) |
+| SEC-010 | P1 | [x] | CSRF protection | Done — see [SEC-010 completion doc](docs/completed/SEC-010-csrf-protection.md) |
+| SEC-011 | P1 | [x] | Move KYC/docs to private object storage | S3/R2 + signed URLs; photos, PDF, Word, profile images |
+| SEC-012 | P2 | [x] | Sanitize `/api/health` response | Done — see [SEC-012 completion doc](docs/completed/SEC-012-health-sanitize.md) |
 
 ---
 
@@ -175,12 +175,12 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| AUTH-001 | P0 | [ ] | Replace `localStorage` session | httpOnly secure cookie or short-lived JWT + refresh |
-| AUTH-002 | P0 | [ ] | Add `POST /api/auth/register` | Server validates signup; no client-only registration |
+| AUTH-001 | P0 | [x] | Replace `localStorage` session | Done — see [AUTH-001 completion doc](docs/completed/AUTH-001-httponly-session.md) |
+| AUTH-002 | P0 | [x] | Add `POST /api/auth/register` | Done with SEC-002 — server signup + cookie |
 | AUTH-003 | P1 | [—] | Email verification | **Deferred** — no notifications in current launch |
 | AUTH-004 | P1 | [—] | Forgot / reset password | **Deferred** — no email notifications in current launch |
-| AUTH-005 | P1 | [ ] | Login rate limit + lockout | Brute-force protection |
-| AUTH-006 | P1 | [ ] | RBAC (`buyer`, `seller`, `admin`) | Enforced on server, not UI only |
+| AUTH-005 | P1 | [x] | Login rate limit + lockout | Done — see [AUTH-005 completion doc](docs/completed/AUTH-005-login-rate-limit.md) |
+| AUTH-006 | P1 | [x] | RBAC (`buyer`, `seller`, `admin`) | Done — dual member + admin; see [AUTH-006](docs/completed/AUTH-006-rbac.md) |
 | AUTH-007 | P2 | [—] | Phone OTP before first bid | **Deferred** — no SMS in current launch |
 
 ---
@@ -189,11 +189,11 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| BID-001 | P0 | [ ] | `POST /api/listings/:id/bids` | Server-only bid creation |
-| BID-002 | P0 | [ ] | Server validates bid rules | Open auction, logged-in buyer, has credits |
-| BID-003 | P0 | [ ] | Enforce minimum bid increment | New bid must beat current highest (not just `> 0`) |
-| BID-004 | P0 | [ ] | Atomic bid + credit deduction | MongoDB transaction or atomic `$inc` |
-| BID-005 | P0 | [ ] | `POST /api/listings/:id/accept-bid` | Seller-only; server enforced |
+| BID-001 | P0 | [x] | `POST /api/listings/:id/bids` | Done — see [BID-001-004 completion doc](docs/completed/BID-001-004-server-bids.md) |
+| BID-002 | P0 | [x] | Server validates bid rules | Open auction, logged-in buyer, has credits |
+| BID-003 | P0 | [x] | Enforce minimum bid increment | New bid must beat current highest (not just `> 0`) |
+| BID-004 | P0 | [x] | Atomic bid + credit deduction | Server-side serialized critical section updates listing + credit together |
+| BID-005 | P0 | [x] | `POST /api/listings/:id/accept-bid` | Done — see [BID-005 completion doc](docs/completed/BID-005-accept-bid.md) |
 | BID-006 | P1 | [ ] | Server authoritative timestamps | `createdAt` from server clock |
 | BID-007 | P1 | [ ] | Idempotency keys for bids | Prevent double-submit |
 | BID-008 | P1 | [ ] | Immutable bid audit log | Who, when, amount, IP for disputes |
@@ -374,7 +374,7 @@ For a monitoring app, each row can be exported as JSON:
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-07-09 | — | Initial audit from codebase review |
-| 2026-07-09 | — | SEC-004–SEC-007 completed (listings sync, admin guard, viewer from JWT) |
+| 2026-07-10 | — | SEC-010 CSRF double-submit cookie protection completed |
 
 ---
 

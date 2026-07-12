@@ -1,7 +1,7 @@
 import type { User } from '../types/user';
 import type { PropertyListing } from '../types/listing';
 import { normalizeListing } from '../types/listing';
-import { getSession } from '../data/usersTable';
+import { getAuthUserId } from './authSession';
 import { apiFetch } from './api';
 
 const USERS_KEY = 'db-liquid-users';
@@ -21,9 +21,21 @@ let lastListingsFetchAt = 0;
 /** Serializes user writes so rapid bids cannot reuse stale credit balances. */
 let usersWriteQueue: Promise<unknown> = Promise.resolve();
 
+/** Serializes listing syncs so a poll/reload cannot race an in-flight create. */
+let listingsWriteQueue: Promise<unknown> = Promise.resolve();
+
 function enqueueUsersWrite<T>(task: () => Promise<T>): Promise<T> {
   const next = usersWriteQueue.then(task, task);
   usersWriteQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
+function enqueueListingsWrite<T>(task: () => Promise<T>): Promise<T> {
+  const next = listingsWriteQueue.then(task, task);
+  listingsWriteQueue = next.then(
     () => undefined,
     () => undefined,
   );
@@ -104,10 +116,22 @@ async function apiGetListings(): Promise<PropertyListing[]> {
 }
 
 async function apiSyncListings(listings: PropertyListing[]) {
+  const userId = getAuthUserId();
+  // Only send listings this user can write. Other sellers' sanitized copies in the
+  // local cache used to make the server reject the entire publish with
+  // "Cannot modify another seller's listing."
+  const payload = userId
+    ? listings.filter(
+        (listing) =>
+          listing.sellerId === userId ||
+          listing.bids.some((bid) => bid.bidderUserId === userId),
+      )
+    : listings;
+
   const res = await apiFetch('/api/v1/listings/sync', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(listings),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -240,36 +264,59 @@ function readLocalListings(): PropertyListing[] {
 }
 
 /** Load shared data from MongoDB via API. Migrates old browser localStorage once. */
-export async function bootstrapSharedStore() {
-  const [apiUsers, apiListings] = await Promise.all([apiGetUsers(), apiGetListings()]);
+export async function bootstrapSharedStore(options?: {
+  includeListings?: boolean;
+  includeUsers?: boolean;
+}) {
+  const includeListings = options?.includeListings !== false;
+  const includeUsers = options?.includeUsers !== false;
 
-  const localUsers = readLocalUsers();
-  const localListings = readLocalListings();
+  // Auth pages: no shared-data API calls — login uses /api/auth/* only
+  if (!includeUsers && !includeListings) {
+    usersCache = [];
+    listingsCache = sortListingsByNewest(readLocalListings());
+    ready = true;
+    return;
+  }
 
-  if (apiUsers.length === 0 && localUsers.length > 0) {
-    try {
-      await apiPutAdminUsers(localUsers);
-      usersCache = stripPasswordsFromUsers(localUsers);
-    } catch {
+  const apiUsers = includeUsers ? await apiGetUsers() : [];
+  const apiListings = includeListings ? await apiGetListings() : [];
+
+  const localUsers = includeUsers ? readLocalUsers() : [];
+  const localListings = includeListings ? readLocalListings() : [];
+
+  if (includeUsers) {
+    if (apiUsers.length === 0 && localUsers.length > 0) {
+      try {
+        await apiPutAdminUsers(localUsers);
+        usersCache = stripPasswordsFromUsers(localUsers);
+      } catch {
+        usersCache = apiUsers;
+      }
+    } else {
       usersCache = apiUsers;
     }
   } else {
-    usersCache = apiUsers;
+    usersCache = [];
   }
 
-  if (apiListings.length === 0 && localListings.length > 0) {
-    try {
-      listingsCache = sortListingsByNewest(localListings);
-      await apiPutAdminListings(listingsCache);
-    } catch {
+  if (includeListings) {
+    if (apiListings.length === 0 && localListings.length > 0) {
       try {
-        await apiSyncListings(listingsCache);
+        listingsCache = sortListingsByNewest(localListings);
+        await apiPutAdminListings(listingsCache);
       } catch {
-        listingsCache = sortListingsByNewest(apiListings);
+        try {
+          await apiSyncListings(listingsCache);
+        } catch {
+          listingsCache = sortListingsByNewest(apiListings);
+        }
       }
+    } else {
+      listingsCache = sortListingsByNewest(apiListings);
     }
   } else {
-    listingsCache = sortListingsByNewest(apiListings);
+    listingsCache = sortListingsByNewest(readLocalListings());
   }
 
   ready = true;
@@ -286,7 +333,7 @@ export async function mutateUsers<T>(
   mutator: (users: User[]) => { ok: true; value: T; users: User[] } | { ok: false; error: string },
 ): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
   return enqueueUsersWrite(async () => {
-    const sessionUserId = getSession()?.userId;
+    const sessionUserId = getAuthUserId();
     if (!sessionUserId) {
       return { ok: false as const, error: 'Log in to update your account.' };
     }
@@ -308,6 +355,14 @@ export async function mutateUsers<T>(
       }
     }
 
+    // Credit spend/top-up must always send credits + history together (avoids 400 mismatch)
+    if (patch.creditHistory !== undefined) {
+      patch.credits = typeof after.credits === 'number' ? after.credits : 0;
+    }
+    if (patch.credits !== undefined && patch.creditHistory === undefined && after.creditHistory) {
+      patch.creditHistory = after.creditHistory;
+    }
+
     if (Object.keys(patch).length === 0) {
       return { ok: true as const, value: result.value };
     }
@@ -315,10 +370,14 @@ export async function mutateUsers<T>(
     try {
       const saved = await apiPatchCurrentUser(patch);
       const index = usersCache.findIndex((u) => u.id === saved.id);
+      const merged = {
+        ...(index === -1 ? saved : { ...usersCache[index], ...saved }),
+        password: '',
+      } as User;
       if (index === -1) {
-        usersCache.push({ ...saved, password: '' });
+        usersCache.push(merged);
       } else {
-        usersCache[index] = { ...usersCache[index], ...saved, password: '' };
+        usersCache[index] = merged;
       }
       return { ok: true as const, value: result.value };
     } catch (error) {
@@ -331,8 +390,70 @@ export async function mutateUsers<T>(
 }
 
 export async function persistListings(listings: PropertyListing[]) {
-  listingsCache = sortListingsByNewest(listings);
-  await apiSyncListings(listingsCache);
+  return enqueueListingsWrite(async () => {
+    const sorted = sortListingsByNewest(listings);
+    listingsCache = sorted;
+    await apiSyncListings(sorted);
+  });
+}
+
+export async function createBidOnServer(listingId: string, bidTotal: number) {
+  const res = await apiFetch(`/api/listings/${listingId}/bids`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bidTotal }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false as const, error: data.error ?? 'Could not place bid.' };
+  }
+
+  const listing = normalizeListing(data.listing as PropertyListing);
+  listingsCache = sortListingsByNewest([
+    listing,
+    ...listingsCache.filter((entry) => entry.id !== listing.id),
+  ]);
+
+  const userId = getAuthUserId();
+  if (userId && typeof data.creditsRemaining === 'number') {
+    const index = usersCache.findIndex((user) => user.id === userId);
+    if (index !== -1) {
+      usersCache[index] = { ...usersCache[index], credits: data.creditsRemaining };
+    }
+  }
+
+  return {
+    ok: true as const,
+    listing,
+    bid: data.bid,
+    creditsRemaining: Number(data.creditsRemaining ?? 0),
+  };
+}
+
+export async function acceptBidOnServer(listingId: string, bidId: string) {
+  const res = await apiFetch(`/api/listings/${listingId}/accept-bid`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bidId }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false as const, error: data.error ?? 'Could not accept bid.' };
+  }
+
+  const listing = normalizeListing(data.listing as PropertyListing);
+  listingsCache = sortListingsByNewest([
+    listing,
+    ...listingsCache.filter((entry) => entry.id !== listing.id),
+  ]);
+
+  return {
+    ok: true as const,
+    listing,
+    bid: data.bid,
+  };
 }
 
 export async function reloadUsersFromServer(options?: { force?: boolean }) {
@@ -346,6 +467,8 @@ export async function reloadUsersFromServer(options?: { force?: boolean }) {
 
 export async function reloadListingsFromServer(options?: { force?: boolean }) {
   const force = options?.force ?? false;
+  // Wait for in-flight creates/updates so a poll cannot wipe a listing that is still saving.
+  await listingsWriteQueue;
   if (!force && listingsCache.length > 0 && Date.now() - lastListingsFetchAt < MIN_RELOAD_MS) {
     return listingsCache;
   }

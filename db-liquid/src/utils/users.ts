@@ -1,6 +1,5 @@
 export {
   USERS_TABLE_KEY,
-  SESSION_TABLE_KEY,
   USERS_TABLE_COLUMNS,
   getAllUsers,
   getBuyers,
@@ -11,12 +10,15 @@ export {
   createUser,
   addRoleToUser,
   ensureDualRole,
-  getSession,
-  setSession,
-  clearSession,
   replaceAllUsers,
   updateUserProfile,
   changeUserPassword,
 } from '../data/usersTable';
 
 export { topUpCredits, spendBidCredit, getBuyerCredits, normalizeUser } from './buyerCredits';
+export {
+  setAuthUserId,
+  getAuthUserId,
+  clearAuthUserId,
+  clearLegacyLocalStorageSession,
+} from './authSession';

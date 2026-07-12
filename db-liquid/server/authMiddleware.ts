@@ -35,6 +35,28 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   next();
 }
 
+/**
+ * DB Liquid members can both buy and sell (AUTH-006).
+ * Same as requireAuth — kept for clear intent on member-only routes.
+ */
+export const requireMember = requireAuth;
+
+export function requireRole(...roles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const auth = readAuth(req);
+    if (!auth) {
+      res.status(401).json({ error: 'Authentication required.' });
+      return;
+    }
+    if (!roles.some((role) => auth.roles.includes(role))) {
+      res.status(403).json({ error: `Requires one of: ${roles.join(', ')}.` });
+      return;
+    }
+    req.auth = auth;
+    next();
+  };
+}
+
 export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const auth = readAuth(req);
   if (!auth) {

@@ -30,6 +30,7 @@ import {
   getUserListings,
 } from '../utils/profileStats';
 import { ProfileListingCard } from '../components/profile/ProfileListingCard';
+import { uploadPrivateFile } from '../utils/fileUpload';
 import {
   formatAadharInput,
   isValidAadhar,
@@ -109,6 +110,8 @@ export function ProfilePage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>();
+  const [profileImageKey, setProfileImageKey] = useState<string | undefined>();
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -135,6 +138,7 @@ export function ProfilePage() {
     setEmail(user.email);
     setPhone(user.phone);
     setProfileImageUrl(user.profileImageUrl);
+    setProfileImageKey(user.profileImageKey);
     setAadharNumber(user.aadharNumber ? formatAadharInput(user.aadharNumber) : '');
     setPanNumber(user.panNumber ?? '');
     setEditingAadhar(false);
@@ -159,25 +163,22 @@ export function ProfilePage() {
   const chatSummaries = getUserChatSummaries(listings, user);
   const totalBids = getTotalUserBids(listings, user.id);
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please choose an image file.');
-      return;
+    setUploadingPhoto(true);
+    setError('');
+    try {
+      const uploaded = await uploadPrivateFile(file, 'profile');
+      setProfileImageUrl(uploaded.url);
+      setProfileImageKey(uploaded.storageKey);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload photo.');
+    } finally {
+      setUploadingPhoto(false);
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image must be under 2 MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProfileImageUrl(typeof reader.result === 'string' ? reader.result : undefined);
-      setError('');
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -190,7 +191,7 @@ export function ProfilePage() {
       name,
       email,
       phone,
-      profileImageUrl: profileImageUrl ?? null,
+      profileImageUrl: profileImageKey ?? profileImageUrl ?? null,
     });
 
     setSaving(false);
@@ -209,6 +210,7 @@ export function ProfilePage() {
     setEmail(user.email);
     setPhone(user.phone);
     setProfileImageUrl(user.profileImageUrl);
+    setProfileImageKey(user.profileImageKey);
     setError('');
     setMessage('');
   };
@@ -295,7 +297,8 @@ export function ProfilePage() {
     (name !== user.name ||
       email !== user.email ||
       phone !== user.phone ||
-      (profileImageUrl ?? undefined) !== (user.profileImageUrl ?? undefined));
+      (profileImageKey ?? undefined) !== (user.profileImageKey ?? undefined) ||
+      (!profileImageKey && (profileImageUrl ?? undefined) !== (user.profileImageUrl ?? undefined)));
 
   return (
     <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900">
@@ -314,11 +317,14 @@ export function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="relative group mb-4"
+                    disabled={uploadingPhoto}
+                    className="relative group mb-4 disabled:opacity-60"
                     aria-label="Change profile photo"
                   >
                     <div className="w-28 h-28 rounded-full overflow-hidden bg-white/10 border-4 border-white/20 shadow-md flex items-center justify-center">
-                      {profileImageUrl ? (
+                      {uploadingPhoto ? (
+                        <span className="text-xs text-white/70">Uploading…</span>
+                      ) : profileImageUrl ? (
                         <img src={profileImageUrl} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
                         <UserIcon size={40} className="text-white/50" />
@@ -331,9 +337,9 @@ export function ProfilePage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={handleImageChange}
+                    onChange={(e) => void handleImageChange(e)}
                   />
                   <h2 className="text-xl font-bold text-white">{user.name}</h2>
                   <p className="text-sm text-white/65 mt-1">{user.email}</p>

@@ -1,7 +1,7 @@
 import { Camera, ImagePlus, Loader2, Star, X } from 'lucide-react';
 import { useRef, useState, type DragEvent } from 'react';
 import type { PropertyPhoto } from '../../types/listing';
-import { readImageFileAsDataUrl } from '../../utils/fileUpload';
+import { uploadPrivateFile } from '../../utils/fileUpload';
 import { randomId } from '../../utils/randomId';
 
 const MAX_PHOTOS = 8;
@@ -38,12 +38,13 @@ export function SellerPhotosStep({ photos, photoNote, onPhotosChange, onPhotoNot
     try {
       for (const file of fileList) {
         try {
-          const dataUrl = await readImageFileAsDataUrl(file);
+          const uploaded = await uploadPrivateFile(file, 'photo');
           next.push({
             id: randomId(),
-            fileName: file.name,
-            mimeType: file.type,
-            dataUrl,
+            fileName: uploaded.fileName,
+            mimeType: uploaded.mimeType,
+            dataUrl: uploaded.url,
+            storageKey: uploaded.storageKey,
             uploadedAt: new Date().toISOString(),
           });
         } catch (err) {

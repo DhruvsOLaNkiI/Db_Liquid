@@ -1,16 +1,12 @@
 import type { Request, Response } from 'express';
-import type { AuthenticatedRequest } from '../authMiddleware';
-import { getUsers, saveUsers } from '../mongoStore';
-import { hashPlaintextPasswords } from '../password';
-import { sanitizeUser } from '../sanitize';
-import { applyAdminUsersMerge, applySelfUserPatch, UserUpdateError } from '../userUpdates';
+import type { AuthenticatedRequest } from '../../authMiddleware';
+import { getUsers, saveUsers } from '../../mongoStore';
+import { hashPlaintextPasswords } from '../../password';
+import { sanitizeUser } from '../../sanitize';
+import { applyAdminUsersMerge, applySelfUserPatch, UserUpdateError } from '../../userUpdates';
+import { isObjectStorageKey, presentUser } from './uploads';
 
 export async function patchCurrentUser(req: AuthenticatedRequest, res: Response) {
-  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected a JSON object with fields to update.' });
-    return;
-  }
-
   try {
     const users = await getUsers();
     const index = users.findIndex((entry) => entry.id === req.auth!.userId);
@@ -20,14 +16,10 @@ export async function patchCurrentUser(req: AuthenticatedRequest, res: Response)
     }
 
     const existing = users[index] as Record<string, unknown>;
-    const patch = req.body as Record<string, unknown>;
+    const patch = { ...(req.body as Record<string, unknown>) };
 
     if (patch.email !== undefined) {
       const email = String(patch.email).trim().toLowerCase();
-      if (!email.includes('@')) {
-        res.status(400).json({ error: 'Enter a valid email address.' });
-        return;
-      }
       const duplicate = users.some(
         (entry) => entry.id !== req.auth!.userId && String(entry.email).toLowerCase() === email,
       );
@@ -38,11 +30,34 @@ export async function patchCurrentUser(req: AuthenticatedRequest, res: Response)
       patch.email = email;
     }
 
+    if (patch.profileImageUrl !== undefined && patch.profileImageUrl !== null) {
+      const image = String(patch.profileImageUrl);
+      if (image.startsWith('data:')) {
+        res.status(400).json({
+          error: 'Upload profile images via POST /api/v1/uploads, then save the storageKey.',
+        });
+        return;
+      }
+      // Ignore expired signed URLs — keep existing storage key
+      if (image.startsWith('http://') || image.startsWith('https://')) {
+        delete patch.profileImageUrl;
+      } else if (!isObjectStorageKey(image)) {
+        res.status(400).json({ error: 'Invalid profile image reference.' });
+        return;
+      }
+    }
+
     const updated = applySelfUserPatch(existing, patch);
     users[index] = updated;
     await saveUsers(users);
 
-    res.json({ ok: true, user: sanitizeUser(updated as Parameters<typeof sanitizeUser>[0], updated.id) });
+    res.json({
+      ok: true,
+      user: await presentUser(
+        updated as { id: string; profileImageUrl?: string },
+        sanitizeUser(updated as Parameters<typeof sanitizeUser>[0], updated.id),
+      ),
+    });
   } catch (error) {
     if (error instanceof UserUpdateError) {
       res.status(400).json({ error: error.message });
@@ -53,11 +68,6 @@ export async function patchCurrentUser(req: AuthenticatedRequest, res: Response)
 }
 
 export async function putAdminUsers(req: AuthenticatedRequest, res: Response) {
-  if (!Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected an array of users.' });
-    return;
-  }
-
   try {
     const existing = await getUsers();
     const merged = applyAdminUsersMerge(

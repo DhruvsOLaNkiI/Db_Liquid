@@ -2,16 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { CreditTransaction } from '../types/credits';
 import type { User } from '../types/user';
 import {
-  clearSession,
+  clearAuthUserId,
+  clearLegacyLocalStorageSession,
   ensureDualRole,
   findUserById,
-  getSession,
-  setSession,
+  setAuthUserId,
   topUpCredits as topUpCreditsForUser,
   updateUserProfile,
   changeUserPassword,
 } from '../utils/users';
-import { getBuyerCredits } from '../utils/buyerCredits';
 import { loginViaApi, notifyDataRefresh, reloadListingsFromServer, reloadUsersFromServer, registerViaApi, fetchAuthMe, logoutViaApi } from '../utils/sharedStore';
 import { setBuyerName, setBuyerPhone } from '../utils/buyer';
 import { migrateListingsSellerId, syncUserProfileOnListings } from '../utils/listingsStorage';
@@ -69,6 +68,15 @@ function syncIdentityForUser(user: User) {
   setBuyerPhone(user.phone);
 }
 
+function applyAuthenticatedUser(user: User, setUser: (u: User) => void) {
+  const fullUser = ensureDualRole({ ...user, password: '' } as User);
+  setAuthUserId(fullUser.id);
+  clearLegacyLocalStorageSession();
+  setUser(fullUser);
+  syncIdentityForUser(fullUser);
+  return fullUser;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
@@ -77,21 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function restoreSession() {
+      clearLegacyLocalStorageSession();
       const me = await fetchAuthMe();
       if (cancelled) return;
 
       if (me.ok) {
-        const session = getSession();
-        const activeRole = session?.activeRole ?? 'buyer';
-        setSession({ userId: me.user.id, activeRole });
-        const fullUser = ensureDualRole({ ...me.user, password: '' } as User);
-        setUser(fullUser);
-        syncIdentityForUser(fullUser);
+        applyAuthenticatedUser(me.user, setUser);
       } else {
-        const session = getSession();
-        if (session) {
-          clearSession();
-        }
+        clearAuthUserId();
+        setUser(null);
       }
 
       setSessionReady(true);
@@ -113,10 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await loginViaApi(email, password);
     if (!result.ok) return result;
 
-    setSession({ userId: result.user.id, activeRole: 'buyer' });
-    const fullUser = ensureDualRole({ ...result.user, password: '' } as User);
-    setUser(fullUser);
-    syncIdentityForUser(fullUser);
+    applyAuthenticatedUser(result.user, setUser);
     await Promise.all([
       reloadUsersFromServer({ force: true }),
       reloadListingsFromServer({ force: true }),
@@ -130,10 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await registerViaApi(input);
       if (!result.ok) return result;
 
-      setSession({ userId: result.user.id, activeRole: 'buyer' });
-      const fullUser = ensureDualRole({ ...result.user, password: '' } as User);
-      setUser(fullUser);
-      syncIdentityForUser(fullUser);
+      applyAuthenticatedUser(result.user, setUser);
       await Promise.all([
         reloadUsersFromServer({ force: true }),
         reloadListingsFromServer({ force: true }),
@@ -145,20 +141,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshUser = useCallback(async () => {
-    await reloadUsersFromServer();
-    const session = getSession();
-    if (session) {
-      const found = findUserById(session.userId);
-      setUser(found ? ensureDualRole(found) : null);
+    const me = await fetchAuthMe();
+    if (!me.ok) {
+      clearAuthUserId();
+      setUser(null);
+      return;
     }
+    await reloadUsersFromServer();
+    const found = findUserById(me.user.id);
+    applyAuthenticatedUser(found ? { ...me.user, ...found, password: '' } : me.user, setUser);
   }, []);
 
   const syncCreditWallet = useCallback(() => {
-    const session = getSession();
-    if (!session) return;
-    const fresh = findUserById(session.userId);
-    if (fresh) setUser(fresh);
-  }, []);
+    const userId = user?.id;
+    if (!userId) return;
+    const fresh = findUserById(userId);
+    if (fresh) setUser(ensureDualRole(fresh));
+  }, [user?.id]);
 
   const updateUserCredits = useCallback((credits: number) => {
     setUser((prev) => (prev ? { ...prev, credits } : prev));
@@ -183,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!result.ok) return result;
 
       setUser(result.user);
+      setAuthUserId(result.user.id);
       syncIdentityForUser(result.user);
       syncUserProfileOnListings(result.user.id, result.user.name, result.user.phone);
       return { ok: true as const };
@@ -208,14 +208,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const result = await topUpCreditsForUser(user.id, creditAmount);
     if (result.ok) {
-      syncCreditWallet();
+      const fresh = findUserById(user.id);
+      if (fresh) setUser(ensureDualRole(fresh));
     }
     return result;
-  }, [user, syncCreditWallet]);
+  }, [user]);
 
   const logout = useCallback(() => {
     void logoutViaApi();
-    clearSession();
+    clearAuthUserId();
+    clearLegacyLocalStorageSession();
     setUser(null);
     sessionStorage.removeItem('db-liquid-seller-id');
     sessionStorage.removeItem('db-liquid-seller-name');
@@ -224,19 +226,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('db-liquid-buyer-phone');
   }, []);
 
+  // Cookie/JWT is source of truth — re-check /api/auth/me periodically (AUTH-001)
   useEffect(() => {
     if (!user) return;
 
-    const checkSessionExpiry = () => {
-      if (!getSession()) {
+    const verifyCookieSession = async () => {
+      const me = await fetchAuthMe();
+      if (!me.ok) {
         logout();
       }
     };
 
-    const intervalId = window.setInterval(checkSessionExpiry, 60_000);
+    const intervalId = window.setInterval(() => {
+      void verifyCookieSession();
+    }, 60_000);
+
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        checkSessionExpiry();
+        void verifyCookieSession();
       }
     };
 

@@ -7,6 +7,7 @@
 **Parent checklist:** [PRODUCTION_READINESS.md](../../PRODUCTION_READINESS.md)
 
 ---
+## Track The TO THe ROutes
 
 ## What this item required
 
@@ -33,7 +34,7 @@ From the production readiness tracker:
 | **Signup / user save** | Client sent plaintext via `PUT /api/users`; server saved it as-is |
 | **Client cache** | After signup, plaintext password could sit in in-memory user cache |
 | **Client `validateLogin`** | Compared plaintext locally (unused in app, but unsafe if called) |
-| **Dependencies** | No `bcrypt` or `argon2` package |
+| **Dependencies** | No `bcrypt` or `argon2` package 
 
 **Risk:** Anyone with database access (or a DB leak) could read every user's password directly.
 

@@ -22,7 +22,8 @@ export type Listing = {
   chatSellerPhone: string;
   chatBuyerName: string;
   chatBuyerPhone: string;
-  verificationDocuments?: { dataUrl?: string }[];
+  verificationDocuments?: { dataUrl?: string; storageKey?: string; url?: string }[];
+  propertyPhotos?: { dataUrl?: string; storageKey?: string; url?: string }[];
   lastDeclinedBuyerUserId?: string;
   lastDeclinedAt?: string;
   [key: string]: unknown;
@@ -84,8 +85,19 @@ export function sanitizeListing(listing: Listing, viewerId?: string): Listing {
     chatBuyerPhone: chatAllowed ? listing.chatBuyerPhone : '',
     chatMessages: chatAllowed ? listing.chatMessages : [],
     verificationDocuments: isSeller
-      ? listing.verificationDocuments
-      : listing.verificationDocuments?.map((doc) => ({ ...doc, dataUrl: '' })),
+      ? listing.verificationDocuments?.map((doc) => ({
+          ...doc,
+          dataUrl: doc.storageKey ? '' : doc.dataUrl || '',
+        }))
+      : listing.verificationDocuments?.map((doc) => {
+          const { storageKey: _key, url: _url, ...rest } = doc;
+          return { ...rest, dataUrl: '', storageKey: undefined, url: undefined };
+        }),
+    // Keep storageKey so routes can attach signed URLs for all viewers; strip key after signing for non-sellers.
+    propertyPhotos: listing.propertyPhotos?.map((photo) => ({
+      ...photo,
+      dataUrl: photo.storageKey ? '' : photo.dataUrl || '',
+    })),
   };
 
   if (!isSeller) {
@@ -117,6 +129,7 @@ export function sanitizeUser(user: User, viewerId?: string) {
       createdAt: user.createdAt,
     };
   }
+
 
   return {
     ...rest,

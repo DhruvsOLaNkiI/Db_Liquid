@@ -82,6 +82,10 @@ function getDocHint(type: string) {
 
 function DocumentPreview({ doc }: { doc: VerificationDocument }) {
   const isPdf = doc.mimeType === 'application/pdf' || doc.fileName.toLowerCase().endsWith('.pdf');
+  const isOffice =
+    doc.mimeType.includes('word') ||
+    doc.fileName.toLowerCase().endsWith('.doc') ||
+    doc.fileName.toLowerCase().endsWith('.docx');
 
   if (isPdf) {
     return (
@@ -100,6 +104,21 @@ function DocumentPreview({ doc }: { doc: VerificationDocument }) {
           <ExternalLink size={12} />
         </a>
       </div>
+    );
+  }
+
+  if (isOffice || !doc.mimeType.startsWith('image/')) {
+    return (
+      <a
+        href={doc.dataUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-primary hover:bg-gray-100"
+      >
+        <FileText size={16} />
+        Download {doc.fileName}
+        <ExternalLink size={12} />
+      </a>
     );
   }
 

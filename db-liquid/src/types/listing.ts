@@ -29,7 +29,10 @@ export type VerificationDocument = {
   type: VerificationDocType;
   fileName: string;
   mimeType: string;
+  /** Legacy inline base64 — prefer storageKey for new uploads */
   dataUrl: string;
+  /** Private object storage key (S3/R2/local) */
+  storageKey?: string;
   uploadedAt: string;
   status: VerificationDocStatus;
   reviewedAt?: string;
@@ -39,7 +42,10 @@ export type PropertyPhoto = {
   id: string;
   fileName: string;
   mimeType: string;
+  /** Legacy inline base64 — prefer storageKey for new uploads */
   dataUrl: string;
+  /** Private object storage key (S3/R2/local) */
+  storageKey?: string;
   uploadedAt: string;
 };
 

@@ -8,56 +8,72 @@ export class ListingUpdateError extends Error {
   }
 }
 
-function listingChanged(existing: Listing, incoming: Listing) {
-  return JSON.stringify(existing) !== JSON.stringify(incoming);
-}
-
-function hasOwnNewBid(existing: Listing, incoming: Listing, userId: string) {
-  return incoming.bids.some(
-    (bid) =>
-      bid.bidderUserId === userId && !existing.bids.some((prev) => prev.id === bid.id),
-  );
-}
-
 function isAcceptedBuyer(existing: Listing, userId: string) {
   if (!existing.acceptedBidId) return false;
   const accepted = existing.bids.find((bid) => bid.id === existing.acceptedBidId);
   return accepted?.bidderUserId === userId;
 }
 
-/** Authenticated user sync — only create own listings; merges use JWT user id. */
+/** Drop inline base64 when a storageKey exists so MongoDB stays small (SEC-011). */
+function stripMediaPayloads<T extends { storageKey?: string; dataUrl?: string; url?: string }>(
+  items: T[] | undefined,
+): T[] | undefined {
+  if (!items?.length) return items;
+  return items.map((item) => {
+    if (!item.storageKey) return item;
+    const { url: _url, ...rest } = item;
+    return { ...rest, dataUrl: '', url: undefined } as T;
+  });
+}
+
+export function stripVerificationPayloads<T extends Listing>(listings: T[]): T[] {
+  return listings.map((listing) => ({
+    ...listing,
+    verificationDocuments: stripMediaPayloads(listing.verificationDocuments),
+    propertyPhotos: stripMediaPayloads(listing.propertyPhotos),
+  }));
+}
+
+/** Authenticated user sync — only create/update listings this user may write. */
 export function applyListingsSync(
   userId: string,
   existingListings: Listing[],
   incomingListings: Listing[],
 ): Listing[] {
   const existingById = new Map(existingListings.map((listing) => [listing.id, listing]));
+  const allowed: Listing[] = [];
 
   for (const incoming of incomingListings) {
     const existing = existingById.get(incoming.id);
+
+    // New listing — must be owned by the authenticated user.
     if (!existing) {
       if (String(incoming.sellerId ?? '') !== userId) {
         throw new ListingUpdateError('Cannot create a listing for another seller.');
       }
-      continue;
-    }
-
-    if (!listingChanged(existing, incoming)) {
+      allowed.push(incoming);
       continue;
     }
 
     if (existing.sellerId === userId) {
+      allowed.push(incoming);
       continue;
     }
 
-    if (isAcceptedBuyer(existing, userId) || hasOwnNewBid(existing, incoming, userId)) {
+    const hasOwnBid =
+      isAcceptedBuyer(existing, userId) ||
+      existing.bids.some((bid) => bid.bidderUserId === userId);
+
+    if (hasOwnBid) {
+      allowed.push(incoming);
       continue;
     }
 
-    throw new ListingUpdateError('Cannot modify another seller\'s listing.');
+    // Client cache includes other sellers' sanitized listings. Ignore those —
+    // do not fail the whole sync (that blocked publishing new listings).
   }
 
-  return mergeListingsForSave(existingListings, incomingListings, userId);
+  return mergeListingsForSave(existingListings, allowed, userId);
 }
 
 /** Admin bulk merge — full array replace/merge (imports, admin tools). */

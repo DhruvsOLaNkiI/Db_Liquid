@@ -13,19 +13,14 @@ export interface User {
   /** Buyer bid credits. 1 credit spent per bid. */
   credits?: number;
   creditHistory?: CreditTransaction[];
-  /** Base64 or URL for profile avatar */
+  /** Signed URL or legacy base64 for display */
   profileImageUrl?: string;
+  /** R2/S3 storage key — send this when saving profile photo */
+  profileImageKey?: string;
   /** 12-digit Aadhar number */
   aadharNumber?: string;
   aadharVerified?: boolean;
   /** PAN in ABCDE1234F format */
   panNumber?: string;
   panVerified?: boolean;
-}
-
-export interface AuthSession {
-  userId: string;
-  activeRole: UserRole;
-  /** ISO timestamp when the session expires (24h after login). */
-  expiresAt: string;
 }

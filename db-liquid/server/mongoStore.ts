@@ -51,6 +51,48 @@ export async function saveListings(listings: unknown[]) {
   await setState(LISTINGS_KEY, listings);
 }
 
+/**
+ * Serialize all read-modify-write listing updates.
+ * Without this, concurrent sync + record-view (or admin review) can overwrite
+ * each other and wipe newly created listings from MongoDB.
+ */
+let listingsWriteQueue: Promise<unknown> = Promise.resolve();
+
+export async function updateListings<T>(
+  mutator: (listings: unknown[]) => T | Promise<T>,
+): Promise<T> {
+  const run = async (): Promise<T> => {
+    const listings = await getListings();
+    return mutator(listings);
+  };
+
+  const next = listingsWriteQueue.then(run, run);
+  listingsWriteQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
+/** Serialize users + listings updates together (bids/credits critical section). */
+export async function updateUsersAndListings<T>(
+  mutator: (state: { users: unknown[]; listings: unknown[] }) => T | Promise<T>,
+): Promise<T> {
+  const run = async (): Promise<T> => {
+    const [users, listings] = await Promise.all([getUsers(), getListings()]);
+    const result = await mutator({ users, listings });
+    await Promise.all([saveUsers(users), saveListings(listings)]);
+    return result;
+  };
+
+  const next = listingsWriteQueue.then(run, run);
+  listingsWriteQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
 /** One-time import from old JSON files if MongoDB is empty. */
 export async function migrateLegacyJsonIfNeeded() {
   const users = await getUsers();

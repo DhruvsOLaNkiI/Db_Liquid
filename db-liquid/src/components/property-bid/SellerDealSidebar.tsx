@@ -36,12 +36,14 @@ export function SellerDealSidebar({ listing, sellerId }: Props) {
   const awaitingBuyerToken = isBuyerTokenDue(listing);
 
   const handleAccept = (bidId: string) => {
-    const result = acceptBid(listing.id, bidId, sellerId);
-    setMessage(
-      result.ok
-        ? 'Bid accepted! The buyer will pay the token amount to unlock chat.'
-        : result.error,
-    );
+    void (async () => {
+      const result = await acceptBid(listing.id, bidId, sellerId);
+      setMessage(
+        result.ok
+          ? 'Bid accepted! The buyer will pay the token amount to unlock chat.'
+          : result.error,
+      );
+    })();
   };
 
   return (

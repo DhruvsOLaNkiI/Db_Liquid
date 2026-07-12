@@ -1,23 +1,22 @@
 import type { Response } from 'express';
-import type { AuthenticatedRequest } from '../authMiddleware';
-import { getListings, saveListings } from '../mongoStore';
+import type { AuthenticatedRequest } from '../../authMiddleware';
+import { saveListings, updateListings } from '../../mongoStore';
 import {
   applyAdminListingsMerge,
   applyListingsSync,
   ListingUpdateError,
-} from '../listingUpdates';
+  stripVerificationPayloads,
+} from '../../listingUpdates';
 
 export async function putListingsSync(req: AuthenticatedRequest, res: Response) {
-  if (!Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected an array of listings.' });
-    return;
-  }
-
   try {
-    const existing = await getListings();
-    const merged = applyListingsSync(req.auth!.userId, existing as never[], req.body);
-    await saveListings(merged);
-    res.json({ ok: true, count: merged.length });
+    const count = await updateListings(async (existing) => {
+      const merged = applyListingsSync(req.auth!.userId, existing as never[], req.body);
+      const stripped = stripVerificationPayloads(merged as never[]);
+      await saveListings(stripped);
+      return stripped.length;
+    });
+    res.json({ ok: true, count });
   } catch (error) {
     if (error instanceof ListingUpdateError) {
       res.status(403).json({ error: error.message });
@@ -28,16 +27,14 @@ export async function putListingsSync(req: AuthenticatedRequest, res: Response) 
 }
 
 export async function putAdminListings(req: AuthenticatedRequest, res: Response) {
-  if (!Array.isArray(req.body)) {
-    res.status(400).json({ error: 'Expected an array of listings.' });
-    return;
-  }
-
   try {
-    const existing = await getListings();
-    const merged = applyAdminListingsMerge(existing as never[], req.body);
-    await saveListings(merged);
-    res.json({ ok: true, count: merged.length });
+    const count = await updateListings(async (existing) => {
+      const merged = applyAdminListingsMerge(existing as never[], req.body);
+      const stripped = stripVerificationPayloads(merged as never[]);
+      await saveListings(stripped);
+      return stripped.length;
+    });
+    res.json({ ok: true, count });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }

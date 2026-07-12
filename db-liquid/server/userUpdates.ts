@@ -21,21 +21,13 @@ const SELF_PATCHABLE_KEYS = [
   'panVerified',
   'credits',
   'creditHistory',
-  'roles',
 ] as const;
-
-const SELF_ROLE_ALLOWLIST = new Set(['buyer', 'seller']);
 
 export class UserUpdateError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'UserUpdateError';
   }
-}
-
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.map(String);
 }
 
 function validateCreditUpdate(existing: UserRecord, patch: UserRecord) {
@@ -48,38 +40,40 @@ function validateCreditUpdate(existing: UserRecord, patch: UserRecord) {
     throw new UserUpdateError('creditHistory must be an array.');
   }
 
-  const existingCredits = typeof existing.credits === 'number' ? existing.credits : 0;
-  const nextCredits = patch.credits !== undefined ? patch.credits : existingCredits;
+  const existingCredits = Number(existing.credits ?? 0);
+  const nextCredits =
+    patch.credits !== undefined ? Number(patch.credits) : existingCredits;
 
   if (!Number.isFinite(nextCredits) || nextCredits < 0) {
     throw new UserUpdateError('credits must be a non-negative number.');
   }
 
-  if (nextHistory.length === existingHistory.length) {
+  const existingIds = new Set(
+    existingHistory
+      .map((entry) => (entry as { id?: string } | null)?.id)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const addedEntries = nextHistory.filter((entry) => {
+    const id = (entry as { id?: string } | null)?.id;
+    return Boolean(id && !existingIds.has(id));
+  }) as { id?: string; balanceAfter?: number }[];
+
+  // No history change — credits must stay the same
+  if (addedEntries.length === 0) {
     if (nextCredits !== existingCredits) {
       throw new UserUpdateError('Credits cannot change without a new credit history entry.');
     }
     return;
   }
 
-  if (nextHistory.length !== existingHistory.length + 1) {
+  if (addedEntries.length !== 1) {
     throw new UserUpdateError('Credit history can only append one entry at a time.');
   }
 
-  const lastEntry = nextHistory[nextHistory.length - 1] as { balanceAfter?: number };
-  if (lastEntry?.balanceAfter !== nextCredits) {
+  const balanceAfter = Number(addedEntries[0]?.balanceAfter);
+  if (!Number.isFinite(balanceAfter) || balanceAfter !== nextCredits) {
     throw new UserUpdateError('Credit balance must match the latest history entry.');
   }
-}
-
-function mergeSelfRoles(existing: UserRecord, patch: UserRecord) {
-  const roles = new Set(asStringArray(existing.roles));
-  for (const role of asStringArray(patch.roles)) {
-    if (SELF_ROLE_ALLOWLIST.has(role)) {
-      roles.add(role);
-    }
-  }
-  return [...roles];
 }
 
 /** Apply a self-service patch for the authenticated user (not admin). */
@@ -96,16 +90,16 @@ export function applySelfUserPatch(existing: UserRecord, patch: UserRecord): Use
 
   validateCreditUpdate(existing, patch);
 
+  if (patch.roles !== undefined) {
+    throw new UserUpdateError('Roles cannot be changed via profile update.');
+  }
+
   const next: UserRecord = { ...existing };
 
   for (const key of SELF_PATCHABLE_KEYS) {
     if (patch[key] !== undefined) {
       next[key] = patch[key];
     }
-  }
-
-  if (patch.roles !== undefined) {
-    next.roles = mergeSelfRoles(existing, patch);
   }
 
   return next;

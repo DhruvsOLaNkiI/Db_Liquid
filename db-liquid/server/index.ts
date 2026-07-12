@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 import { clearAuthCookie, setAuthCookie } from './auth';
+import { clearCsrfCookie, ensureCsrfCookie, requireCsrf, setCsrfCookie } from './csrf';
+import { acceptBidOnServer, BidError, placeBidOnServer } from './bids';
 import {
   getViewerIdFromRequest,
   optionalAuth,
@@ -21,6 +23,7 @@ import {
   migrateLegacyJsonIfNeeded,
   saveListings,
   saveUsers,
+  updateListings,
 } from './mongoStore';
 import {
   reviewVerificationDocument as applyDocumentReview,
@@ -44,14 +47,40 @@ import {
   patchCurrentUser,
   putAdminUsers,
 } from './routes/v1/users';
+import { presentUser, serveSignedFile, uploadPrivateFile, attachSignedUrlsToDocs, attachSignedUrlsToListingMedia } from './routes/v1/uploads';
+import {
+  assertLoginAllowed,
+  getClientIp,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from './loginProtection';
+import { applySecurityHeaders } from './securityHeaders';
+import {
+  adminUsersBodySchema,
+  changePasswordBodySchema,
+  listingsArrayBodySchema,
+  loginBodySchema,
+  patchCurrentUserBodySchema,
+  acceptBidBodySchema,
+  placeBidBodySchema,
+  recordViewBodySchema,
+  registerBodySchema,
+  reviewKycBodySchema,
+  reviewVerificationBodySchema,
+  uploadBodySchema,
+} from './schemas';
+import { validateBody } from './validate';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, '../dist');
 const PORT = Number(process.env.PORT || process.env.API_PORT) || 3001;
 
 const app = express();
+// Behind Hostinger / reverse proxies — needed for accurate client IP rate limits
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+applySecurityHeaders(app);
 
 function getViewerId(req: AuthenticatedRequest) {
   return getViewerIdFromRequest(req);
@@ -71,22 +100,27 @@ function ensureDualRoles(roles: string[]): string[] {
 app.get('/api/health', async (_req, res) => {
   try {
     await connectMongo();
-    res.json({ ok: true, storage: 'mongodb', ...getMongoInfo() });
-  } catch (error) {
-    res.status(503).json({
-      ok: false,
-      storage: 'mongodb',
-      error: error instanceof Error ? error.message : 'MongoDB connection failed',
-    });
+    // Public probe only — no URI, db name, or connection details (SEC-012)
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ ok: false });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
-  
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email and password are required.' });
+/** Issue / refresh CSRF cookie for double-submit protection (SEC-010). */
+app.get('/api/auth/csrf', (req, res) => {
+  const token = ensureCsrfCookie(req, res);
+  res.json({ ok: true, csrfToken: token });
+});
+
+app.post('/api/auth/login', requireCsrf, validateBody(loginBodySchema), async (req, res) => {
+  const { email, password } = req.body as { email: string; password: string };
+  const ip = getClientIp(req);
+
+  const guard = assertLoginAllowed(email, ip);
+  if (guard.ok === false) {
+    res.setHeader('Retry-After', String(guard.retryAfterSec));
+    res.status(guard.status).json({ error: guard.error, reason: guard.reason, retryAfterSec: guard.retryAfterSec });
     return;
   }
 
@@ -98,6 +132,7 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     if (index === -1) {
+      recordLoginFailure(email, ip);
       res.status(401).json({ error: 'Invalid email or password.' });
       return;
     }
@@ -105,9 +140,12 @@ app.post('/api/auth/login', async (req, res) => {
     const user = users[index];
     const valid = await verifyPassword(password, user.password);
     if (!valid) {
+      recordLoginFailure(email, ip);
       res.status(401).json({ error: 'Invalid email or password.' });
       return;
     }
+
+    recordLoginSuccess(email, ip);
 
     let savedUser = users[index];
     let needsSave = false;
@@ -129,54 +167,43 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     setAuthCookie(res, savedUser.id, dualRoles);
-    res.json({ ok: true, user: sanitizeUser(savedUser, savedUser.id) });
+    setCsrfCookie(res);
+    res.json({ ok: true, user: await presentUser(savedUser, sanitizeUser(savedUser, savedUser.id)) });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.post('/api/auth/logout', (_req, res) => {
+app.post('/api/auth/logout', requireCsrf, (_req, res) => {
   clearAuthCookie(res);
+  clearCsrfCookie(res);
   res.json({ ok: true });
 });
 
-app.get('/api/auth/me', requireAuth, async (req, res) => {
+app.get('/api/auth/me', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const users = await getUsers();
     const user = users.find((entry) => entry.id === req.auth!.userId);
     if (!user) {
       clearAuthCookie(res);
+      clearCsrfCookie(res);
       res.status(401).json({ error: 'Session invalid.' });
       return;
     }
-    res.json({ ok: true, user: sanitizeUser(user, user.id) });
+    ensureCsrfCookie(req, res);
+    res.json({ ok: true, user: await presentUser(user, sanitizeUser(user, user.id)) });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.post('/api/auth/register', async (req, res) => {
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
-  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-  const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
-
-  if (!email || !email.includes('@')) {
-    res.status(400).json({ error: 'Enter a valid email address.' });
-    return;
-  }
-  if (!name) {
-    res.status(400).json({ error: 'Enter your name.' });
-    return;
-  }
-  if (!phone) {
-    res.status(400).json({ error: 'Enter your phone number.' });
-    return;
-  }
-  if (!password || password.length < 6) {
-    res.status(400).json({ error: 'Password must be at least 6 characters.' });
-    return;
-  }
+app.post('/api/auth/register', requireCsrf, validateBody(registerBodySchema), async (req, res) => {
+  const { email, password, name, phone } = req.body as {
+    email: string;
+    password: string;
+    name: string;
+    phone: string;
+  };
 
   try {
     const users = await getUsers();
@@ -199,30 +226,24 @@ app.post('/api/auth/register', async (req, res) => {
     users.push(user);
     await saveUsers(users);
     setAuthCookie(res, user.id, user.roles);
-    res.status(201).json({ ok: true, user: sanitizeUser(user, user.id) });
+    setCsrfCookie(res);
+    res.status(201).json({ ok: true, user: await presentUser(user, sanitizeUser(user, user.id)) });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+app.post(
+  '/api/auth/change-password',
+  requireAuth,
+  requireCsrf,
+  validateBody(changePasswordBodySchema),
+  async (req: AuthenticatedRequest, res) => {
   const userId = req.auth!.userId;
-  const currentPassword =
-    typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
-  const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
-
-  if (!userId || !currentPassword || !newPassword) {
-    res.status(400).json({ error: 'All password fields are required.' });
-    return;
-  }
-  if (newPassword.length < 6) {
-    res.status(400).json({ error: 'New password must be at least 6 characters.' });
-    return;
-  }
-  if (currentPassword === newPassword) {
-    res.status(400).json({ error: 'New password must be different from your current password.' });
-    return;
-  }
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword: string;
+    newPassword: string;
+  };
 
   try {
     const users = await getUsers();
@@ -257,17 +278,43 @@ app.get('/api/users', optionalAuth, async (req, res) => {
   }
 });
 
-app.put('/api/users', requireAuth, deprecatedBulkUsersPut);
+app.put('/api/users', requireAuth, requireCsrf, deprecatedBulkUsersPut);
 
-app.patch('/api/v1/users/me', requireAuth, patchCurrentUser);
+app.patch(
+  '/api/v1/users/me',
+  requireAuth,
+  requireCsrf,
+  validateBody(patchCurrentUserBodySchema),
+  patchCurrentUser,
+);
 
-app.put('/api/v1/admin/users', requireAdmin, putAdminUsers);
+app.put(
+  '/api/v1/admin/users',
+  requireAdmin,
+  requireCsrf,
+  validateBody(adminUsersBodySchema),
+  putAdminUsers,
+);
+
+app.post(
+  '/api/v1/uploads',
+  requireAuth,
+  requireCsrf,
+  validateBody(uploadBodySchema),
+  uploadPrivateFile,
+);
+
+app.get('/api/v1/files', serveSignedFile);
 
 app.get('/api/listings', optionalAuth, async (req, res) => {
   try {
     const viewerId = getViewerId(req);
     const listings = await getListings();
-    res.json(sanitizeListings(listings, viewerId));
+    const sanitized = sanitizeListings(listings, viewerId);
+    const withSignedMedia = await Promise.all(
+      sanitized.map((listing) => attachSignedUrlsToListingMedia(listing, viewerId)),
+    );
+    res.json(withSignedMedia);
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
@@ -282,78 +329,184 @@ app.get('/api/listings/:id', optionalAuth, async (req, res) => {
       res.status(404).json({ error: 'Listing not found.' });
       return;
     }
-    res.json(sanitizeListing(listing, viewerId));
+    const sanitized = await attachSignedUrlsToListingMedia(
+      sanitizeListing(listing, viewerId),
+      viewerId,
+    );
+    res.json(sanitized);
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.post('/api/listings/:id/record-view', optionalAuth, async (req, res) => {
-  const visitorId = typeof req.body?.visitorId === 'string' ? req.body.visitorId.trim() : '';
+app.post(
+  '/api/listings/:id/record-view',
+  optionalAuth,
+  requireCsrf,
+  validateBody(recordViewBodySchema),
+  async (req, res) => {
+  const { visitorId } = req.body as { visitorId: string };
   const viewerUserId = getViewerId(req);
 
-  if (!visitorId) {
-    res.status(400).json({ error: 'visitorId is required.' });
-    return;
-  }
-
   try {
-    const listings = await getListings();
-    const index = listings.findIndex((entry) => entry.id === req.params.id);
-    if (index === -1) {
+    const result = await updateListings(async (listings) => {
+      const index = listings.findIndex((entry) => (entry as { id?: string }).id === req.params.id);
+      if (index === -1) {
+        return { kind: 'missing' as const };
+      }
+
+      const listing = listings[index] as Record<string, unknown>;
+      const updated = applyListingView(listing, visitorId, viewerUserId);
+
+      if (!updated) {
+        return {
+          kind: 'skipped' as const,
+          viewCount: listing.viewCount ?? 0,
+          uniqueVisitorCount: listing.uniqueVisitorCount ?? 0,
+          returnVisitorCount: listing.returnVisitorCount ?? 0,
+        };
+      }
+
+      listings[index] = updated;
+      await saveListings(listings);
+      return {
+        kind: 'saved' as const,
+        viewCount: updated.viewCount ?? 0,
+        uniqueVisitorCount: updated.uniqueVisitorCount ?? 0,
+        returnVisitorCount: updated.returnVisitorCount ?? 0,
+      };
+    });
+
+    if (result.kind === 'missing') {
       res.status(404).json({ error: 'Listing not found.' });
       return;
     }
 
-    const listing = listings[index] as Record<string, unknown>;
-    const updated = applyListingView(listing, visitorId, viewerUserId);
-
-    if (!updated) {
+    if (result.kind === 'skipped') {
       res.json({
         ok: true,
         skipped: true,
-        viewCount: listing.viewCount ?? 0,
-        uniqueVisitorCount: listing.uniqueVisitorCount ?? 0,
-        returnVisitorCount: listing.returnVisitorCount ?? 0,
+        viewCount: result.viewCount,
+        uniqueVisitorCount: result.uniqueVisitorCount,
+        returnVisitorCount: result.returnVisitorCount,
       });
       return;
     }
 
-    listings[index] = updated;
-    await saveListings(listings);
-
     res.json({
       ok: true,
-      viewCount: updated.viewCount ?? 0,
-      uniqueVisitorCount: updated.uniqueVisitorCount ?? 0,
-      returnVisitorCount: updated.returnVisitorCount ?? 0,
+      viewCount: result.viewCount,
+      uniqueVisitorCount: result.uniqueVisitorCount,
+      returnVisitorCount: result.returnVisitorCount,
     });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
   }
 });
 
-app.put('/api/listings', requireAuth, deprecatedBulkListingsPut);
+app.put('/api/listings', requireAuth, requireCsrf, deprecatedBulkListingsPut);
 
-app.put('/api/v1/listings/sync', requireAuth, putListingsSync);
+app.post(
+  '/api/listings/:id/bids',
+  requireAuth,
+  requireCsrf,
+  validateBody(placeBidBodySchema),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const result = await placeBidOnServer({
+        listingId: req.params.id,
+        userId: req.auth!.userId,
+        bidTotal: (req.body as { bidTotal: number }).bidTotal,
+      });
+      const listing = await attachSignedUrlsToListingMedia(
+        sanitizeListing(result.listing as Parameters<typeof sanitizeListing>[0], req.auth!.userId),
+        req.auth!.userId,
+      );
+      res.status(201).json({
+        ok: true,
+        bid: result.bid,
+        creditsRemaining: result.creditsRemaining,
+        listing,
+      });
+    } catch (error) {
+      if (error instanceof BidError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+    }
+  },
+);
 
-app.put('/api/v1/admin/listings', requireAdmin, putAdminListings);
+app.post(
+  '/api/listings/:id/accept-bid',
+  requireAuth,
+  requireCsrf,
+  validateBody(acceptBidBodySchema),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const result = await acceptBidOnServer({
+        listingId: req.params.id,
+        bidId: (req.body as { bidId: string }).bidId,
+        sellerId: req.auth!.userId,
+      });
+      const listing = await attachSignedUrlsToListingMedia(
+        sanitizeListing(result.listing as Parameters<typeof sanitizeListing>[0], req.auth!.userId),
+        req.auth!.userId,
+      );
+      res.json({
+        ok: true,
+        bid: result.bid,
+        listing,
+      });
+    } catch (error) {
+      if (error instanceof BidError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+    }
+  },
+);
+
+app.put(
+  '/api/v1/listings/sync',
+  requireAuth,
+  requireCsrf,
+  validateBody(listingsArrayBodySchema),
+  putListingsSync,
+);
+
+app.put(
+  '/api/v1/admin/listings',
+  requireAdmin,
+  requireCsrf,
+  validateBody(listingsArrayBodySchema),
+  putAdminListings,
+);
 
 app.get('/api/admin/verification-queue', requireAdmin, async (_req, res) => {
   try {
     const [listings, users] = await Promise.all([getListings(), getUsers()]);
     const usersById = new Map(users.map((user) => [user.id, user]));
 
-    const queue = listings
-      .map((listing) => {
+    const queue = await Promise.all(
+      listings.map(async (listing) => {
         const raw = listing as Record<string, unknown>;
         const sellerId = String(raw.sellerId ?? '');
         const seller = usersById.get(sellerId);
-        return toAdminListing(raw, seller as Parameters<typeof toAdminListing>[1]);
-      })
-      .sort(
-        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-      );
+        const adminListing = toAdminListing(raw, seller as Parameters<typeof toAdminListing>[1]);
+        adminListing.verificationDocuments = await attachSignedUrlsToDocs(
+          adminListing.verificationDocuments,
+        );
+        adminListing.propertyPhotos = await attachSignedUrlsToDocs(adminListing.propertyPhotos);
+        return adminListing;
+      }),
+    );
+
+    queue.sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
 
     res.json({ listings: queue });
   } catch (error) {
@@ -361,37 +514,45 @@ app.get('/api/admin/verification-queue', requireAdmin, async (_req, res) => {
   }
 });
 
-app.post('/api/admin/verification/review', requireAdmin, async (req, res) => {
-  const listingId = typeof req.body?.listingId === 'string' ? req.body.listingId.trim() : '';
-  const documentId = typeof req.body?.documentId === 'string' ? req.body.documentId.trim() : '';
-  const status = req.body?.status;
-
-  if (!listingId || !documentId) {
-    res.status(400).json({ error: 'listingId and documentId are required.' });
-    return;
-  }
-  if (status !== 'approved' && status !== 'rejected') {
-    res.status(400).json({ error: 'status must be approved or rejected.' });
-    return;
-  }
+app.post(
+  '/api/admin/verification/review',
+  requireAdmin,
+  requireCsrf,
+  validateBody(reviewVerificationBodySchema),
+  async (req, res) => {
+  const { listingId, documentId, status } = req.body as {
+    listingId: string;
+    documentId: string;
+    status: 'approved' | 'rejected';
+  };
 
   try {
-    const listings = await getListings();
-    const index = listings.findIndex((entry) => entry.id === listingId);
-    if (index === -1) {
+    const result = await updateListings(async (listings) => {
+      const index = listings.findIndex((entry) => (entry as { id?: string }).id === listingId);
+      if (index === -1) {
+        return { kind: 'missing-listing' as const };
+      }
+
+      const listing = listings[index] as Record<string, unknown>;
+      const documents = (listing.verificationDocuments as { id: string }[] | undefined) ?? [];
+      if (!documents.some((doc) => doc.id === documentId)) {
+        return { kind: 'missing-document' as const };
+      }
+
+      listings[index] = applyDocumentReview(listing, documentId, status);
+      await saveListings(listings);
+      return { kind: 'saved' as const };
+    });
+
+    if (result.kind === 'missing-listing') {
       res.status(404).json({ error: 'Listing not found.' });
       return;
     }
-
-    const listing = listings[index] as Record<string, unknown>;
-    const documents = (listing.verificationDocuments as { id: string }[] | undefined) ?? [];
-    if (!documents.some((doc) => doc.id === documentId)) {
+    if (result.kind === 'missing-document') {
       res.status(404).json({ error: 'Document not found.' });
       return;
     }
 
-    listings[index] = applyDocumentReview(listing, documentId, status);
-    await saveListings(listings);
     res.json({ ok: true });
   } catch (error) {
     res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
@@ -421,23 +582,17 @@ app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   }
 });
 
-app.post('/api/admin/users/review-kyc', requireAdmin, async (req, res) => {
-  const userId = typeof req.body?.userId === 'string' ? req.body.userId.trim() : '';
-  const field = req.body?.field;
-  const verified = req.body?.verified;
-
-  if (!userId) {
-    res.status(400).json({ error: 'userId is required.' });
-    return;
-  }
-  if (field !== 'aadhar' && field !== 'pan') {
-    res.status(400).json({ error: 'field must be aadhar or pan.' });
-    return;
-  }
-  if (typeof verified !== 'boolean') {
-    res.status(400).json({ error: 'verified must be a boolean.' });
-    return;
-  }
+app.post(
+  '/api/admin/users/review-kyc',
+  requireAdmin,
+  requireCsrf,
+  validateBody(reviewKycBodySchema),
+  async (req, res) => {
+  const { userId, field, verified } = req.body as {
+    userId: string;
+    field: 'aadhar' | 'pan';
+    verified: boolean;
+  };
 
   try {
     const users = await getUsers();
@@ -448,7 +603,7 @@ app.post('/api/admin/users/review-kyc', requireAdmin, async (req, res) => {
     }
 
     const result = reviewUserKyc(users[index] as Record<string, unknown>, field, verified);
-    if (!result.ok) {
+    if (result.ok === false) {
       res.status(400).json({ error: result.error });
       return;
     }

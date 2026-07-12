@@ -9,36 +9,12 @@ function isAcceptedBuyer(listing: Listing, viewerId?: string) {
   return accepted?.bidderUserId === viewerId;
 }
 
-function mergeBid(existing: Bid, incoming: Bid, viewerId?: string, isSeller?: boolean) {
-  const isOwnBid = Boolean(viewerId && incoming.bidderUserId === viewerId);
-
-  if (!existing) return incoming;
-  if (isSeller || isOwnBid) return incoming;
-
-  return {
-    ...existing,
-    amountPerSqFt: incoming.amountPerSqFt,
-    bidTotal: incoming.bidTotal ?? existing.bidTotal,
-    createdAt: incoming.createdAt,
-  };
-}
-
 function mergeBids(existingBids: Bid[], incomingBids: Bid[], viewerId?: string, isSeller?: boolean) {
-  const byId = new Map(existingBids.map((bid) => [bid.id, bid]));
-
-  for (const incoming of incomingBids) {
-    const prev = byId.get(incoming.id);
-    if (!prev) {
-      const isOwnBid = Boolean(viewerId && incoming.bidderUserId === viewerId);
-      if (isSeller || isOwnBid) {
-        byId.set(incoming.id, incoming);
-      }
-      continue;
-    }
-    byId.set(incoming.id, mergeBid(prev, incoming, viewerId, isSeller));
-  }
-
-  return [...byId.values()].sort(
+  // BID-001: bids are server-created only. Listing sync must not create or edit bids.
+  void incomingBids;
+  void viewerId;
+  void isSeller;
+  return [...existingBids].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
@@ -60,6 +36,12 @@ function mergeListing(existing: Listing, incoming: Listing, viewerId?: string): 
       sellerPhone: incoming.sellerPhone || existing.sellerPhone,
       address: incoming.address ?? existing.address,
       pincode: incoming.pincode ?? existing.pincode,
+      // BID-005: accepting a bid is server-only. Sync may clear after accept (decline), never set from null.
+      acceptedBidId: existing.acceptedBidId == null ? null : incoming.acceptedBidId,
+      acceptedAt:
+        existing.acceptedBidId == null
+          ? existing.acceptedAt
+          : (incoming.acceptedAt ?? existing.acceptedAt),
       bids: mergeBids(existing.bids, incoming.bids, viewerId, true),
       verificationDocuments: incoming.verificationDocuments ?? existing.verificationDocuments,
       lastDeclinedBuyerUserId:

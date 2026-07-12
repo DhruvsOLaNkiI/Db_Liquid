@@ -1,13 +1,15 @@
-import { CheckCircle2, FileUp, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, FileUp, Loader2, ShieldCheck, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ListingVerifications, VerificationDocType } from '../../types/listing';
 import { VERIFICATION_FIELDS } from '../../utils/listingDisplay';
-import { readImageFileAsDataUrl } from '../../utils/fileUpload';
+import { uploadPrivateFile } from '../../utils/fileUpload';
 
 export type PendingVerificationUpload = {
   fileName: string;
   mimeType: string;
+  /** Short-lived preview URL (signed); not persisted to MongoDB */
   dataUrl: string;
+  storageKey: string;
 };
 
 type Props = {
@@ -24,6 +26,7 @@ export function SellerVerificationStep({
   onUploadChange,
 }: Props) {
   const [error, setError] = useState('');
+  const [uploadingType, setUploadingType] = useState<VerificationDocType | null>(null);
   const inputRefs = useRef<Partial<Record<VerificationDocType, HTMLInputElement | null>>>({});
 
   const selectedKeys = VERIFICATION_FIELDS.filter(({ key }) => verifications[key]).map(({ key }) => key);
@@ -41,16 +44,20 @@ export function SellerVerificationStep({
     const file = files?.[0];
     if (!file) return;
     setError('');
+    setUploadingType(type);
 
     try {
-      const dataUrl = await readImageFileAsDataUrl(file);
+      const uploaded = await uploadPrivateFile(file, 'kyc');
       onUploadChange(type, {
-        fileName: file.name,
-        mimeType: file.type,
-        dataUrl,
+        fileName: uploaded.fileName,
+        mimeType: uploaded.mimeType,
+        dataUrl: uploaded.url,
+        storageKey: uploaded.storageKey,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setUploadingType(null);
     }
   }
 
@@ -107,7 +114,7 @@ export function SellerVerificationStep({
                       inputRefs.current[key] = node;
                     }}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf,.pdf,.doc,.docx"
                     className="hidden"
                     onChange={(e) => {
                       void handleFile(key, e.target.files);
@@ -115,16 +122,24 @@ export function SellerVerificationStep({
                     }}
                   />
 
-                  {upload ? (
+          {upload ? (
                     <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-white p-3">
-                      <img
-                        src={upload.dataUrl}
-                        alt={upload.fileName}
-                        className="w-16 h-16 rounded-lg object-cover border border-gray-100"
-                      />
+                      {upload.mimeType.startsWith('image/') ? (
+                        <img
+                          src={upload.dataUrl}
+                          alt={upload.fileName}
+                          className="w-16 h-16 rounded-lg object-cover border border-gray-100"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center text-[10px] font-semibold text-gray-500 uppercase">
+                          {upload.mimeType.includes('pdf')
+                            ? 'PDF'
+                            : upload.fileName.split('.').pop() || 'DOC'}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900 truncate">{upload.fileName}</p>
-                        <p className="text-xs text-green-700 mt-0.5">Ready for review</p>
+                        <p className="text-xs text-green-700 mt-0.5">Uploaded to secure storage</p>
                       </div>
                       <button
                         type="button"
@@ -139,10 +154,11 @@ export function SellerVerificationStep({
                     <button
                       type="button"
                       onClick={() => inputRefs.current[key]?.click()}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                      disabled={uploadingType === key}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-primary/30 hover:bg-primary/5 transition-colors disabled:opacity-60"
                     >
-                      <FileUp size={16} />
-                      Upload document image
+                      {uploadingType === key ? <Loader2 size={16} className="animate-spin" /> : <FileUp size={16} />}
+                      {uploadingType === key ? 'Uploading…' : 'Upload document'}
                     </button>
                   )}
                 </div>
@@ -169,5 +185,5 @@ export function verificationStepIsValid(
 ) {
   const selected = VERIFICATION_FIELDS.filter(({ key }) => verifications[key]);
   if (selected.length === 0) return true;
-  return selected.every(({ key }) => Boolean(uploads[key]?.dataUrl));
+  return selected.every(({ key }) => Boolean(uploads[key]?.storageKey));
 }

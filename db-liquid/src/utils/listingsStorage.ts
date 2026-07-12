@@ -43,17 +43,21 @@ export function sortListingsByNewest(listings: PropertyListing[]) {
 
 export function saveListingsToStorage(listings: PropertyListing[]): PropertyListing[] {
   const sorted = sortListingsByNewest(listings);
-  void persistListings(sorted);
+  void persistListings(sorted).catch((error) => {
+    console.error('[listings] Failed to sync to MongoDB:', error);
+  });
   return sorted;
 }
 
-export function appendListingToStorage(listing: PropertyListing): PropertyListing[] {
+/** Create/update a listing and wait until the MongoDB sync finishes. */
+export async function appendListingToStorage(listing: PropertyListing): Promise<PropertyListing[]> {
   const existing = loadListingsFromStorage();
   const next = sortListingsByNewest([
     normalizeListing(listing),
     ...existing.filter((l) => l.id !== listing.id),
   ]);
-  return saveListingsToStorage(next);
+  await persistListings(next);
+  return next;
 }
 
 export function replaceAllListings(listings: PropertyListing[]) {
