@@ -164,6 +164,9 @@ export function SellerDashboardPage() {
                         <img
                           src={listing.propertyPhotos?.[0]?.dataUrl ?? PLACEHOLDER_IMAGES[imageIndex]}
                           alt={listing.propertyType}
+                          loading="lazy"
+                          decoding="async"
+                          sizes="(max-width: 640px) 100vw, 16rem"
                           className="absolute inset-0 w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent sm:bg-gradient-to-r sm:from-transparent sm:to-black/5" />

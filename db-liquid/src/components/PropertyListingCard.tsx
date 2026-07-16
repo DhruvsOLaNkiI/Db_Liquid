@@ -9,11 +9,12 @@ import {
   getTimeRemaining,
 } from '../types/listing';
 import { formatBuyerConfiguration, getCurrentHighestBidTotal, getListedPriceTotal } from '../utils/listingDisplay';
+import { OptimizedImage } from './OptimizedImage';
 
 const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80',
 ];
 
 export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
@@ -31,10 +32,11 @@ export function PropertyListingCard({ listing }: { listing: PropertyListing }) {
     <Link to={`/browse-property/${listing.id}`} className="block group h-full">
       <article className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm group-hover:shadow-md transition-shadow h-full">
         <div className="aspect-[4/3] relative overflow-hidden bg-gray-100">
-          <img
+          <OptimizedImage
             src={listing.propertyPhotos?.[0]?.dataUrl ?? PLACEHOLDER_IMAGES[imageIndex]}
             alt={listing.propertyType}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
           <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-primary">
             {statusLabel}

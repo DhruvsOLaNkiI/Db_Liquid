@@ -4,6 +4,8 @@ import { getUsers, saveUsers } from '../../mongoStore';
 import { hashPlaintextPasswords } from '../../password';
 import { sanitizeUser } from '../../sanitize';
 import { applyAdminUsersMerge, applySelfUserPatch, UserUpdateError } from '../../userUpdates';
+import { trackProductEvent } from '../../productEvents';
+import type { RequestWithLog } from '../../logger';
 import { isObjectStorageKey, presentUser } from './uploads';
 
 export async function patchCurrentUser(req: AuthenticatedRequest, res: Response) {
@@ -16,6 +18,7 @@ export async function patchCurrentUser(req: AuthenticatedRequest, res: Response)
     }
 
     const existing = users[index] as Record<string, unknown>;
+    const prevCredits = Number(existing.credits ?? 0);
     const patch = { ...(req.body as Record<string, unknown>) };
 
     if (patch.email !== undefined) {
@@ -50,6 +53,16 @@ export async function patchCurrentUser(req: AuthenticatedRequest, res: Response)
     const updated = applySelfUserPatch(existing, patch);
     users[index] = updated;
     await saveUsers(users);
+
+    const nextCredits = Number((updated as { credits?: number }).credits ?? 0);
+    if (nextCredits > prevCredits) {
+      void trackProductEvent({
+        event: 'top_up',
+        userId: req.auth!.userId,
+        requestId: String((req as RequestWithLog).id ?? ''),
+        meta: { prevCredits, nextCredits, added: nextCredits - prevCredits },
+      });
+    }
 
     res.json({
       ok: true,

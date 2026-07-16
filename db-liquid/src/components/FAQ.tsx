@@ -11,6 +11,10 @@ const faqs = [
     answer: "You can relist the property with adjusted pricing or extend the bidding period to attract more potential buyers."
   },
   {
+    question: "When are bid credits refunded?",
+    answer: "If a seller declines an accepted buyer, that buyer's 1 bid credit is refunded. If an auction closes with no accepted bid, each bidder gets their 1 credit back. Winning accepted deals do not refund the bid credit."
+  },
+  {
     question: "Is the token amount refundable?",
     answer: "The token amount is a commitment fee. Refund policies apply based on specific circumstances outlined in our terms and conditions."
   },

@@ -27,9 +27,13 @@ export function appendCreditHistory(
 }
 
 export function getCreditsAdded(history: CreditTransaction[]) {
-  return history.filter((t) => t.type === 'purchase');
+  return history.filter((t) => t.type === 'purchase' || t.type === 'refund');
 }
 
 export function getCreditsSpent(history: CreditTransaction[]) {
   return history.filter((t) => t.type === 'spend');
+}
+
+export function getCreditsRefunded(history: CreditTransaction[]) {
+  return history.filter((t) => t.type === 'refund');
 }

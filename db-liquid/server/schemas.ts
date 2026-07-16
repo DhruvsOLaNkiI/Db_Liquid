@@ -47,6 +47,10 @@ export const recordViewBodySchema = z
 export const placeBidBodySchema = z
   .object({
     bidTotal: z.number().finite().positive('Bid amount must be greater than 0.'),
+    idempotencyKey: z
+      .string()
+      .trim()
+      .uuid('idempotencyKey must be a valid UUID.'),
   })
   .strict();
 
@@ -55,6 +59,8 @@ export const acceptBidBodySchema = z
     bidId: nonEmptyString('bidId is required.'),
   })
   .strict();
+
+export const declineAcceptedBidBodySchema = z.object({}).strict();
 
 export const reviewVerificationBodySchema = z
   .object({

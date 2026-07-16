@@ -36,12 +36,18 @@ function mergeListing(existing: Listing, incoming: Listing, viewerId?: string): 
       sellerPhone: incoming.sellerPhone || existing.sellerPhone,
       address: incoming.address ?? existing.address,
       pincode: incoming.pincode ?? existing.pincode,
+      // BID-006: publish / accept timestamps stay server-authoritative after create.
+      publishedAt: existing.publishedAt ?? incoming.publishedAt,
+      // BID-009: auction close is server/job only — never clear via sync.
+      auctionClosedAt: existing.auctionClosedAt ?? null,
       // BID-005: accepting a bid is server-only. Sync may clear after accept (decline), never set from null.
       acceptedBidId: existing.acceptedBidId == null ? null : incoming.acceptedBidId,
       acceptedAt:
         existing.acceptedBidId == null
-          ? existing.acceptedAt
-          : (incoming.acceptedAt ?? existing.acceptedAt),
+          ? null
+          : incoming.acceptedBidId == null
+            ? null
+            : existing.acceptedAt,
       bids: mergeBids(existing.bids, incoming.bids, viewerId, true),
       verificationDocuments: incoming.verificationDocuments ?? existing.verificationDocuments,
       lastDeclinedBuyerUserId:

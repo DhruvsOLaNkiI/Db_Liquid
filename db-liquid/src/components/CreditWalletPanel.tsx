@@ -112,7 +112,9 @@ export function CreditWalletPanel({ onClose }: Props) {
                   >
                     <div className="min-w-0">
                       <p className="font-medium text-green-900">+{tx.credits}</p>
-                      <p className="text-[10px] text-green-800/80 truncate">{tx.note}</p>
+                      <p className="text-[10px] text-green-800/80 truncate">
+                        {tx.type === 'refund' ? `Refund · ${tx.note}` : tx.note}
+                      </p>
                     </div>
                     <div className="text-right shrink-0">
                       {tx.amountInr !== undefined && (

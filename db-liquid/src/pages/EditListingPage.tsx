@@ -269,8 +269,10 @@ export function EditListingPage() {
             {step === 'Photos' && (
               <SellerPhotosStep
                 photos={form.propertyPhotos}
+                videos={form.propertyVideos}
                 photoNote={form.photoNote}
                 onPhotosChange={(photos) => patchForm({ propertyPhotos: photos })}
+                onVideosChange={(videos) => patchForm({ propertyVideos: videos })}
                 onPhotoNoteChange={(v) => patchForm({ photoNote: v })}
               />
             )}

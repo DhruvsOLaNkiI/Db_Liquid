@@ -12,14 +12,16 @@
 
 ## Current launch scope
 
-**In scope for this release:** security, server-side bidding, rate limits, CDN/cache basics, live auction UX.  
-**Out of scope (deferred):** real payments, email/SMS/push notifications.
+**In scope for this release:** security, server-side bidding, rate limits, CDN/cache basics.  
+**Out of scope (deferred):** real payments, email/SMS/push notifications, Redis / WebSocket live push, CAPTCHA on auth.
 
 | Deferred | Item IDs | Notes |
 |----------|----------|-------|
 | **Payments** | BID-011, LEGAL-003, LEGAL-006 | Keep simulated credits / admin top-up for now |
 | **Notifications** | AUTH-003, AUTH-004, AUTH-007 | No email verify, reset password, or phone OTP yet |
 | **Payment alerts** | MON-004 (payment part only) | Bid errors + DB down alerts still planned in Phase 2 |
+| **Redis / multi-server live** | RT-001, RT-002, RT-003, RT-004, PERF-007 | Single API + 30s polling for now — see [RT deferred note](docs/completed/RT-001-004-realtime-deferred.md) |
+| **CAPTCHA** | RL-004 | Rate limits + Cloudflare WAF cover abuse for now — see [RL-004 deferred note](docs/completed/RL-004-captcha-deferred.md) |
 
 Items marked `[—]` in tables below are **won't do for current launch** — revisit when payments/notifications are added.
 
@@ -194,13 +196,13 @@ What exists today in code:
 | BID-003 | P0 | [x] | Enforce minimum bid increment | New bid must beat current highest (not just `> 0`) |
 | BID-004 | P0 | [x] | Atomic bid + credit deduction | Server-side serialized critical section updates listing + credit together |
 | BID-005 | P0 | [x] | `POST /api/listings/:id/accept-bid` | Done — see [BID-005 completion doc](docs/completed/BID-005-accept-bid.md) |
-| BID-006 | P1 | [ ] | Server authoritative timestamps | `createdAt` from server clock |
-| BID-007 | P1 | [ ] | Idempotency keys for bids | Prevent double-submit |
-| BID-008 | P1 | [ ] | Immutable bid audit log | Who, when, amount, IP for disputes |
-| BID-009 | P1 | [ ] | Auto-close expired auctions | Cron/job when `biddingEndsAt` passes |
-| BID-010 | P1 | [ ] | Block seller bidding on own listing | Server enforced |
-| BID-011 | P1 | [—] | Real payment gateway (Razorpay/PayU) | **Deferred** — keep simulated credits / admin top-up |
-| BID-012 | P2 | [ ] | Credit refund policy | Declined bid / cancelled auction behavior documented + coded |
+| BID-006 | P1 | [x] | Server authoritative timestamps | Done — see [BID-006 completion doc](docs/completed/BID-006-server-timestamps.md) |
+| BID-007 | P1 | [x] | Idempotency keys for bids | Done — see [BID-007 completion doc](docs/completed/BID-007-idempotency.md) |
+| BID-008 | P1 | [x] | Immutable bid audit log | Done — see [BID-008 completion doc](docs/completed/BID-008-bid-audit.md) |
+| BID-009 | P1 | [x] | Auto-close expired auctions | Done — see [BID-009 completion doc](docs/completed/BID-009-auto-close.md) |
+| BID-010 | P1 | [x] | Block seller bidding on own listing | Done — see [BID-010 completion doc](docs/completed/BID-010-own-listing-block.md) |
+| BID-011 | P1 | [—] | Real payment gateway (Razorpay/PayU) | **Deferred** — see [BID-011 deferred note](docs/completed/BID-011-payment-gateway-deferred.md) |
+| BID-012 | P2 | [x] | Credit refund policy | Done — see [BID-012 completion doc](docs/completed/BID-012-credit-refunds.md) |
 
 ---
 
@@ -208,10 +210,12 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| RT-001 | P1 | [ ] | WebSockets or SSE for bid updates | Replace 30s polling on bid pages |
-| RT-002 | P1 | [ ] | Redis pub/sub (or equivalent) | Broadcast bids to all viewers on a listing |
-| RT-003 | P2 | [ ] | Anti-sniping / bid extension | Extend `biddingEndsAt` if bid in last N minutes |
-| RT-004 | P2 | [ ] | Connection status UI | Live / reconnecting indicator |
+| RT-001 | P1 | [—] | WebSockets or SSE for bid updates | **Deferred** — keep 30s polling; no Redis stack for now |
+| RT-002 | P1 | [—] | Redis pub/sub (or equivalent) | **Deferred** — single API process; Redis not needed |
+| RT-003 | P2 | [—] | Anti-sniping / bid extension | **Deferred** — polish after live push exists |
+| RT-004 | P2 | [—] | Connection status UI | **Deferred** — only useful with RT-001 |
+
+See [RT-001–004 deferred note](docs/completed/RT-001-004-realtime-deferred.md).
 
 ---
 
@@ -219,11 +223,11 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| RL-001 | P0 | [ ] | API rate limiting | express-rate-limit or edge WAF |
-| RL-002 | P1 | [ ] | Per-route limits | Login 5/min, bid 10/min, signup 3/hr per IP |
-| RL-003 | P1 | [ ] | CDN/WAF (Cloudflare etc.) | DDoS, bot protection in front of app |
-| RL-004 | P1 | [ ] | CAPTCHA on signup/login | Turnstile or reCAPTCHA |
-| RL-005 | P2 | [ ] | IP logging on bids | Fraud investigation support |
+| RL-001 | P0 | [x] | API rate limiting | Done — see [RL-001 completion doc](docs/completed/RL-001-api-rate-limit.md) |
+| RL-002 | P1 | [x] | Per-route limits | Done — see [RL-002 completion doc](docs/completed/RL-002-per-route-limits.md) |
+| RL-003 | P1 | [x] | CDN/WAF (Cloudflare etc.) | Done — see [RL-003 setup guide](docs/completed/RL-003-cloudflare-waf.md) |
+| RL-004 | P1 | [—] | CAPTCHA on signup/login | **Deferred** — see [RL-004 deferred note](docs/completed/RL-004-captcha-deferred.md) |
+| RL-005 | P2 | [x] | IP logging on bids | Done — see [RL-005 completion doc](docs/completed/RL-005-bid-ip-logging.md); UI at `/admin/verification` → Bid IP audit |
 
 ---
 
@@ -231,16 +235,16 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| PERF-001 | P1 | [ ] | CDN for static assets (`dist/`) | Hashed JS/CSS long cache |
-| PERF-002 | P1 | [ ] | CDN for property images | Cloudinary / S3 + CloudFront |
-| PERF-003 | P1 | [ ] | Cache-Control headers | `index.html` no-cache; assets immutable |
-| PERF-004 | P1 | [ ] | Split MongoDB data model | Per-user, per-listing collections (not one big array) |
-| PERF-005 | P1 | [ ] | MongoDB indexes | `email`, `listingId`, `sellerId`, `biddingEndsAt` |
-| PERF-006 | P2 | [ ] | Pagination on `GET /api/listings` | `?page=&limit=` |
-| PERF-007 | P2 | [ ] | Redis cache for hot listings | Active auction pages |
-| PERF-008 | P2 | [ ] | Image optimization | WebP, lazy load, responsive sizes |
-| PERF-009 | P2 | [ ] | API cache strategy | No public cache on bid-sensitive endpoints |
-| PERF-010 | P3 | [ ] | Self-host or optimize fonts | Reduce third-party dependency |
+| PERF-001 | P1 | [x] | CDN for static assets (`dist/`) | Done — Cache-Control + Cloudflare (see [PERF-001–006](docs/completed/PERF-001-006-cache-mongo-pagination.md)) |
+| PERF-002 | P1 | [x] | CDN for property images | Done — R2/S3 + `IMAGE_CDN_ORIGINS` CSP (same doc) |
+| PERF-003 | P1 | [x] | Cache-Control headers | Done — `index.html` no-cache; `/assets/*` immutable |
+| PERF-004 | P1 | [x] | Split MongoDB data model | Done — `users` / `listings` collections |
+| PERF-005 | P1 | [x] | MongoDB indexes | Done — email, id, sellerId, biddingEndsAt, publishedAt |
+| PERF-006 | P2 | [x] | Pagination on `GET /api/listings` | Done — `?page=&limit=` envelope |
+| PERF-007 | P2 | [—] | Redis cache for hot listings | **Deferred** — no Redis in current launch |
+| PERF-008 | P2 | [x] | Image optimization | Done — see [PERF-008–010](docs/completed/PERF-008-010-images-api-fonts.md) |
+| PERF-009 | P2 | [x] | API cache strategy | Done — `/api` `private, no-store` (bid-safe) |
+| PERF-010 | P3 | [x] | Self-host or optimize fonts | Done — `@fontsource` Inter + Space Grotesk |
 
 ---
 
@@ -248,14 +252,14 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| INFRA-001 | P0 | [ ] | HTTPS everywhere | TLS + redirect HTTP |
-| INFRA-002 | P0 | [ ] | Secrets in env only | No keys in client bundle |
-| INFRA-003 | P1 | [ ] | CORS allowlist | Production origins only |
-| INFRA-004 | P1 | [ ] | Separate API + frontend domains | Optional but recommended |
-| INFRA-005 | P1 | [ ] | Staging environment | Test bids before production |
-| INFRA-006 | P2 | [ ] | Graceful shutdown | SIGTERM handling |
-| INFRA-007 | P2 | [ ] | MongoDB backups | Atlas PITR enabled |
-| INFRA-008 | P2 | [ ] | Health check without sensitive data | For uptime monitors |
+| INFRA-001 | P0 | [x] | HTTPS everywhere | Done — see [INFRA-001–008](docs/completed/INFRA-001-008-deployment.md) |
+| INFRA-002 | P0 | [x] | Secrets in env only | Done — client scan `test:infra002`; secrets server-only |
+| INFRA-003 | P1 | [x] | CORS allowlist | Done — `APP_URL` / `CORS_ORIGINS` |
+| INFRA-004 | P1 | [x] | Separate API + frontend domains | Done — optional; same-origin default + CORS-ready |
+| INFRA-005 | P1 | [x] | Staging environment | Done — staging runbook in INFRA doc |
+| INFRA-006 | P2 | [x] | Graceful shutdown | Done — SIGTERM closes HTTP + Mongo |
+| INFRA-007 | P2 | [x] | MongoDB backups | Done — Atlas PITR ops checklist in INFRA doc |
+| INFRA-008 | P2 | [x] | Health check without sensitive data | Done — same as SEC-012 `{ ok: true\|false }` |
 
 ---
 
@@ -263,14 +267,15 @@ What exists today in code:
 
 | ID | Pri | Status | Item | Notes / acceptance criteria |
 |----|-----|--------|------|------------------------------|
-| MON-001 | P1 | [ ] | Error tracking (Sentry) | Frontend + backend |
-| MON-002 | P1 | [ ] | Structured logging | Request IDs, Pino/Winston |
-| MON-003 | P1 | [ ] | Uptime monitoring | `/api/health` external ping |
-| MON-004 | P2 | [ ] | Alerts | Bid errors, DB down (**payment alerts deferred**) |
-| MON-005 | P2 | [ ] | Product analytics funnel | Signup → top-up → bid → accept |
-| MON-006 | P2 | [ ] | Admin audit log | KYC approve/reject trail |
+| MON-001 | P1 | [x] | Error tracking (Sentry) | Done — see [MON-001](docs/completed/MON-001-sentry.md) |
+| MON-002 | P1 | [x] | Structured logging | Done — Pino + `X-Request-Id` — [MON-002–006](docs/completed/MON-002-006-monitoring.md) |
+| MON-003 | P1 | [x] | Uptime monitoring | Done — `/api/health` + UptimeRobot ops note |
+| MON-004 | P2 | [x] | Alerts | Done — bid/DB via Sentry + uptime (**payment alerts deferred**) |
+| MON-005 | P2 | [x] | Product analytics funnel | Done — `product_events` signup→top-up→bid→accept |
+| MON-006 | P2 | [x] | Admin audit log | Done — `admin_audit_log` KYC / doc review trail |
 
 ---
+  
 
 ## 9. Legal, trust & compliance (India)
 
@@ -310,11 +315,11 @@ What exists today in code:
 
 ### Phase 2 — P1 (live auctions, current scope) · +3–4 weeks solo
 
-_Skips: AUTH-003, AUTH-004, AUTH-007, BID-011, LEGAL-003, LEGAL-006_
+_Skips: AUTH-003, AUTH-004, AUTH-007, BID-011, LEGAL-003, LEGAL-006, RL-004_
 
 1. BID-006 → BID-010 (not BID-011)  
-2. RT-001, RT-002 (or faster polling if WebSockets deferred)  
-3. RL-002 → RL-004  
+2. ~~RT-001, RT-002~~ **Deferred** (no Redis / keep polling)  
+3. RL-002 → RL-003 (not RL-004)  
 4. PERF-001 → PERF-005  
 5. AUTH-005, AUTH-006 (not AUTH-003, AUTH-004, AUTH-007)  
 6. MON-001 → MON-003  
@@ -324,7 +329,7 @@ _Skips: AUTH-003, AUTH-004, AUTH-007, BID-011, LEGAL-003, LEGAL-006_
 
 1. Remaining active PERF, MON, LEGAL items  
 2. ECO-001 → ECO-004  
-3. RT-003, RT-004  
+3. ~~RT-003, RT-004~~ deferred with RT-001/002 until live push is needed
 
 ### Future phase — payments & notifications (when needed) · +2–3 weeks
 
@@ -358,7 +363,7 @@ For a monitoring app, each row can be exported as JSON:
 
 **`launchScope` values:** `active` | `deferred` | `future`
 
-**Deferred item IDs:** `AUTH-003`, `AUTH-004`, `AUTH-007`, `BID-011`, `LEGAL-003`, `LEGAL-006`
+**Deferred item IDs:** `AUTH-003`, `AUTH-004`, `AUTH-007`, `BID-011`, `LEGAL-003`, `LEGAL-006`, `RT-001`, `RT-002`, `RT-003`, `RT-004`, `PERF-007`
 
 **Status mapping from checkbox:**
 
@@ -375,6 +380,17 @@ For a monitoring app, each row can be exported as JSON:
 |------|--------|--------|
 | 2026-07-09 | — | Initial audit from codebase review |
 | 2026-07-10 | — | SEC-010 CSRF double-submit cookie protection completed |
+| 2026-07-14 | — | RT-001–004 + PERF-007 deferred (no Redis; keep polling) |
+| 2026-07-14 | — | RL-001 global `/api` rate limiting with express-rate-limit |
+| 2026-07-14 | — | RL-002 per-route limits (login / signup / bid) |
+| 2026-07-14 | — | RL-003 Cloudflare CDN/WAF readiness + setup guide |
+| 2026-07-14 | — | RL-004 CAPTCHA deferred (rate limits + Cloudflare cover abuse) |
+| 2026-07-14 | — | RL-005 bid IP audit (admin UI + ip filter) |
+| 2026-07-14 | — | PERF-001–006 CDN headers, Mongo split, indexes, listings pagination |
+| 2026-07-14 | — | PERF-008–010 WebP/lazy images, API no-store, self-hosted fonts |
+| 2026-07-15 | — | INFRA-001–008 HTTPS, secrets, CORS, staging note, shutdown, backups, health |
+| 2026-07-15 | — | MON-001 Sentry error monitoring (React + Express) |
+| 2026-07-15 | — | MON-002–006 structured logs, uptime, alerts, funnel, admin audit |
 
 ---
 

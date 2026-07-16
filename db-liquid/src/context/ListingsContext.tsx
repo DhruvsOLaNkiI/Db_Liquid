@@ -9,7 +9,7 @@ import {
   saveListingsToStorage,
   sortListingsByNewest,
 } from '../utils/listingsStorage';
-import { acceptBidOnServer, createBidOnServer, DATA_REFRESH_EVENT } from '../utils/sharedStore';
+import { acceptBidOnServer, createBidOnServer, DATA_REFRESH_EVENT, declineAcceptedBidOnServer } from '../utils/sharedStore';
 import { recordListingView as recordListingViewApi } from '../utils/listingViews';
 
 export { LISTINGS_STORAGE_KEY } from '../utils/listingsStorage';
@@ -28,6 +28,8 @@ type ReloadOptions = { force?: boolean };
 
 type ListingsContextValue = {
   listings: PropertyListing[];
+  /** True until the first server fetch finishes (does not flip on poll refreshes). */
+  listingsLoading: boolean;
   reloadListings: (options?: ReloadOptions) => void;
   addListing: (listing: PropertyListing) => Promise<{ ok: true } | { ok: false; error: string }>;
   placeBid: (
@@ -36,6 +38,7 @@ type ListingsContextValue = {
     bidderPhone: string,
     bidTotal: number,
     buyerUserId: string,
+    idempotencyKey: string,
   ) => Promise<ActionResult>;
   acceptBid: (listingId: string, bidId: string, sellerId: string) => Promise<ActionResult>;
   proceedDeal: (listingId: string, sellerId: string) => ActionResult;
@@ -46,7 +49,7 @@ type ListingsContextValue = {
     buyerPhone: string,
     action: 'pay' | 'skip',
   ) => ActionResult;
-  declineAcceptedBuyer: (listingId: string, sellerId: string) => ActionResult;
+  declineAcceptedBuyer: (listingId: string, sellerId: string) => Promise<ActionResult>;
   sendChatMessage: (
     listingId: string,
     senderRole: 'seller' | 'buyer',
@@ -79,16 +82,26 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
   const [listings, setListings] = useState<PropertyListing[]>(() =>
     sortListingsByNewest(loadListingsFromStorage()),
   );
+  const [listingsLoading, setListingsLoading] = useState(!authOnly);
 
   const reloadListings = useCallback(async (options?: ReloadOptions) => {
     const { reloadListingsFromServer } = await import('../utils/sharedStore');
-    const data = await reloadListingsFromServer(options);
-    setListings(sortListingsByNewest(data));
+    try {
+      const data = await reloadListingsFromServer(options);
+      setListings(sortListingsByNewest(data));
+    } finally {
+      setListingsLoading(false);
+    }
   }, []);
 
   // Fetch + poll only on pages that need listings — not login/signup
   useEffect(() => {
-    if (authOnly) return;
+    if (authOnly) {
+      setListingsLoading(false);
+      return;
+    }
+
+    setListingsLoading(true);
 
     let intervalId: number | undefined;
 
@@ -162,6 +175,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     bidderPhone: string,
     bidTotal: number,
     buyerUserId: string,
+    idempotencyKey: string,
   ): Promise<ActionResult> => {
     const listing = listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, error: 'Listing not found.' };
@@ -175,12 +189,15 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     if (!buyerUserId) {
       return { ok: false, error: 'Log in as a buyer and top up credits to place a bid.' };
     }
+    if (!idempotencyKey) {
+      return { ok: false, error: 'Missing bid idempotency key.' };
+    }
 
     if (!isValidBidTotal(bidTotal)) {
       return { ok: false, error: 'Enter a bid amount greater than ₹0.' };
     }
 
-    const result = await createBidOnServer(listingId, bidTotal);
+    const result = await createBidOnServer(listingId, bidTotal, idempotencyKey);
     if (!result.ok) return result;
 
     setListings((prev) =>
@@ -281,7 +298,10 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const declineAcceptedBuyer = (listingId: string, sellerId: string): ActionResult => {
+  const declineAcceptedBuyer = async (
+    listingId: string,
+    sellerId: string,
+  ): Promise<ActionResult> => {
     const listing = listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, error: 'Listing not found.' };
     if (listing.sellerId !== sellerId) return { ok: false, error: 'Not your listing.' };
@@ -290,25 +310,14 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     const acceptedBid = getAcceptedBid(listing);
     if (!acceptedBid) return { ok: false, error: 'Accepted bid not found.' };
 
-    updateListings((prev) =>
-      prev.map((l) => {
-        if (l.id !== listingId) return l;
-        return {
-          ...l,
-          bids: l.bids.filter((bid) => bid.id !== acceptedBid.id),
-          acceptedBidId: null,
-          acceptedAt: null,
-          proceededAt: null,
-          tokenStatus: 'none',
-          chatMessages: [],
-          chatSellerName: '',
-          chatSellerPhone: '',
-          chatBuyerName: '',
-          chatBuyerPhone: '',
-          lastDeclinedBuyerUserId: acceptedBid.bidderUserId,
-          lastDeclinedAt: new Date().toISOString(),
-        };
-      }),
+    const result = await declineAcceptedBidOnServer(listingId);
+    if (!result.ok) return result;
+
+    setListings((prev) =>
+      sortListingsByNewest([
+        result.listing,
+        ...prev.filter((entry) => entry.id !== result.listing.id),
+      ]),
     );
 
     return { ok: true };
@@ -460,6 +469,7 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     <ListingsContext.Provider
       value={{
         listings,
+        listingsLoading,
         reloadListings,
         addListing,
         placeBid,

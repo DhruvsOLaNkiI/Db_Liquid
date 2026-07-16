@@ -1,5 +1,5 @@
 import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data/propertyTypes';
-import type { PropertyListing, PropertyPhoto } from '../types/listing';
+import type { PropertyListing, PropertyPhoto, PropertyVideo } from '../types/listing';
 import { getListingStatus } from '../types/listing';
 import {
   buildListingDetailsSummary,
@@ -44,6 +44,7 @@ export type ListingEditFormState = {
   propertyHighlights: string;
   photoNote: string;
   propertyPhotos: PropertyPhoto[];
+  propertyVideos: PropertyVideo[];
   pricePerSqFt: string;
 };
 
@@ -105,6 +106,7 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
     propertyHighlights: listing.description || '',
     photoNote: '',
     propertyPhotos: listing.propertyPhotos ?? [],
+    propertyVideos: listing.propertyVideos ?? [],
     pricePerSqFt: String(listing.pricePerSqFt || ''),
   };
 }
@@ -178,6 +180,7 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     detailsSummary,
     description,
     propertyPhotos: form.propertyPhotos,
+    propertyVideos: form.propertyVideos,
     furnishing: form.furnishing || undefined,
     facing: form.facing || undefined,
     parking: form.parking || undefined,

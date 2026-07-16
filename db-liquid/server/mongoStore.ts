@@ -3,13 +3,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { connectMongo } from './db';
 
-const COLLECTION = 'app_state';
-const USERS_KEY = 'users';
-const LISTINGS_KEY = 'listings';
+/** PERF-004 — one document per user / listing (not app_state arrays). */
+const USERS_COLLECTION = 'users';
+const LISTINGS_COLLECTION = 'listings';
+const LEGACY_STATE_COLLECTION = 'app_state';
+const LEGACY_USERS_KEY = 'users';
+const LEGACY_LISTINGS_KEY = 'listings';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LEGACY_USERS = path.join(__dirname, '../data/store/users.json');
 const LEGACY_LISTINGS = path.join(__dirname, '../data/store/listings.json');
+
+type Entity = Record<string, unknown> & { id?: string };
+
+let indexesReady = false;
 
 function readLegacyJson<T>(filePath: string, fallback: T): T {
   try {
@@ -20,35 +27,137 @@ function readLegacyJson<T>(filePath: string, fallback: T): T {
   }
 }
 
-async function getState(key: string) {
+function stripMongoId<T extends Entity>(doc: T): T {
+  const { _id: _ignored, ...rest } = doc as T & { _id?: unknown };
+  return rest as T;
+}
+
+async function usersCol() {
   const db = await connectMongo();
-  const doc = await db.collection(COLLECTION).findOne({ key });
+  return db.collection<Entity>(USERS_COLLECTION);
+}
+
+async function listingsCol() {
+  const db = await connectMongo();
+  return db.collection<Entity>(LISTINGS_COLLECTION);
+}
+
+/** PERF-005 — indexes for hot lookups. */
+export async function ensureStoreIndexes() {
+  if (indexesReady) return;
+  const users = await usersCol();
+  const listings = await listingsCol();
+  await Promise.all([
+    users.createIndex({ id: 1 }, { unique: true }),
+    users.createIndex({ email: 1 }, { sparse: true }),
+    listings.createIndex({ id: 1 }, { unique: true }),
+    listings.createIndex({ sellerId: 1 }),
+    listings.createIndex({ biddingEndsAt: 1 }),
+    listings.createIndex({ publishedAt: -1 }),
+  ]);
+  indexesReady = true;
+}
+
+async function readLegacyAppStateArray(key: string): Promise<unknown[]> {
+  const db = await connectMongo();
+  const doc = await db.collection(LEGACY_STATE_COLLECTION).findOne({ key });
   return Array.isArray(doc?.data) ? doc.data : [];
 }
 
-async function setState(key: string, data: unknown[]) {
-  const db = await connectMongo();
-  await db.collection(COLLECTION).updateOne(
-    { key },
-    { $set: { key, data, updatedAt: new Date() } },
-    { upsert: true },
-  );
+async function replaceAll(collectionName: 'users' | 'listings', items: unknown[]) {
+  const col = collectionName === 'users' ? await usersCol() : await listingsCol();
+  const docs = items.filter((item): item is Entity => {
+    return Boolean(item && typeof item === 'object' && typeof (item as Entity).id === 'string');
+  });
+
+  const ids = docs.map((doc) => String(doc.id));
+  if (docs.length === 0) {
+    await col.deleteMany({});
+    return;
+  }
+
+  const ops = docs.map((doc) => ({
+    replaceOne: {
+      filter: { id: doc.id },
+      replacement: { ...doc, id: doc.id },
+      upsert: true,
+    },
+  }));
+  await col.bulkWrite(ops, { ordered: false });
+  await col.deleteMany({ id: { $nin: ids } });
 }
 
-export async function getUsers() {
-  return getState(USERS_KEY);
+export async function getUsers(): Promise<Entity[]> {
+  await ensureStoreIndexes();
+  const col = await usersCol();
+  const docs = await col.find({}).toArray();
+  return docs.map(stripMongoId);
 }
 
 export async function saveUsers(users: unknown[]) {
-  await setState(USERS_KEY, users);
+  await ensureStoreIndexes();
+  await replaceAll('users', users);
 }
 
-export async function getListings() {
-  return getState(LISTINGS_KEY);
+export async function getListings(): Promise<Entity[]> {
+  await ensureStoreIndexes();
+  const col = await listingsCol();
+  const docs = await col.find({}).sort({ publishedAt: -1 }).toArray();
+  return docs.map(stripMongoId);
 }
 
 export async function saveListings(listings: unknown[]) {
-  await setState(LISTINGS_KEY, listings);
+  await ensureStoreIndexes();
+  await replaceAll('listings', listings);
+}
+
+export async function getUserById(id: string): Promise<Entity | null> {
+  await ensureStoreIndexes();
+  const col = await usersCol();
+  const doc = await col.findOne({ id });
+  return doc ? stripMongoId(doc) : null;
+}
+
+export async function findUserByEmail(email: string): Promise<Entity | null> {
+  await ensureStoreIndexes();
+  const normalized = email.trim().toLowerCase();
+  const col = await usersCol();
+  const exact = await col.findOne({ email: normalized });
+  if (exact) return stripMongoId(exact);
+  // Legacy mixed-case emails
+  const match = await col.findOne({
+    email: { $regex: `^${normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+  });
+  return match ? stripMongoId(match) : null;
+}
+
+export async function getListingById(id: string): Promise<Entity | null> {
+  await ensureStoreIndexes();
+  const col = await listingsCol();
+  const doc = await col.findOne({ id });
+  return doc ? stripMongoId(doc) : null;
+}
+
+/** PERF-006 — page through listings without loading unneeded rows into the response. */
+export async function getListingsPage(options?: {
+  page?: number;
+  limit?: number;
+}): Promise<{ listings: Entity[]; page: number; limit: number; total: number; totalPages: number }> {
+  await ensureStoreIndexes();
+  const page = Math.max(1, Math.floor(options?.page ?? 1));
+  const limit = Math.min(100, Math.max(1, Math.floor(options?.limit ?? 20)));
+  const col = await listingsCol();
+  const total = await col.countDocuments();
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const skip = (page - 1) * limit;
+  const docs = await col.find({}).sort({ publishedAt: -1 }).skip(skip).limit(limit).toArray();
+  return {
+    listings: docs.map(stripMongoId),
+    page,
+    limit,
+    total,
+    totalPages,
+  };
 }
 
 /**
@@ -93,8 +202,51 @@ export async function updateUsersAndListings<T>(
   return next;
 }
 
-/** One-time import from old JSON files if MongoDB is empty. */
+async function mergeLegacyArrayIntoCollection(
+  collectionName: 'users' | 'listings',
+  fromState: unknown[],
+) {
+  if (fromState.length === 0) return;
+
+  const existing = collectionName === 'users' ? await getUsers() : await getListings();
+  const byId = new Map<string, Entity>();
+  for (const row of existing) {
+    if (typeof row.id === 'string' && row.id) byId.set(row.id, row);
+  }
+
+  let added = 0;
+  for (const raw of fromState) {
+    if (!raw || typeof raw !== 'object') continue;
+    const row = raw as Entity;
+    if (typeof row.id !== 'string' || !row.id) continue;
+    if (!byId.has(row.id)) {
+      byId.set(row.id, row);
+      added += 1;
+    }
+  }
+
+  if (added === 0 && existing.length > 0) return;
+
+  if (collectionName === 'users') await saveUsers([...byId.values()]);
+  else await saveListings([...byId.values()]);
+
+  console.log(
+    `Migrated/merged ${added} ${collectionName} from app_state → ${collectionName} collection (${byId.size} total) (PERF-004)`,
+  );
+}
+
+async function migrateAppStateArraysIfNeeded() {
+  const fromUsers = await readLegacyAppStateArray(LEGACY_USERS_KEY);
+  const fromListings = await readLegacyAppStateArray(LEGACY_LISTINGS_KEY);
+  await mergeLegacyArrayIntoCollection('users', fromUsers);
+  await mergeLegacyArrayIntoCollection('listings', fromListings);
+}
+
+/** One-time import: app_state arrays / JSON files → per-entity collections. */
 export async function migrateLegacyJsonIfNeeded() {
+  await ensureStoreIndexes();
+  await migrateAppStateArraysIfNeeded();
+
   const users = await getUsers();
   const listings = await getListings();
 

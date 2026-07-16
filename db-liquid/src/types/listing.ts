@@ -9,6 +9,10 @@ export type Bid = {
   /** Exact rupee total entered by the buyer (source of truth for display and ranking). */
   bidTotal?: number;
   createdAt: string;
+  /** Client idempotency key — prevents double-submit (BID-007). */
+  idempotencyKey?: string;
+  /** Set when this bid's credit was refunded (BID-012). */
+  creditRefundedAt?: string;
 };
 
 export type ListingVerifications = {
@@ -49,6 +53,17 @@ export type PropertyPhoto = {
   uploadedAt: string;
 };
 
+export type PropertyVideo = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  /** Signed playback URL at runtime (or empty when only storageKey is stored) */
+  dataUrl: string;
+  /** Private object storage key (S3/R2/local) */
+  storageKey?: string;
+  uploadedAt: string;
+};
+
 export const DEFAULT_LISTING_VERIFICATIONS: ListingVerifications = {
   titleVerified: false,
   postedByOwner: false,
@@ -76,6 +91,7 @@ export type PropertyListing = {
   verificationDocuments?: VerificationDocument[];
   verificationReviewStatus?: VerificationReviewStatus;
   propertyPhotos?: PropertyPhoto[];
+  propertyVideos?: PropertyVideo[];
   furnishing?: string;
   facing?: string;
   parking?: number;
@@ -95,6 +111,8 @@ export type PropertyListing = {
   mainRoadFacing?: boolean;
   publishedAt: string;
   biddingEndsAt: string;
+  /** Set by server job when biddingEndsAt passes (BID-009). */
+  auctionClosedAt?: string | null;
   bids: Bid[];
   acceptedBidId: string | null;
   acceptedAt: string | null;
@@ -183,6 +201,8 @@ export function normalizeBid(
     amountPerSqFt: raw.amountPerSqFt,
     bidTotal: raw.bidTotal,
     createdAt: raw.createdAt,
+    idempotencyKey: raw.idempotencyKey,
+    creditRefundedAt: raw.creditRefundedAt,
   };
 }
 
@@ -236,6 +256,7 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     })),
     verificationReviewStatus: raw.verificationReviewStatus ?? 'none',
     propertyPhotos: raw.propertyPhotos ?? [],
+    propertyVideos: raw.propertyVideos ?? [],
     furnishing: raw.furnishing,
     facing: raw.facing,
     parking: raw.parking,
@@ -255,6 +276,7 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     mainRoadFacing: raw.mainRoadFacing,
     publishedAt,
     biddingEndsAt: raw.biddingEndsAt ?? getBiddingEndDate(publishedAt),
+    auctionClosedAt: raw.auctionClosedAt ?? null,
     bids: (raw.bids ?? []).map((b) => normalizeBid(b as Bid)),
     acceptedBidId: raw.acceptedBidId ?? null,
     acceptedAt: raw.acceptedAt ?? null,
@@ -403,6 +425,7 @@ export function getFastBidPresets(listing: PropertyListing): FastBidPreset[] {
 
 export function isBiddingOpen(listing: PropertyListing) {
   if (listing.acceptedBidId) return false;
+  if (listing.auctionClosedAt) return false;
   return new Date(listing.biddingEndsAt) > new Date();
 }
 

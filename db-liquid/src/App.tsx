@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ListingsProvider } from './context/ListingsContext';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AdminRoute } from './components/AdminRoute';
+import { HomePageSkeleton } from './components/HomePageSkeleton';
 
 // Eager: only what login/signup need for a fast first paint
 import { LoginPage } from './pages/LoginPage';
@@ -68,8 +69,22 @@ export default function App() {
           <ScrollToTop />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/home" element={<HomePage />} />
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<HomePageSkeleton />}>
+                    <HomePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <Suspense fallback={<HomePageSkeleton />}>
+                    <HomePage />
+                  </Suspense>
+                }
+              />
               <Route path="/prototype" element={<PrototypePage />} />
               <Route path="/prototype/users" element={<UsersPage />} />
               <Route
@@ -85,8 +100,9 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/list-your-property" element={<ListPropertyLoginPage />} />
+              <Route path="/list-your-property" element={<ListYourPropertyPage />} />
               <Route path="/list-your-property/create" element={<ListYourPropertyPage />} />
+              <Route path="/list-your-property/login" element={<ListPropertyLoginPage />} />
               <Route path="/browse-property" element={<BrowsePropertyPage />} />
               <Route path="/browse-property/:id" element={<PropertyBidPage />} />
               <Route path="/seller/dashboard" element={<SellerDashboardPage />} />

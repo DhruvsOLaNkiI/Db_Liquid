@@ -1,5 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createReadStream, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,9 @@ function extensionFor(mimeType: string, fileName: string) {
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     return '.docx';
   }
+  if (mimeType === 'video/mp4') return '.mp4';
+  if (mimeType === 'video/webm') return '.webm';
+  if (mimeType === 'video/quicktime') return '.mov';
   return '.jpg';
 }
 
@@ -153,12 +156,20 @@ export function verifyLocalSignedRequest(storageKey: string, expires: string, si
   }
 }
 
-export function openLocalObjectStream(storageKey: string) {
+export function openLocalObjectStream(storageKey: string, options?: { start?: number; end?: number }) {
   ensureLocalDir();
   const diskName = storageKey.replace(/\//g, '__');
   const fullPath = path.join(LOCAL_UPLOAD_DIR, diskName);
   if (!existsSync(fullPath)) return null;
-  return createReadStream(fullPath);
+  return createReadStream(fullPath, options);
+}
+
+export function getLocalObjectStat(storageKey: string) {
+  ensureLocalDir();
+  const diskName = storageKey.replace(/\//g, '__');
+  const fullPath = path.join(LOCAL_UPLOAD_DIR, diskName);
+  if (!existsSync(fullPath)) return null;
+  return statSync(fullPath);
 }
 
 export async function readLocalObject(storageKey: string) {

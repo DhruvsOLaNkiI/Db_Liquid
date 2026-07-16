@@ -1,4 +1,6 @@
-import type { Request } from 'express';
+import { getClientIp } from './cloudflare';
+
+export { getClientIp };
 
 /** Failed attempts per email before lockout */
 export const LOGIN_MAX_FAILURES = 5;
@@ -24,17 +26,6 @@ function now() {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
-}
-
-export function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0]!.trim();
-  }
-  if (Array.isArray(forwarded) && forwarded[0]) {
-    return String(forwarded[0]).split(',')[0]!.trim();
-  }
-  return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 function pruneExpired(map: Map<string, AttemptBucket>, windowMs: number) {

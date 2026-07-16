@@ -16,7 +16,7 @@ export const MAX_TOP_UP_CREDITS = 50;
 /** Price per bid credit in INR (prototype). */
 export const PRICE_PER_CREDIT_INR = 100;
 
-export type CreditTransactionType = 'purchase' | 'spend';
+export type CreditTransactionType = 'purchase' | 'spend' | 'refund';
 
 export interface CreditTransaction {
   id: string;

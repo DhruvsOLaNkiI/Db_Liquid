@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, SlidersHorizontal } from 'lucide-react';
 import type { PropertyListing } from '../types/listing';
 import { getListingStatus } from '../types/listing';
+import { getListedPriceTotal } from '../utils/listingDisplay';
 
 export type ListingStatusFilter = 'all' | 'active' | 'accepted' | 'closed';
 
@@ -33,6 +34,10 @@ export function filterListings(
   const query = search.trim().toLowerCase();
 
   return listings.filter((listing) => {
+    // Hide incomplete listings with no ask price (₹0).
+    if (getListedPriceTotal(listing) <= 0) {
+      return false;
+    }
     if (statusFilter !== 'all' && getListingStatus(listing) !== statusFilter) {
       return false;
     }

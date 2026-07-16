@@ -105,7 +105,12 @@ async function apiGetListings(): Promise<PropertyListing[]> {
     if (!res.ok) throw new Error('Failed to load listings');
     const data = await res.json();
     lastListingsFetchAt = Date.now();
-    return Array.isArray(data) ? data.map((item) => normalizeListing(item as PropertyListing)) : [];
+    const rows = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.listings)
+        ? data.listings
+        : [];
+    return rows.map((item: PropertyListing) => normalizeListing(item));
   })();
 
   try {
@@ -113,6 +118,36 @@ async function apiGetListings(): Promise<PropertyListing[]> {
   } finally {
     listingsFetchPromise = null;
   }
+}
+
+/** PERF-006 — optional paged fetch for browse UIs. */
+export async function fetchListingsPage(options?: {
+  page?: number;
+  limit?: number;
+}): Promise<{
+  listings: PropertyListing[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}> {
+  const page = options?.page ?? 1;
+  const limit = options?.limit ?? 20;
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  const res = await apiFetch(`/api/listings?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to load listings page');
+  const data = await res.json();
+  const rows = Array.isArray(data?.listings) ? data.listings : [];
+  return {
+    listings: rows.map((item: PropertyListing) => normalizeListing(item)),
+    page: Number(data.page) || page,
+    limit: Number(data.limit) || limit,
+    total: Number(data.total) || rows.length,
+    totalPages: Number(data.totalPages) || 1,
+  };
 }
 
 async function apiSyncListings(listings: PropertyListing[]) {
@@ -397,11 +432,15 @@ export async function persistListings(listings: PropertyListing[]) {
   });
 }
 
-export async function createBidOnServer(listingId: string, bidTotal: number) {
+export async function createBidOnServer(
+  listingId: string,
+  bidTotal: number,
+  idempotencyKey: string,
+) {
   const res = await apiFetch(`/api/listings/${listingId}/bids`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bidTotal }),
+    body: JSON.stringify({ bidTotal, idempotencyKey }),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -428,6 +467,7 @@ export async function createBidOnServer(listingId: string, bidTotal: number) {
     listing,
     bid: data.bid,
     creditsRemaining: Number(data.creditsRemaining ?? 0),
+    idempotent: Boolean(data.idempotent),
   };
 }
 
@@ -453,6 +493,45 @@ export async function acceptBidOnServer(listingId: string, bidId: string) {
     ok: true as const,
     listing,
     bid: data.bid,
+  };
+}
+
+export async function declineAcceptedBidOnServer(listingId: string) {
+  const res = await apiFetch(`/api/listings/${listingId}/decline-bid`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false as const, error: data.error ?? 'Could not decline bid.' };
+  }
+
+  const listing = normalizeListing(data.listing as PropertyListing);
+  listingsCache = sortListingsByNewest([
+    listing,
+    ...listingsCache.filter((entry) => entry.id !== listing.id),
+  ]);
+
+  const userId = getAuthUserId();
+  // Declined buyer's credits are refunded on the server; refresh local cache if present.
+  if (typeof data.creditsRemaining === 'number') {
+    const declinedUserId = data.declinedBid?.bidderUserId;
+    if (declinedUserId) {
+      const index = usersCache.findIndex((user) => user.id === declinedUserId);
+      if (index !== -1) {
+        usersCache[index] = { ...usersCache[index], credits: data.creditsRemaining };
+      }
+    }
+  }
+  void userId;
+
+  return {
+    ok: true as const,
+    listing,
+    declinedBid: data.declinedBid,
+    creditsRemaining: data.creditsRemaining,
   };
 }
 

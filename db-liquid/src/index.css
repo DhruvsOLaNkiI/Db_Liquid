@@ -184,6 +184,33 @@ body {
   color: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* Alerts: glass-card forces white on all <p>; restore readable alert colors. */
+.property-bid-page .glass-card .text-amber-100 {
+  color: #fef3c7 !important;
+}
+.property-bid-page .glass-card .text-amber-800,
+.property-bid-page .glass-card .text-amber-900 {
+  color: #92400e !important;
+}
+.property-bid-page .glass-card .text-orange-100 {
+  color: #ffedd5 !important;
+}
+.property-bid-page .glass-card .text-orange-700 {
+  color: #c2410c !important;
+}
+.property-bid-page .glass-card .text-red-300 {
+  color: #fca5a5 !important;
+}
+.property-bid-page .glass-card .text-red-600 {
+  color: #dc2626 !important;
+}
+.property-bid-page .glass-card .text-green-300 {
+  color: #86efac !important;
+}
+.property-bid-page .glass-card .text-green-600 {
+  color: #16a34a !important;
+}
+
 .property-bid-page .glass-card input {
   color: #ffffff !important;
   background-color: rgba(255, 255, 255, 0.1) !important;

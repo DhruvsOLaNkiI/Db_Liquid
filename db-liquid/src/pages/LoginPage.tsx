@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
+import { SentryTestButton } from '../components/SentryTestButton';
 import { useAuth } from '../context/AuthContext';
 
 const inputClass =
@@ -86,6 +87,8 @@ export function LoginPage() {
               {submitting ? 'Logging in…' : 'Log in'}
             </button>
           </form>
+
+          <SentryTestButton />
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Don&apos;t have an account?{' '}

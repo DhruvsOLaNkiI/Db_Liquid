@@ -4,6 +4,15 @@ import helmet from 'helmet';
 const isProduction = process.env.NODE_ENV === 'production';
 const enableHsts = isProduction && process.env.DISABLE_HSTS !== 'true';
 
+/** PERF-002 — allow R2/S3/CDN image hosts in CSP (comma-separated https origins). */
+function extraImageSources(): string[] {
+  const raw = process.env.IMAGE_CDN_ORIGINS || process.env.S3_PUBLIC_HOST || '';
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith('https://') || entry.startsWith('http://'));
+}
+
 /**
  * SEC-008 — Browser security headers via helmet.
  * Applies to Express responses (API + production static SPA).
@@ -16,14 +25,21 @@ export function applySecurityHeaders(app: Express) {
         directives: {
           defaultSrc: ["'self'"],
           baseUri: ["'self'"],
-          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          fontSrc: ["'self'", 'data:'],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', ...extraImageSources()],
+          mediaSrc: ["'self'", 'blob:', ...extraImageSources()],
           objectSrc: ["'none'"],
           scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-          connectSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          connectSrc: [
+            "'self'",
+            ...extraImageSources(),
+            // MON-001 — browser SDK posts errors to Sentry ingest
+            'https://*.ingest.sentry.io',
+            'https://*.ingest.us.sentry.io',
+          ],
           upgradeInsecureRequests: enableHsts ? [] : null,
         },
       },

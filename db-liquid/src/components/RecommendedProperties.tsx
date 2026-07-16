@@ -1,11 +1,19 @@
 import { useListings } from '../context/ListingsContext';
+import { getListedPriceTotal } from '../utils/listingDisplay';
+import { RecommendedSectionSkeleton } from './HomePageSkeleton';
 import { PropertyListingCard } from './PropertyListingCard';
 
 export function RecommendedProperties() {
-  const { listings } = useListings();
-  const recommended = listings.slice(0, 4); // Show top 4 listings
+  const { listings, listingsLoading } = useListings();
+  // Hide incomplete / test listings with no ask price (₹0).
+  const recommended = listings
+    .filter((listing) => getListedPriceTotal(listing) > 0)
+    .slice(0, 4);
 
-  if (recommended.length === 0) return null;
+  if (recommended.length === 0) {
+    if (listingsLoading) return <RecommendedSectionSkeleton />;
+    return null;
+  }
 
   return (
     <section className="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-0">

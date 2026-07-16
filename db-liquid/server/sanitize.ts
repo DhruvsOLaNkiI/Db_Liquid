@@ -6,6 +6,7 @@ type Bid = {
   amountPerSqFt: number;
   bidTotal?: number;
   createdAt: string;
+  idempotencyKey?: string;
 };
 
 export type Listing = {
@@ -15,8 +16,12 @@ export type Listing = {
   sellerPhone: string;
   address?: string;
   pincode?: string;
+  publishedAt?: string;
+  biddingEndsAt?: string;
+  auctionClosedAt?: string | null;
   bids: Bid[];
   acceptedBidId: string | null;
+  acceptedAt?: string | null;
   chatMessages: unknown[];
   chatSellerName: string;
   chatSellerPhone: string;
@@ -24,6 +29,7 @@ export type Listing = {
   chatBuyerPhone: string;
   verificationDocuments?: { dataUrl?: string; storageKey?: string; url?: string }[];
   propertyPhotos?: { dataUrl?: string; storageKey?: string; url?: string }[];
+  propertyVideos?: { dataUrl?: string; storageKey?: string; url?: string }[];
   lastDeclinedBuyerUserId?: string;
   lastDeclinedAt?: string;
   [key: string]: unknown;
@@ -65,6 +71,8 @@ function redactBid(bid: Bid, index: number, viewerId?: string, isSeller?: boolea
     bidderName: reveal ? bid.bidderName : `Bidder ${index + 1}`,
     bidderPhone: reveal ? bid.bidderPhone : '',
     ...(reveal && bid.bidderUserId ? { bidderUserId: bid.bidderUserId } : {}),
+    // Keep key only for the bidder (needed for client replay awareness).
+    ...(isOwnBid && bid.idempotencyKey ? { idempotencyKey: bid.idempotencyKey } : {}),
   };
 }
 
@@ -97,6 +105,10 @@ export function sanitizeListing(listing: Listing, viewerId?: string): Listing {
     propertyPhotos: listing.propertyPhotos?.map((photo) => ({
       ...photo,
       dataUrl: photo.storageKey ? '' : photo.dataUrl || '',
+    })),
+    propertyVideos: listing.propertyVideos?.map((video) => ({
+      ...video,
+      dataUrl: video.storageKey ? '' : video.dataUrl || '',
     })),
   };
 

@@ -17,6 +17,8 @@ type Props = {
   uploads: Partial<Record<VerificationDocType, PendingVerificationUpload>>;
   onVerificationsChange: (value: ListingVerifications) => void;
   onUploadChange: (type: VerificationDocType, upload: PendingVerificationUpload | null) => void;
+  /** When false, documents stay local until the user logs in at publish. */
+  canUploadToServer?: boolean;
 };
 
 export function SellerVerificationStep({
@@ -24,6 +26,7 @@ export function SellerVerificationStep({
   uploads,
   onVerificationsChange,
   onUploadChange,
+  canUploadToServer = true,
 }: Props) {
   const [error, setError] = useState('');
   const [uploadingType, setUploadingType] = useState<VerificationDocType | null>(null);
@@ -47,6 +50,19 @@ export function SellerVerificationStep({
     setUploadingType(type);
 
     try {
+      if (!canUploadToServer) {
+        const { stashGuestFile, readFileAsObjectUrl } = await import('../../utils/guestMedia');
+        const localKey = `guest-verify-${type}`;
+        stashGuestFile(localKey, file);
+        onUploadChange(type, {
+          fileName: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          dataUrl: readFileAsObjectUrl(file),
+          storageKey: localKey,
+        });
+        return;
+      }
+
       const uploaded = await uploadPrivateFile(file, 'kyc');
       onUploadChange(type, {
         fileName: uploaded.fileName,

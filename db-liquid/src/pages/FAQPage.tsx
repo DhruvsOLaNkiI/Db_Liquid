@@ -68,6 +68,11 @@ const faqCategories = [
         answer:
           "Credits are used to place bids. Each bid costs 1 credit. You can top up credits from the coin icon in the header. This ensures only serious buyers participate in the bidding process.",
       },
+      {
+        question: 'When do I get a credit refund?',
+        answer:
+          "If a seller declines your accepted bid, that 1 bid credit is refunded automatically. If an auction closes with no accepted bid, every bidder on that listing also gets their 1 credit back. Credits spent on a winning accepted deal are not refunded.",
+      },
     ],
   },
   {

@@ -132,7 +132,7 @@ async function main() {
   const place = await buyer.api(`/api/listings/${listingId}/bids`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bidTotal: 120000 }),
+    body: JSON.stringify({ bidTotal: 120000, idempotencyKey: randomUUID() }),
   });
   console.log('   Bid:', place.status, place.ok ? '✓' : '✗', place.data?.error ?? '');
   if (!place.ok) process.exit(1);

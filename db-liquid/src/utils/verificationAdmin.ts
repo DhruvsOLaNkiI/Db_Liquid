@@ -250,3 +250,41 @@ export async function reviewUserKyc(
 
   return { ok: true };
 }
+
+/** RL-005 / BID-008 — admin bid audit trail (includes client IP). */
+export type BidAuditEntry = {
+  id: string;
+  action: string;
+  listingId: string;
+  bidId: string;
+  actorUserId: string;
+  bidderUserId?: string;
+  bidderName?: string;
+  bidTotal: number;
+  amountPerSqFt?: number;
+  idempotencyKey?: string;
+  ip: string;
+  userAgent?: string;
+  createdAt: string;
+};
+
+export async function fetchBidAudit(filters?: {
+  listingId?: string;
+  bidId?: string;
+  ip?: string;
+  limit?: number;
+}): Promise<{ ok: true; entries: BidAuditEntry[] } | { ok: false; error: string }> {
+  const params = new URLSearchParams();
+  if (filters?.listingId?.trim()) params.set('listingId', filters.listingId.trim());
+  if (filters?.bidId?.trim()) params.set('bidId', filters.bidId.trim());
+  if (filters?.ip?.trim()) params.set('ip', filters.ip.trim());
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  const qs = params.toString();
+  const res = await apiFetch(`/api/admin/bid-audit${qs ? `?${qs}` : ''}`);
+  const parsed = await parseAdminJson<{ entries?: BidAuditEntry[] }>(
+    res,
+    'Failed to load bid audit.',
+  );
+  if (!parsed.ok) return parsed;
+  return { ok: true, entries: Array.isArray(parsed.data.entries) ? parsed.data.entries : [] };
+}

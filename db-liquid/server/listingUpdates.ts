@@ -8,6 +8,32 @@ export class ListingUpdateError extends Error {
   }
 }
 
+const BIDDING_DAYS = 7;
+
+function serverNowIso() {
+  return new Date().toISOString();
+}
+
+function biddingEndsFrom(publishedAt: string) {
+  const end = new Date(publishedAt);
+  end.setDate(end.getDate() + BIDDING_DAYS);
+  return end.toISOString();
+}
+
+/** BID-006: new listings get server clock; bids/accept state cannot be invented on create. */
+export function stampNewListing(incoming: Listing): Listing {
+  const publishedAt = serverNowIso();
+  return {
+    ...incoming,
+    publishedAt,
+    biddingEndsAt: biddingEndsFrom(publishedAt),
+    bids: [],
+    acceptedBidId: null,
+    acceptedAt: null,
+    auctionClosedAt: null,
+  };
+}
+
 function isAcceptedBuyer(existing: Listing, userId: string) {
   if (!existing.acceptedBidId) return false;
   const accepted = existing.bids.find((bid) => bid.id === existing.acceptedBidId);
@@ -31,6 +57,7 @@ export function stripVerificationPayloads<T extends Listing>(listings: T[]): T[]
     ...listing,
     verificationDocuments: stripMediaPayloads(listing.verificationDocuments),
     propertyPhotos: stripMediaPayloads(listing.propertyPhotos),
+    propertyVideos: stripMediaPayloads(listing.propertyVideos),
   }));
 }
 
@@ -51,7 +78,7 @@ export function applyListingsSync(
       if (String(incoming.sellerId ?? '') !== userId) {
         throw new ListingUpdateError('Cannot create a listing for another seller.');
       }
-      allowed.push(incoming);
+      allowed.push(stampNewListing(incoming));
       continue;
     }
 

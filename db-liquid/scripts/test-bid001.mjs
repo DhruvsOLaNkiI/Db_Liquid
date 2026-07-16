@@ -94,7 +94,7 @@ async function main() {
   const bid = await client.api(`/api/listings/${listing.id}/bids`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bidTotal }),
+    body: JSON.stringify({ bidTotal, idempotencyKey: randomUUID() }),
   });
   console.log('   Status:', bid.status, bid.ok ? '✓' : '✗', bid.data?.error ?? '');
   if (!bid.ok || bid.data.bid?.bidTotal !== bidTotal) process.exit(1);
@@ -104,7 +104,7 @@ async function main() {
   const low = await client.api(`/api/listings/${listing.id}/bids`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bidTotal }),
+    body: JSON.stringify({ bidTotal, idempotencyKey: randomUUID() }),
   });
   console.log('   Status:', low.status, low.status >= 400 ? '✓ blocked' : '✗', low.data?.error ?? '');
   if (low.status < 400) process.exit(1);

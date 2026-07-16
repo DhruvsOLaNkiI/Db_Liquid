@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { SESSION_COOKIE, verifyAuthToken } from './auth';
+import { getUserById } from './mongoStore';
 
 export type AuthContext = {
   userId: string;
@@ -57,17 +58,31 @@ export function requireRole(...roles: string[]) {
   };
 }
 
-export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+/** Live roles from Mongo when available (role grants take effect without waiting for re-login). */
+async function resolveLiveRoles(auth: AuthContext): Promise<string[]> {
+  try {
+    const user = await getUserById(auth.userId);
+    if (user && Array.isArray(user.roles)) {
+      return user.roles.map(String);
+    }
+  } catch {
+    // fall through to JWT roles
+  }
+  return auth.roles;
+}
+
+export async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const auth = readAuth(req);
   if (!auth) {
     res.status(401).json({ error: 'Authentication required.' });
     return;
   }
-  if (!auth.roles.includes('admin')) {
+  const roles = await resolveLiveRoles(auth);
+  if (!roles.includes('admin')) {
     res.status(403).json({ error: 'Admin access required.' });
     return;
   }
-  req.auth = auth;
+  req.auth = { userId: auth.userId, roles };
   next();
 }
 

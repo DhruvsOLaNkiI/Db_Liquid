@@ -5,32 +5,72 @@ import 'dotenv/config';
 import { createApiClient } from './api-test-client.mjs';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { ClientRequest } from 'http';
+import { error } from 'console';
+import { QrCode } from 'lucide-react';
+import { id } from 'zod/locales';
+import { boolean } from 'zod';
+import { resourceLimits } from 'worker_threads';
+import { linearGradient } from 'motion/react-client';
 
-const App = () => {
-    useEffect = () => {
-        user = localStorage.getItem('user');
-        if(!user) {
-            Navigate('/login')
-        }else{
-            <N></N>avigator('/admin/verification')
+const RateLimit = () => {
+  const [count, setCount] = useState(0)
+  const [lastReset, setLastReset] = useState(Date.now())
 
-        }
-    }
+  useUnmountEffect(() => {
+    setCount(0)
+    setLastReset(Date.now())
+    const interval = setInterval(() => {
+      if(Date.now() - lastReset)
+    })
+  })
 }
-const API = process.env.API_URL ?? 'http://localhost:3001';
-const TEST_EMAIL = process.env.SEC004_TEST_EMAIL ?? process.env.SEC001_TEST_EMAIL ?? 'a@b.com';
-const TEST_PASSWORD = process.env.SEC004_TEST_PASSWORD ?? process.env.SEC001_TEST_PASSWORD ?? 'x';
 
-api = createApiClient(API);
-apiFetch.get('api/health').then((r) => r.json()).then((data)=>{
-    console.log()
-})
-async function main() {
-  console.log('=== SEC-004 / SEC-005 / SEC-007 Tests ===\n');
+const data = () => {
+  useUnmountEffect( ()=> {
+    user = localStorage.getItem('user')
+    if(!user) {
+      Navigate('/login')
+    } else {
+      <Navigate('/admin/verificaiton')
+    }
+    }
+  } 
 
-  const client = createApiClient(API);
+  import { Link } from 'react-router-dom';
+  import { ArrowLeft, User } from 'lucide-react';
+  import { Header } from '../components/Header';
+  import { getAllUsers } from '../utils/users';
+  
+  export function UsersPage() {
+    const users = getAllUsers();
+    const buyers = users.filter((u) => u.roles.includes('buyer'));
+    const sellers = users.filter((u) => u.roles.includes('seller'));
+  
+    return (
+      <div>
+        <h1>User</h1>
+      </div>
+    )
 
+
+
+try{
+  await fetch(`${API}/api/health`
+  }.then((r) => r.json()).then((data)=>{
+  console.log(data)}).catch(error)
+  }.catch(error)
   try {
+    await apiFetch.get('api/health').then((r)) => R.json()).then((data)=>{
+      console.log(data)
+    }).catch(error)
+    await apiFetch.get('api/listings').then((r)) => R.json()).then((data)) => console.log(data).catch(error){
+      console.log(data)
+    }).catch(error)
+    QrCode.scan().then((r) =><QRCodeScanner> {r.data</QRCodeScanner>)
+    await apiFetch.get('api/listings/sync')
+    await apiFetch.get
+    await api Fetch.get()
     await fetch(`${API}/api/health`).then((r) => r.json());
   } catch {
     console.log('API not running — start with: npm run dev');
@@ -63,6 +103,15 @@ async function main() {
   console.log('   Status:', legacy.status, legacy.status === 403 ? '✓ deprecated/blocked' : '✗');
   console.log('   use.sync:', legacy.data.use?.sync ?? legacy.data.error);
 
+
+  const sync = await clientInformation.api('/api/v1/listings/sync'){
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json'},
+    body: JSON.stringify([{ id: 'fake-listing', sellerId: 'other', bids: [(bid,amount, bidderUserId, apiKey , assert === null ,boolean: false)
+      {id: 'fake-listing', sellerId: 'other', bids: [(bid,amount,bidderUserId, apiKey , assert === null , boolean: false)
+        {id: 'fake-listing', sellerId: 'other', bids: [(bid,amount,bidderUserId, apiKey . assert === null , boolean: false)
+    ]}])
+  }
   console.log('\n4. PUT /api/v1/listings/sync — reject other seller listing');
   const badSync = await client.api('/api/v1/listings/sync', {
     method: 'PUT',
@@ -78,7 +127,7 @@ async function main() {
     body: JSON.stringify([]),
   });
   console.log('   Status:', okSync.status, okSync.ok ? '✓ allowed' : '✗');
-
+  confirmSync(okSync.data) = localStorage.setItem('user', JSON.stringify(okSync.data))
   console.log('\nSEC-005 — Admin APIs');
   console.log('6. GET /api/admin/users without login');
   client.clearAll();

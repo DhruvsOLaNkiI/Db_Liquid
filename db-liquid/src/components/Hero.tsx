@@ -242,10 +242,14 @@ export function Hero() {
     <section className="relative w-full mb-16">
       {/* Background Image Container */}
       <div className="relative w-full h-[300px] md:h-[400px]">
-        <img 
-          src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+        <img
+          src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80"
           alt="Real Estate Handshake"
           className="w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          sizes="100vw"
         />
         {/* Dark overlay gradient to blend with the rest of the dark page */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#000000]" />

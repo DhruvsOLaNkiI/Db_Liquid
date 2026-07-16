@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, type FormEvent } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '../components/Header';
@@ -38,6 +38,7 @@ export function PropertyBidPage() {
   const isListingOwner = Boolean(listing && sellerId && listing.sellerId === sellerId);
   const loggedInBuyer = isAuthenticated && hasRole('buyer') && user && !isListingOwner;
   const [bidAmount, setBidAmount] = useState('');
+  const pendingIdempotencyKey = useRef<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -116,13 +117,24 @@ export function PropertyBidPage() {
 
     setIsSubmitting(true);
     try {
-      const result = await placeBid(listing.id, user.name, user.phone, total, user.id);
+      if (!pendingIdempotencyKey.current) {
+        pendingIdempotencyKey.current = crypto.randomUUID();
+      }
+      const result = await placeBid(
+        listing.id,
+        user.name,
+        user.phone,
+        total,
+        user.id,
+        pendingIdempotencyKey.current,
+      );
       if (!result.ok) {
         setError(result.error);
         syncCreditWallet();
         return;
       }
 
+      pendingIdempotencyKey.current = null;
       setBuyerName(user.name);
       setBuyerPhone(user.phone);
       syncCreditWallet();

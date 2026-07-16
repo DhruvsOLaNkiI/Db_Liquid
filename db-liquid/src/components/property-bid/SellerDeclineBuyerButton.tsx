@@ -22,19 +22,23 @@ export function SellerDeclineBuyerButton({
 
   function handleDecline() {
     const confirmed = window.confirm(
-      `Decline ${buyerName} and remove this deal? Bidding will reopen and their bid will be removed.`,
+      `Decline ${buyerName} and remove this deal? Bidding will reopen, their bid will be removed, and their bid credit will be refunded.`,
     );
     if (!confirmed) return;
 
     setBusy(true);
-    const result = declineAcceptedBuyer(listingId, sellerId);
-    setBusy(false);
-
-    if (result.ok) {
-      onDeclined?.();
-    } else {
-      window.alert(result.error);
-    }
+    void (async () => {
+      try {
+        const result = await declineAcceptedBuyer(listingId, sellerId);
+        if (result.ok) {
+          onDeclined?.();
+        } else {
+          window.alert(result.error);
+        }
+      } finally {
+        setBusy(false);
+      }
+    })();
   }
 
   return (

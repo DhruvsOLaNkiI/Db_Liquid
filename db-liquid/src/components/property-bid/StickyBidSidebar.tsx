@@ -127,15 +127,15 @@ export function StickyBidSidebar({
                 onSelectRecommended={onSelectRecommended}
               />
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-red-300">{error}</p>}
               {buyerCredits < 1 && (
-                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3">
+                <p className="text-sm text-amber-100 bg-amber-400/15 border border-amber-300/35 rounded-xl px-3 py-3">
                   You need at least 1 credit to place a bid. Click the{' '}
-                  <span className="font-semibold">coins icon ({buyerCredits})</span> in the header to top up.
+                  <span className="font-semibold text-white">coins icon ({buyerCredits})</span> in the header to top up.
                 </p>
               )}
               {success && (
-                <p className="text-sm text-green-600 flex items-center gap-1">
+                <p className="text-sm text-green-300 flex items-center gap-1">
                   <Check size={16} />
                   Bid placed successfully!
                 </p>
@@ -178,7 +178,7 @@ export function StickyBidSidebar({
         )}
 
         {wasDeclinedBySeller && open && loggedInBuyer && (
-          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3 mt-4 text-center">
+          <p className="text-sm text-amber-100 bg-amber-400/15 border border-amber-300/35 rounded-xl px-3 py-3 mt-4 text-center">
             The seller declined your bid. You can place a new offer if bidding is still open.
           </p>
         )}
@@ -188,7 +188,7 @@ export function StickyBidSidebar({
         )}
 
         {status === 'accepted' && isWinningBuyer && !isChatEnabled && !showBuyerTokenStep && (
-          <p className="text-sm text-orange-700 bg-orange-50 border border-orange-100 rounded-xl px-3 py-3 mt-4 text-center">
+          <p className="text-sm text-orange-100 bg-orange-400/15 border border-orange-300/35 rounded-xl px-3 py-3 mt-4 text-center">
             Your bid was accepted! Complete the token step to start chatting with the seller.
           </p>
         )}

@@ -48,19 +48,26 @@ function PropertyDetailRows({
   );
 }
 
-function getListingImages(listing: PropertyListing) {
-  const uploaded = (listing.propertyPhotos ?? [])
+function getListingMedia(listing: PropertyListing) {
+  const photos = (listing.propertyPhotos ?? [])
     .map((photo) => photo.dataUrl)
-    .filter((url): url is string => Boolean(url));
+    .filter((url): url is string => Boolean(url))
+    .map((url) => ({ type: 'image' as const, url }));
 
-  if (uploaded.length > 0) return uploaded;
+  const videos = (listing.propertyVideos ?? [])
+    .map((video) => video.dataUrl)
+    .filter((url): url is string => Boolean(url))
+    .map((url) => ({ type: 'video' as const, url }));
+
+  const media = [...photos, ...videos];
+  if (media.length > 0) return media;
 
   const imageIndex = listing.id.charCodeAt(0) % PLACEHOLDER_IMAGES.length;
-  return [PLACEHOLDER_IMAGES[imageIndex]];
+  return [{ type: 'image' as const, url: PLACEHOLDER_IMAGES[imageIndex] }];
 }
 
 export function PropertyHeroCard({ listing }: { listing: PropertyListing }) {
-  const images = getListingImages(listing);
+  const media = getListingMedia(listing);
   const { city, state } = getListingCityState(listing);
   const propertyName = getPropertyDisplayName(listing);
   const floorLabel = formatListingFloor(listing.floor, listing.totalFloors);
@@ -87,7 +94,7 @@ export function PropertyHeroCard({ listing }: { listing: PropertyListing }) {
     <section className="glass-card rounded-[18px] overflow-hidden">
       {/* Mobile: image first, then compact title + details */}
       <div className="lg:hidden">
-        <PropertyImageSlider images={images} alt={propertyName} />
+        <PropertyImageSlider media={media} alt={propertyName} />
         <div className="p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-white/75">{listing.propertyType}</p>
           <h1 className="text-2xl font-bold text-white leading-tight mt-1">{propertyName}</h1>
@@ -106,7 +113,7 @@ export function PropertyHeroCard({ listing }: { listing: PropertyListing }) {
 
       {/* Desktop: image + details side by side */}
       <div className="hidden lg:grid lg:grid-cols-2 lg:items-start">
-        <PropertyImageSlider images={images} alt={propertyName} className="lg:rounded-none" />
+        <PropertyImageSlider media={media} alt={propertyName} className="lg:rounded-none" />
         <div className="p-6 sm:p-8 flex flex-col justify-center">
           <h1 className="text-[32px] font-bold text-white leading-tight mb-6">{propertyName}</h1>
           <PropertyDetailRows rows={desktopDetailRows} variant="desktop" />

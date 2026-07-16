@@ -33,7 +33,14 @@ export function CTA() {
            {/* Mock App Interface preview */}
            <div className="bg-white rounded-3xl p-4 shadow-2xl rotate-[-5deg] transform transition-transform hover:rotate-0 duration-500">
              <div className="bg-gray-100 rounded-2xl h-64 mb-4 overflow-hidden relative">
-                <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Property" className="w-full h-full object-cover" />
+                <img
+                  src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
+                  alt="Property"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  sizes="24rem"
+                />
                 <div className="absolute top-3 left-3 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm">
                   Active Bid
                 </div>

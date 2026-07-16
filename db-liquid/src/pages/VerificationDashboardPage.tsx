@@ -8,6 +8,7 @@ import {
   ChevronUp,
   ExternalLink,
   FileText,
+  Globe,
   Loader2,
   Mail,
   Phone,
@@ -24,15 +25,17 @@ import { VERIFICATION_FIELDS } from '../utils/listingDisplay';
 import { formatAadharInput } from '../utils/kyc';
 import {
   fetchAdminUsers,
+  fetchBidAudit,
   fetchVerificationQueue,
   reviewUserKyc,
   reviewVerificationDocument,
   type AdminUserProfile,
+  type BidAuditEntry,
   type VerificationQueueListing,
 } from '../utils/verificationAdmin';
 import { notifyDataRefresh } from '../utils/sharedStore';
 
-type MainTab = 'users' | 'properties';
+type MainTab = 'users' | 'properties' | 'bid-audit';
 type PropertyFilter = 'all' | 'pending' | 'with-docs' | 'no-docs';
 
 const PROPERTY_VERIFICATION_LABELS: { key: keyof ListingVerifications; short: string }[] = [
@@ -446,10 +449,14 @@ export function VerificationDashboardPage() {
   const [mainTab, setMainTab] = useState<MainTab>('users');
   const [users, setUsers] = useState<AdminUserProfile[]>([]);
   const [listings, setListings] = useState<VerificationQueueListing[]>([]);
+  const [auditEntries, setAuditEntries] = useState<BidAuditEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<PropertyFilter>('all');
   const [expandedListingId, setExpandedListingId] = useState<string | null>(null);
+  const [auditListingId, setAuditListingId] = useState('');
+  const [auditIp, setAuditIp] = useState('');
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -477,9 +484,31 @@ export function VerificationDashboardPage() {
     if (listingsResult.ok) setListings(listingsResult.listings);
   }, []);
 
+  const loadBidAudit = useCallback(async () => {
+    setAuditLoading(true);
+    setError('');
+    const result = await fetchBidAudit({
+      listingId: auditListingId || undefined,
+      ip: auditIp || undefined,
+      limit: 200,
+    });
+    setAuditLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setAuditEntries(result.entries);
+  }, [auditListingId, auditIp]);
+
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (mainTab === 'bid-audit') {
+      void loadBidAudit();
+    }
+  }, [mainTab, loadBidAudit]);
 
   const filteredListings = useMemo(() => {
     if (filter === 'all') return listings;
@@ -520,16 +549,16 @@ export function VerificationDashboardPage() {
             <ShieldCheck size={22} />
             <div>
               <p className="font-bold">DB Liquid · Admin Verification</p>
-              <p className="text-xs text-white/60">Review user KYC and property listings</p>
+              <p className="text-xs text-white/60">KYC, listings, and bid fraud audit</p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => void loadAll()}
-            disabled={loading}
+            onClick={() => void (mainTab === 'bid-audit' ? loadBidAudit() : loadAll())}
+            disabled={loading || auditLoading}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white/10 hover:bg-white/15 disabled:opacity-50"
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={loading || auditLoading ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
@@ -556,6 +585,16 @@ export function VerificationDashboardPage() {
           >
             <Building2 size={16} />
             All properties ({listings.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setMainTab('bid-audit')}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              mainTab === 'bid-audit' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Globe size={16} />
+            Bid IP audit
           </button>
         </div>
 
@@ -675,6 +714,120 @@ export function VerificationDashboardPage() {
                     onReviewed={loadAll}
                   />
                 ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {mainTab === 'bid-audit' && (
+          <>
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold text-gray-900">Bid IP audit</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Client IPs recorded on place / accept / decline / refund for fraud investigation
+              </p>
+            </div>
+
+            <form
+              className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void loadBidAudit();
+              }}
+            >
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-600">
+                Listing ID
+                <input
+                  value={auditListingId}
+                  onChange={(e) => setAuditListingId(e.target.value)}
+                  placeholder="Optional"
+                  className="min-w-[200px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-gray-900"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-600">
+                IP address
+                <input
+                  value={auditIp}
+                  onChange={(e) => setAuditIp(e.target.value)}
+                  placeholder="Optional"
+                  className="min-w-[160px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal text-gray-900 font-mono"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={auditLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-50"
+              >
+                {auditLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+                Search
+              </button>
+            </form>
+
+            {auditLoading && auditEntries.length === 0 ? (
+              <div className="flex items-center justify-center py-20 text-gray-500 gap-2">
+                <Loader2 size={20} className="animate-spin" />
+                Loading bid audit…
+              </div>
+            ) : auditEntries.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+                <Globe size={40} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-700 font-medium">No bid audit entries yet</p>
+                <p className="text-sm text-gray-500 mt-1">Place a bid while logged in to generate a log row.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1000px]">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr className="text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                        <th className="px-4 py-3">When</th>
+                        <th className="px-4 py-3">Action</th>
+                        <th className="px-4 py-3">IP</th>
+                        <th className="px-4 py-3">Bidder</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Listing / bid</th>
+                        <th className="px-4 py-3">User agent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditEntries.map((entry) => (
+                        <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50/80 align-top">
+                          <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                            {formatDate(entry.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 capitalize">
+                              {entry.action.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm font-semibold text-gray-900">
+                            {entry.ip || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <p className="font-medium text-gray-900">{entry.bidderName || '—'}</p>
+                            <p className="text-xs text-gray-400 break-all">
+                              {entry.bidderUserId || entry.actorUserId}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
+                            {formatPrice(entry.bidTotal)}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">
+                            <p className="break-all">
+                              <span className="font-semibold text-gray-600">L:</span> {entry.listingId}
+                            </p>
+                            <p className="break-all mt-1">
+                              <span className="font-semibold text-gray-600">B:</span> {entry.bidId}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500 max-w-[220px] truncate" title={entry.userAgent}>
+                            {entry.userAgent || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </>
