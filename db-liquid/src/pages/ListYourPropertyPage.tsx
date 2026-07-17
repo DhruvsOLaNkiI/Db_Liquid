@@ -12,7 +12,7 @@ import {
 } from '../components/listing/SellerVerificationStep';
 import { PropertyTypeSelect } from '../components/PropertyTypeSelect';
 import { useListings } from '../context/ListingsContext';
-import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data/propertyTypes';
+import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, PropertyVideo, VerificationDocType, VerificationDocument } from '../types/listing';
 import { useAuth } from '../context/AuthContext';
@@ -106,7 +106,22 @@ export function ListYourPropertyPage() {
   const [plotGatedColony, setPlotGatedColony] = useState<boolean | undefined>(() =>
     d('plotGatedColony', undefined),
   );
-  const [landZone, setLandZone] = useState(() => d('landZone', ''));
+  const [assetStatus, setAssetStatus] = useState(() => d('assetStatus', ''));
+  const [paymentComplete, setPaymentComplete] = useState(() => d('paymentComplete', false));
+  const [paymentRemaining, setPaymentRemaining] = useState(() => d('paymentRemaining', false));
+  const [paymentRemainingPercent, setPaymentRemainingPercent] = useState(() =>
+    d('paymentRemainingPercent', ''),
+  );
+  const [assuredReturn, setAssuredReturn] = useState(() => d('assuredReturn', false));
+  const [assuredReturnPercent, setAssuredReturnPercent] = useState(() =>
+    d('assuredReturnPercent', ''),
+  );
+  const [leaseGuarantee, setLeaseGuarantee] = useState(() => d('leaseGuarantee', false));
+  const [leaseGuaranteeAmount, setLeaseGuaranteeAmount] = useState(() =>
+    d('leaseGuaranteeAmount', ''),
+  );
+  const [rightsOfUse, setRightsOfUse] = useState(() => d('rightsOfUse', ''));
+  const [shopType, setShopType] = useState(() => d('shopType', ''));
   const [idealForBusinesses, setIdealForBusinesses] = useState(() => d('idealForBusinesses', ''));
   const [shopWashrooms, setShopWashrooms] = useState(() => d('shopWashrooms', ''));
   const [cornerShop, setCornerShop] = useState<boolean | undefined>(() =>
@@ -176,7 +191,16 @@ export function ListYourPropertyPage() {
     plotRoadWidthMeters,
     plotConstructionDone,
     plotGatedColony,
-    landZone,
+    assetStatus,
+    paymentComplete,
+    paymentRemaining,
+    paymentRemainingPercent,
+    assuredReturn,
+    assuredReturnPercent,
+    leaseGuarantee,
+    leaseGuaranteeAmount,
+    rightsOfUse,
+    shopType,
     idealForBusinesses,
     shopWashrooms,
     cornerShop,
@@ -204,8 +228,8 @@ export function ListYourPropertyPage() {
 
   const isPlot = isPlotType(propertyType);
   const isResidential = isResidentialUnitType(propertyType);
-  const isCommercialShop = isCommercialShopType(propertyType);
-  const showFloorFields = !isPlot && !isCommercialShop && propertyType.length > 0;
+  const isCommercialUnit = isCommercialUnitType(propertyType);
+  const showFloorFields = !isPlot && !isCommercialUnit && propertyType.length > 0;
   const location = locality.trim() && stateName.trim() ? buildListingLocation(locality, stateName) : '';
   const areaSqFt = getAreaSqFt(isPlot, builtUpArea, landSqFt);
   const totalPrice = getTotalPrice(pricePerSqFt, areaSqFt);
@@ -213,7 +237,7 @@ export function ListYourPropertyPage() {
   const detailsSummary = buildListingDetailsSummary({
     isPlot,
     isResidential,
-    isCommercialShop,
+    isCommercialUnit,
     bedrooms,
     washrooms,
     balconies,
@@ -234,15 +258,24 @@ export function ListYourPropertyPage() {
     plotRoadWidthMeters: plotRoadWidthMeters || undefined,
     plotConstructionDone,
     plotGatedColony,
-    landZone: landZone || undefined,
+    assetStatus: assetStatus || undefined,
+    paymentComplete: isCommercialUnit ? paymentComplete : undefined,
+    paymentRemaining: isCommercialUnit ? paymentRemaining : undefined,
+    paymentRemainingPercent: paymentRemainingPercent || undefined,
+    assuredReturn: isCommercialUnit ? assuredReturn : undefined,
+    assuredReturnPercent: assuredReturnPercent || undefined,
+    leaseGuarantee: isCommercialUnit ? leaseGuarantee : undefined,
+    leaseGuaranteeAmount: leaseGuaranteeAmount || undefined,
+    rightsOfUse: rightsOfUse || undefined,
+    shopType: shopType || undefined,
     idealForBusinesses: idealForBusinesses || undefined,
-    shopFloor: isCommercialShop ? floor || undefined : undefined,
-    shopTotalFloors: isCommercialShop ? totalFloors || undefined : undefined,
-    shopWashrooms: isCommercialShop ? shopWashrooms || undefined : undefined,
-    personalWashroom: isCommercialShop ? personalWashroom : undefined,
-    pantryCafeteria: isCommercialShop ? pantryCafeteria || undefined : undefined,
-    cornerShop: isCommercialShop ? cornerShop : undefined,
-    mainRoadFacing: isCommercialShop ? mainRoadFacing : undefined,
+    shopFloor: isCommercialUnit ? floor || undefined : undefined,
+    shopTotalFloors: isCommercialUnit ? totalFloors || undefined : undefined,
+    shopWashrooms: isCommercialUnit ? shopWashrooms || undefined : undefined,
+    personalWashroom: isCommercialUnit ? personalWashroom : undefined,
+    pantryCafeteria: isCommercialUnit ? pantryCafeteria || undefined : undefined,
+    cornerShop: isCommercialUnit ? cornerShop : undefined,
+    mainRoadFacing: isCommercialUnit ? mainRoadFacing : undefined,
   });
 
   function setVerificationUpload(type: VerificationDocType, upload: PendingVerificationUpload | null) {
@@ -347,14 +380,19 @@ export function ListYourPropertyPage() {
     }
     if (step === 2) {
       if (isPlot) return landSqFt.trim() && plotWidth.trim() && plotLength.trim();
-      if (isCommercialShop) {
+      if (isCommercialUnit) {
         return (
           builtUpArea.trim().length > 0 &&
-          landZone.trim().length > 0 &&
+          assetStatus.trim().length > 0 &&
+          rightsOfUse.trim().length > 0 &&
+          shopType.trim().length > 0 &&
           floor.trim().length > 0 &&
           totalFloors.trim().length > 0 &&
           furnishing.trim().length > 0 &&
-          shopWashrooms.trim().length > 0
+          shopWashrooms.trim().length > 0 &&
+          (!paymentRemaining || paymentRemainingPercent.trim().length > 0) &&
+          (!assuredReturn || assuredReturnPercent.trim().length > 0) &&
+          (!leaseGuarantee || leaseGuaranteeAmount.trim().length > 0)
         );
       }
       if (isResidential) return bedrooms > 0 && builtUpArea.trim().length > 0;
@@ -438,11 +476,11 @@ export function ListYourPropertyPage() {
         address: address.trim(),
         state: stateName.trim(),
         pincode: pincode.trim() || undefined,
-        floor: showFloorFields && floor.trim() ? floor.trim() : isCommercialShop && floor.trim() ? floor.trim() : undefined,
+        floor: showFloorFields && floor.trim() ? floor.trim() : isCommercialUnit && floor.trim() ? floor.trim() : undefined,
         totalFloors:
           showFloorFields && totalFloors.trim()
             ? totalFloors.trim()
-            : isCommercialShop && totalFloors.trim()
+            : isCommercialUnit && totalFloors.trim()
               ? totalFloors.trim()
               : undefined,
         pricePerSqFt: Number(pricePerSqFt),
@@ -473,13 +511,32 @@ export function ListYourPropertyPage() {
           isPlot && plotRoadWidthMeters.trim() ? Number(plotRoadWidthMeters) : undefined,
         plotConstructionDone: isPlot ? plotConstructionDone : undefined,
         plotGatedColony: isPlot ? plotGatedColony : undefined,
-        landZone: isCommercialShop && landZone ? landZone : undefined,
-        idealForBusinesses: isCommercialShop && idealForBusinesses.trim() ? idealForBusinesses.trim() : undefined,
-        shopWashrooms: isCommercialShop && shopWashrooms ? shopWashrooms : undefined,
-        personalWashroom: isCommercialShop ? personalWashroom : undefined,
-        pantryCafeteria: isCommercialShop && pantryCafeteria ? pantryCafeteria : undefined,
-        cornerShop: isCommercialShop && cornerShop === true ? true : undefined,
-        mainRoadFacing: isCommercialShop && mainRoadFacing === true ? true : undefined,
+        landZone: undefined,
+        assetStatus: isCommercialUnit && assetStatus ? assetStatus : undefined,
+        paymentComplete: isCommercialUnit && paymentComplete ? true : undefined,
+        paymentRemaining: isCommercialUnit && paymentRemaining ? true : undefined,
+        paymentRemainingPercent:
+          isCommercialUnit && paymentRemaining && paymentRemainingPercent.trim()
+            ? Number(paymentRemainingPercent)
+            : undefined,
+        assuredReturn: isCommercialUnit && assuredReturn ? true : undefined,
+        assuredReturnPercent:
+          isCommercialUnit && assuredReturn && assuredReturnPercent.trim()
+            ? Number(assuredReturnPercent)
+            : undefined,
+        leaseGuarantee: isCommercialUnit && leaseGuarantee ? true : undefined,
+        leaseGuaranteeAmount:
+          isCommercialUnit && leaseGuarantee && leaseGuaranteeAmount.trim()
+            ? Number(leaseGuaranteeAmount)
+            : undefined,
+        rightsOfUse: isCommercialUnit && rightsOfUse ? rightsOfUse : undefined,
+        shopType: isCommercialUnit && shopType ? shopType : undefined,
+        idealForBusinesses: isCommercialUnit && idealForBusinesses.trim() ? idealForBusinesses.trim() : undefined,
+        shopWashrooms: isCommercialUnit && shopWashrooms ? shopWashrooms : undefined,
+        personalWashroom: isCommercialUnit ? personalWashroom : undefined,
+        pantryCafeteria: isCommercialUnit && pantryCafeteria ? pantryCafeteria : undefined,
+        cornerShop: isCommercialUnit && cornerShop === true ? true : undefined,
+        mainRoadFacing: isCommercialUnit && mainRoadFacing === true ? true : undefined,
         publishedAt,
         biddingEndsAt: getBiddingEndDate(publishedAt),
         bids: [],
@@ -613,7 +670,7 @@ export function ListYourPropertyPage() {
               <SellerPropertyDetailsStep
                 isPlot={isPlot}
                 isResidential={isResidential}
-                isCommercialShop={isCommercialShop}
+                isCommercialUnit={isCommercialUnit}
                 bedrooms={bedrooms}
                 washrooms={washrooms}
                 balconies={balconies}
@@ -634,7 +691,16 @@ export function ListYourPropertyPage() {
                 plotRoadWidthMeters={plotRoadWidthMeters}
                 plotConstructionDone={plotConstructionDone}
                 plotGatedColony={plotGatedColony}
-                landZone={landZone}
+                assetStatus={assetStatus}
+                paymentComplete={paymentComplete}
+                paymentRemaining={paymentRemaining}
+                paymentRemainingPercent={paymentRemainingPercent}
+                assuredReturn={assuredReturn}
+                assuredReturnPercent={assuredReturnPercent}
+                leaseGuarantee={leaseGuarantee}
+                leaseGuaranteeAmount={leaseGuaranteeAmount}
+                rightsOfUse={rightsOfUse}
+                shopType={shopType}
                 idealForBusinesses={idealForBusinesses}
                 shopFloor={floor}
                 shopTotalFloors={totalFloors}
@@ -664,7 +730,16 @@ export function ListYourPropertyPage() {
                 onPlotRoadWidthMetersChange={setPlotRoadWidthMeters}
                 onPlotConstructionDoneChange={setPlotConstructionDone}
                 onPlotGatedColonyChange={setPlotGatedColony}
-                onLandZoneChange={setLandZone}
+                onAssetStatusChange={setAssetStatus}
+                onPaymentCompleteChange={setPaymentComplete}
+                onPaymentRemainingChange={setPaymentRemaining}
+                onPaymentRemainingPercentChange={setPaymentRemainingPercent}
+                onAssuredReturnChange={setAssuredReturn}
+                onAssuredReturnPercentChange={setAssuredReturnPercent}
+                onLeaseGuaranteeChange={setLeaseGuarantee}
+                onLeaseGuaranteeAmountChange={setLeaseGuaranteeAmount}
+                onRightsOfUseChange={setRightsOfUse}
+                onShopTypeChange={setShopType}
                 onIdealForBusinessesChange={setIdealForBusinesses}
                 onShopFloorChange={setFloor}
                 onShopTotalFloorsChange={setTotalFloors}

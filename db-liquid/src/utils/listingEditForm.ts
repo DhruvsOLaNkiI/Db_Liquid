@@ -1,4 +1,4 @@
-import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data/propertyTypes';
+import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
 import type { PropertyListing, PropertyPhoto, PropertyVideo } from '../types/listing';
 import { getListingStatus } from '../types/listing';
 import {
@@ -34,7 +34,16 @@ export type ListingEditFormState = {
   plotRoadWidthMeters: string;
   plotConstructionDone: boolean | undefined;
   plotGatedColony: boolean | undefined;
-  landZone: string;
+  assetStatus: string;
+  paymentComplete: boolean;
+  paymentRemaining: boolean;
+  paymentRemainingPercent: string;
+  assuredReturn: boolean;
+  assuredReturnPercent: string;
+  leaseGuarantee: boolean;
+  leaseGuaranteeAmount: string;
+  rightsOfUse: string;
+  shopType: string;
   idealForBusinesses: string;
   shopWashrooms: string;
   cornerShop: boolean | undefined;
@@ -96,7 +105,19 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
       : '',
     plotConstructionDone: listing.plotConstructionDone,
     plotGatedColony: listing.plotGatedColony,
-    landZone: listing.landZone || '',
+    assetStatus: listing.assetStatus || '',
+    paymentComplete: listing.paymentComplete === true,
+    paymentRemaining: listing.paymentRemaining === true,
+    paymentRemainingPercent:
+      listing.paymentRemainingPercent != null ? String(listing.paymentRemainingPercent) : '',
+    assuredReturn: listing.assuredReturn === true,
+    assuredReturnPercent:
+      listing.assuredReturnPercent != null ? String(listing.assuredReturnPercent) : '',
+    leaseGuarantee: listing.leaseGuarantee === true,
+    leaseGuaranteeAmount:
+      listing.leaseGuaranteeAmount != null ? String(listing.leaseGuaranteeAmount) : '',
+    rightsOfUse: listing.rightsOfUse || '',
+    shopType: listing.shopType || '',
     idealForBusinesses: listing.idealForBusinesses || '',
     shopWashrooms: listing.shopWashrooms || '',
     cornerShop: listing.cornerShop,
@@ -114,8 +135,8 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
 export function editFormToListingPatch(listing: PropertyListing, form: ListingEditFormState) {
   const isPlot = isPlotType(listing.propertyType);
   const isResidential = isResidentialUnitType(listing.propertyType);
-  const isCommercialShop = isCommercialShopType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialShop;
+  const isCommercialUnit = isCommercialUnitType(listing.propertyType);
+  const showFloorFields = !isPlot && !isCommercialUnit;
 
   const location = buildListingLocation(form.locality, form.stateName);
   const areaSqFt = isPlot
@@ -127,7 +148,7 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
   const detailsSummary = buildListingDetailsSummary({
     isPlot,
     isResidential,
-    isCommercialShop,
+    isCommercialUnit,
     bedrooms: form.bedrooms,
     washrooms: form.washrooms,
     balconies: form.balconies,
@@ -148,15 +169,24 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     plotRoadWidthMeters: form.plotRoadWidthMeters || undefined,
     plotConstructionDone: form.plotConstructionDone,
     plotGatedColony: form.plotGatedColony,
-    landZone: form.landZone || undefined,
+    assetStatus: form.assetStatus || undefined,
+    paymentComplete: form.paymentComplete,
+    paymentRemaining: form.paymentRemaining,
+    paymentRemainingPercent: form.paymentRemainingPercent || undefined,
+    assuredReturn: form.assuredReturn,
+    assuredReturnPercent: form.assuredReturnPercent || undefined,
+    leaseGuarantee: form.leaseGuarantee,
+    leaseGuaranteeAmount: form.leaseGuaranteeAmount || undefined,
+    rightsOfUse: form.rightsOfUse || undefined,
+    shopType: form.shopType || undefined,
     idealForBusinesses: form.idealForBusinesses || undefined,
-    shopFloor: isCommercialShop ? form.floor || undefined : undefined,
-    shopTotalFloors: isCommercialShop ? form.totalFloors || undefined : undefined,
-    shopWashrooms: isCommercialShop ? form.shopWashrooms || undefined : undefined,
-    personalWashroom: isCommercialShop ? form.personalWashroom : undefined,
-    pantryCafeteria: isCommercialShop ? form.pantryCafeteria || undefined : undefined,
-    cornerShop: isCommercialShop ? form.cornerShop : undefined,
-    mainRoadFacing: isCommercialShop ? form.mainRoadFacing : undefined,
+    shopFloor: isCommercialUnit ? form.floor || undefined : undefined,
+    shopTotalFloors: isCommercialUnit ? form.totalFloors || undefined : undefined,
+    shopWashrooms: isCommercialUnit ? form.shopWashrooms || undefined : undefined,
+    personalWashroom: isCommercialUnit ? form.personalWashroom : undefined,
+    pantryCafeteria: isCommercialUnit ? form.pantryCafeteria || undefined : undefined,
+    cornerShop: isCommercialUnit ? form.cornerShop : undefined,
+    mainRoadFacing: isCommercialUnit ? form.mainRoadFacing : undefined,
   });
 
   const description = [form.propertyHighlights.trim(), form.photoNote.trim()]
@@ -169,11 +199,11 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     address: form.address.trim(),
     state: form.stateName.trim(),
     pincode: form.pincode.trim() || undefined,
-    floor: showFloorFields && form.floor.trim() ? form.floor.trim() : isCommercialShop && form.floor.trim() ? form.floor.trim() : undefined,
+    floor: showFloorFields && form.floor.trim() ? form.floor.trim() : isCommercialUnit && form.floor.trim() ? form.floor.trim() : undefined,
     totalFloors:
       showFloorFields && form.totalFloors.trim()
         ? form.totalFloors.trim()
-        : isCommercialShop && form.totalFloors.trim()
+        : isCommercialUnit && form.totalFloors.trim()
           ? form.totalFloors.trim()
           : undefined,
     areaSqFt,
@@ -192,14 +222,33 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
       isPlot && form.plotRoadWidthMeters.trim() ? Number(form.plotRoadWidthMeters) : undefined,
     plotConstructionDone: isPlot ? form.plotConstructionDone : undefined,
     plotGatedColony: isPlot ? form.plotGatedColony : undefined,
-    landZone: isCommercialShop && form.landZone ? form.landZone : undefined,
+    landZone: undefined,
+    assetStatus: isCommercialUnit && form.assetStatus ? form.assetStatus : undefined,
+    paymentComplete: isCommercialUnit && form.paymentComplete ? true : undefined,
+    paymentRemaining: isCommercialUnit && form.paymentRemaining ? true : undefined,
+    paymentRemainingPercent:
+      isCommercialUnit && form.paymentRemaining && form.paymentRemainingPercent.trim()
+        ? Number(form.paymentRemainingPercent)
+        : undefined,
+    assuredReturn: isCommercialUnit && form.assuredReturn ? true : undefined,
+    assuredReturnPercent:
+      isCommercialUnit && form.assuredReturn && form.assuredReturnPercent.trim()
+        ? Number(form.assuredReturnPercent)
+        : undefined,
+    leaseGuarantee: isCommercialUnit && form.leaseGuarantee ? true : undefined,
+    leaseGuaranteeAmount:
+      isCommercialUnit && form.leaseGuarantee && form.leaseGuaranteeAmount.trim()
+        ? Number(form.leaseGuaranteeAmount)
+        : undefined,
+    rightsOfUse: isCommercialUnit && form.rightsOfUse ? form.rightsOfUse : undefined,
+    shopType: isCommercialUnit && form.shopType ? form.shopType : undefined,
     idealForBusinesses:
-      isCommercialShop && form.idealForBusinesses.trim() ? form.idealForBusinesses.trim() : undefined,
-    shopWashrooms: isCommercialShop && form.shopWashrooms ? form.shopWashrooms : undefined,
-    personalWashroom: isCommercialShop ? form.personalWashroom : undefined,
-    pantryCafeteria: isCommercialShop && form.pantryCafeteria ? form.pantryCafeteria : undefined,
-    cornerShop: isCommercialShop && form.cornerShop === true ? true : undefined,
-    mainRoadFacing: isCommercialShop && form.mainRoadFacing === true ? true : undefined,
+      isCommercialUnit && form.idealForBusinesses.trim() ? form.idealForBusinesses.trim() : undefined,
+    shopWashrooms: isCommercialUnit && form.shopWashrooms ? form.shopWashrooms : undefined,
+    personalWashroom: isCommercialUnit ? form.personalWashroom : undefined,
+    pantryCafeteria: isCommercialUnit && form.pantryCafeteria ? form.pantryCafeteria : undefined,
+    cornerShop: isCommercialUnit && form.cornerShop === true ? true : undefined,
+    mainRoadFacing: isCommercialUnit && form.mainRoadFacing === true ? true : undefined,
     pricePerSqFt,
     totalPrice,
   };
@@ -217,12 +266,23 @@ export function validateEditForm(listing: PropertyListing, form: ListingEditForm
     if (!form.landSqFt.trim() || !form.plotWidth.trim() || !form.plotLength.trim()) {
       return 'Enter plot area and dimensions.';
     }
-  } else if (isCommercialShopType(listing.propertyType)) {
+  } else if (isCommercialUnitType(listing.propertyType)) {
     if (!form.builtUpArea.trim()) return 'Enter built-up area.';
-    if (!form.landZone.trim()) return 'Select land zone.';
+    if (!form.assetStatus.trim()) return 'Select asset status.';
+    if (!form.rightsOfUse.trim()) return 'Select rights of use.';
+    if (!form.shopType.trim()) return 'Select shop type.';
     if (!form.floor.trim() || !form.totalFloors.trim()) return 'Select floor details.';
     if (!form.furnishing.trim()) return 'Select furnished status.';
     if (!form.shopWashrooms.trim()) return 'Select number of washrooms.';
+    if (form.paymentRemaining && !form.paymentRemainingPercent.trim()) {
+      return 'Enter remaining payment percentage.';
+    }
+    if (form.assuredReturn && !form.assuredReturnPercent.trim()) {
+      return 'Enter assured return percentage.';
+    }
+    if (form.leaseGuarantee && !form.leaseGuaranteeAmount.trim()) {
+      return 'Enter lease guarantee amount.';
+    }
   } else if (isResidential) {
     if (!form.builtUpArea.trim() || form.bedrooms <= 0) {
       return 'Enter bedrooms and built-up area.';

@@ -216,16 +216,23 @@ export const LAND_ZONE_OPTIONS = [
   'Agricultural',
 ] as const;
 
-export const COMMERCIAL_SHOP_FLOOR_OPTIONS = [
-  'Lower Basement',
-  'Upper Basement',
+export const SHOP_ASSET_STATUS_OPTIONS = ['Under Construction', 'Ready to Move In'] as const;
+
+export const SHOP_RIGHTS_OF_USE_OPTIONS = ['Self use', 'By Developer'] as const;
+
+export const SHOP_TYPE_OPTIONS = ['Mall', 'Highstreet', 'Society Shop'] as const;
+
+export const COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS = [
+  'Lower Ground',
+  'Upper Ground',
   'Ground',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '5+',
+] as const;
+
+export const COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS = ['1', '2', '3', '4', '5', '5+'] as const;
+
+export const COMMERCIAL_SHOP_FLOOR_OPTIONS = [
+  ...COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS,
+  ...COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS,
 ] as const;
 
 export const COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS = [
@@ -319,8 +326,18 @@ type DetailsInput = {
   plotRoadWidthMeters?: string;
   plotConstructionDone?: boolean;
   plotGatedColony?: boolean;
-  isCommercialShop?: boolean;
+  isCommercialUnit?: boolean;
   landZone?: string;
+  assetStatus?: string;
+  paymentComplete?: boolean;
+  paymentRemaining?: boolean;
+  paymentRemainingPercent?: string;
+  assuredReturn?: boolean;
+  assuredReturnPercent?: string;
+  leaseGuarantee?: boolean;
+  leaseGuaranteeAmount?: string;
+  rightsOfUse?: string;
+  shopType?: string;
   idealForBusinesses?: string;
   shopFloor?: string;
   shopTotalFloors?: string;
@@ -355,8 +372,18 @@ export function buildListingDetailsSummary(input: DetailsInput) {
     plotRoadWidthMeters,
     plotConstructionDone,
     plotGatedColony,
-    isCommercialShop,
+    isCommercialUnit,
     landZone,
+    assetStatus,
+    paymentComplete,
+    paymentRemaining,
+    paymentRemainingPercent,
+    assuredReturn,
+    assuredReturnPercent,
+    leaseGuarantee,
+    leaseGuaranteeAmount,
+    rightsOfUse,
+    shopType,
     idealForBusinesses,
     shopFloor,
     shopTotalFloors,
@@ -371,25 +398,50 @@ export function buildListingDetailsSummary(input: DetailsInput) {
     ? `${landSqFt} sq.ft (${plotWidth} × ${plotLength} ft)`
     : isResidential
       ? `${bedrooms} bed · ${washrooms} bath · ${balconies} balcony · ${kitchens} kitchen${hasServiceRoom ? ' · Service room' : ''}${hasStudyRoom ? ' · Study room' : ''} · ${builtUpArea} sq.ft`
-      : isCommercialShop
-        ? `${builtUpArea} sq.ft commercial shop`
+      : isCommercialUnit
+        ? `${builtUpArea} sq.ft commercial unit`
         : `${builtUpArea} sq.ft`;
 
   const extras: string[] = [];
-  if (isCommercialShop && landZone) extras.push(landZone);
-  if (isCommercialShop && idealForBusinesses) extras.push(`Ideal for ${idealForBusinesses}`);
-  if (isCommercialShop && shopFloor) {
+  if (isCommercialUnit && assetStatus) extras.push(assetStatus);
+  else if (isCommercialUnit && landZone) extras.push(landZone);
+  if (isCommercialUnit && shopType) extras.push(shopType);
+  if (isCommercialUnit && rightsOfUse) extras.push(rightsOfUse);
+  if (isCommercialUnit && paymentComplete) extras.push('Payment complete');
+  if (isCommercialUnit && paymentRemaining) {
+    extras.push(
+      paymentRemainingPercent
+        ? `Payment remaining ${paymentRemainingPercent}%`
+        : 'Payment remaining',
+    );
+  }
+  if (isCommercialUnit && assuredReturn) {
+    extras.push(
+      assuredReturnPercent
+        ? `Assured return ${assuredReturnPercent}%`
+        : 'Assured return',
+    );
+  }
+  if (isCommercialUnit && leaseGuarantee) {
+    extras.push(
+      leaseGuaranteeAmount
+        ? `Lease guarantee ₹${leaseGuaranteeAmount}`
+        : 'Lease guarantee',
+    );
+  }
+  if (isCommercialUnit && idealForBusinesses) extras.push(`Ideal for ${idealForBusinesses}`);
+  if (isCommercialUnit && shopFloor) {
     extras.push(
       shopTotalFloors ? `Floor ${shopFloor} of ${shopTotalFloors}` : `Floor ${shopFloor}`,
     );
   }
-  if (isCommercialShop && shopWashrooms !== undefined && shopWashrooms !== '') {
+  if (isCommercialUnit && shopWashrooms !== undefined && shopWashrooms !== '') {
     extras.push(`${shopWashrooms} washroom${shopWashrooms === '1' ? '' : 's'}`);
   }
-  if (isCommercialShop && personalWashroom) extras.push('Personal washroom');
-  if (isCommercialShop && pantryCafeteria) extras.push(`Pantry: ${pantryCafeteria}`);
-  if (isCommercialShop && cornerShop) extras.push('Corner shop');
-  if (isCommercialShop && mainRoadFacing) extras.push('Main road facing');
+  if (isCommercialUnit && personalWashroom) extras.push('Personal washroom');
+  if (isCommercialUnit && pantryCafeteria) extras.push(`Pantry: ${pantryCafeteria}`);
+  if (isCommercialUnit && cornerShop) extras.push('Corner unit');
+  if (isCommercialUnit && mainRoadFacing) extras.push('Main road facing');
   if (furnishing) extras.push(furnishing);
   if (facing) extras.push(`${facing} facing`);
   if (parking && parking > 0) extras.push(`${parking} parking`);

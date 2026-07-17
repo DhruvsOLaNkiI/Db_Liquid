@@ -857,6 +857,58 @@ app.post(
   }
 });
 
+app.delete(
+  '/api/admin/listings/:id',
+  requireAdmin,
+  requireCsrf,
+  async (req: AuthenticatedRequest, res) => {
+    const listingId = String(req.params.id ?? '').trim();
+    if (!listingId) {
+      res.status(400).json({ error: 'Listing id is required.' });
+      return;
+    }
+
+    try {
+      const listings = await getListings();
+      const index = listings.findIndex((entry) => String((entry as { id?: string }).id ?? '') === listingId);
+      if (index === -1) {
+        res.status(404).json({ error: 'Listing not found.' });
+        return;
+      }
+
+      const removed = listings[index] as {
+        id?: string;
+        sellerId?: string;
+        location?: string;
+        propertyType?: string;
+      };
+      listings.splice(index, 1);
+      await saveListings(listings);
+
+      try {
+        await appendAdminAudit({
+          action: 'listing_delete',
+          actorUserId: req.auth!.userId,
+          targetUserId: removed.sellerId ? String(removed.sellerId) : undefined,
+          listingId,
+          detail: {
+            location: removed.location,
+            propertyType: removed.propertyType,
+          },
+          ip: getClientIp(req),
+          requestId: String((req as RequestWithLog).id ?? ''),
+        });
+      } catch (auditError) {
+        logger.error({ err: auditError }, 'admin-audit listing delete failed');
+      }
+
+      res.json({ ok: true, deletedId: listingId });
+    } catch (error) {
+      res.status(503).json({ error: error instanceof Error ? error.message : 'Database error' });
+    }
+  },
+);
+
 app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   try {
     const [users, listings] = await Promise.all([getUsers(), getListings()]);

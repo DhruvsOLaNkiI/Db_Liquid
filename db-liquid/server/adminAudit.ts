@@ -10,7 +10,8 @@ export type AdminAuditAction =
   | 'kyc_pan_verify'
   | 'kyc_pan_unverify'
   | 'listing_doc_approve'
-  | 'listing_doc_reject';
+  | 'listing_doc_reject'
+  | 'listing_delete';
 
 export type AdminAuditEntry = {
   id: string;

@@ -251,6 +251,17 @@ export async function reviewUserKyc(
   return { ok: true };
 }
 
+export async function deleteAdminListing(
+  listingId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await apiFetch(`/api/admin/listings/${encodeURIComponent(listingId)}`, {
+    method: 'DELETE',
+  });
+  const parsed = await parseAdminJson(res, 'Failed to delete listing.');
+  if (!parsed.ok) return parsed;
+  return { ok: true };
+}
+
 /** RL-005 / BID-008 — admin bid audit trail (includes client IP). */
 export type BidAuditEntry = {
   id: string;

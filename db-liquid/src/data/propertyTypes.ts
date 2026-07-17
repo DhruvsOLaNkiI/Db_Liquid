@@ -62,7 +62,16 @@ export function isResidentialUnitType(type: string) {
 }
 
 export function isCommercialShopType(type: string) {
-  return type === 'Commercial Shop';
+  return type === 'Commercial Shop' || type === 'Commercial Showroom';
+}
+
+export function isCommercialOfficeType(type: string) {
+  return type === 'Commercial Office Space' || type === 'Office in IT Park/ SEZ';
+}
+
+/** Shop, showroom, and office — shared commercial unit details form. */
+export function isCommercialUnitType(type: string) {
+  return isCommercialShopType(type) || isCommercialOfficeType(type);
 }
 
 export const BHK_OPTIONS = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK'] as const;

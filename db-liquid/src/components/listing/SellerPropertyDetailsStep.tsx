@@ -91,7 +91,7 @@ function YesNoChoice({
 type Props = {
   isPlot: boolean;
   isResidential: boolean;
-  isCommercialShop: boolean;
+  isCommercialUnit: boolean;
   bedrooms: number;
   washrooms: number;
   balconies: number;
@@ -112,7 +112,16 @@ type Props = {
   plotRoadWidthMeters: string;
   plotConstructionDone: boolean | undefined;
   plotGatedColony: boolean | undefined;
-  landZone: string;
+  assetStatus: string;
+  paymentComplete: boolean;
+  paymentRemaining: boolean;
+  paymentRemainingPercent: string;
+  assuredReturn: boolean;
+  assuredReturnPercent: string;
+  leaseGuarantee: boolean;
+  leaseGuaranteeAmount: string;
+  rightsOfUse: string;
+  shopType: string;
   idealForBusinesses: string;
   shopFloor: string;
   shopTotalFloors: string;
@@ -142,7 +151,16 @@ type Props = {
   onPlotRoadWidthMetersChange: (v: string) => void;
   onPlotConstructionDoneChange: (v: boolean) => void;
   onPlotGatedColonyChange: (v: boolean) => void;
-  onLandZoneChange: (v: string) => void;
+  onAssetStatusChange: (v: string) => void;
+  onPaymentCompleteChange: (v: boolean) => void;
+  onPaymentRemainingChange: (v: boolean) => void;
+  onPaymentRemainingPercentChange: (v: string) => void;
+  onAssuredReturnChange: (v: boolean) => void;
+  onAssuredReturnPercentChange: (v: string) => void;
+  onLeaseGuaranteeChange: (v: boolean) => void;
+  onLeaseGuaranteeAmountChange: (v: string) => void;
+  onRightsOfUseChange: (v: string) => void;
+  onShopTypeChange: (v: string) => void;
   onIdealForBusinessesChange: (v: string) => void;
   onShopFloorChange: (v: string) => void;
   onShopTotalFloorsChange: (v: string) => void;
@@ -157,7 +175,7 @@ type Props = {
 export function SellerPropertyDetailsStep({
   isPlot,
   isResidential,
-  isCommercialShop,
+  isCommercialUnit,
   bedrooms,
   washrooms,
   balconies,
@@ -178,7 +196,16 @@ export function SellerPropertyDetailsStep({
   plotRoadWidthMeters,
   plotConstructionDone,
   plotGatedColony,
-  landZone,
+  assetStatus,
+  paymentComplete,
+  paymentRemaining,
+  paymentRemainingPercent,
+  assuredReturn,
+  assuredReturnPercent,
+  leaseGuarantee,
+  leaseGuaranteeAmount,
+  rightsOfUse,
+  shopType,
   idealForBusinesses,
   shopFloor,
   shopTotalFloors,
@@ -208,7 +235,16 @@ export function SellerPropertyDetailsStep({
   onPlotRoadWidthMetersChange,
   onPlotConstructionDoneChange,
   onPlotGatedColonyChange,
-  onLandZoneChange,
+  onAssetStatusChange,
+  onPaymentCompleteChange,
+  onPaymentRemainingChange,
+  onPaymentRemainingPercentChange,
+  onAssuredReturnChange,
+  onAssuredReturnPercentChange,
+  onLeaseGuaranteeChange,
+  onLeaseGuaranteeAmountChange,
+  onRightsOfUseChange,
+  onShopTypeChange,
   onIdealForBusinessesChange,
   onShopFloorChange,
   onShopTotalFloorsChange,
@@ -407,10 +443,19 @@ export function SellerPropertyDetailsStep({
           </div>
         </section>
         </>
-      ) : isCommercialShop ? (
+      ) : isCommercialUnit ? (
         <CommercialShopDetailsSection
           builtUpArea={builtUpArea}
-          landZone={landZone}
+          assetStatus={assetStatus}
+          paymentComplete={paymentComplete}
+          paymentRemaining={paymentRemaining}
+          paymentRemainingPercent={paymentRemainingPercent}
+          assuredReturn={assuredReturn}
+          assuredReturnPercent={assuredReturnPercent}
+          leaseGuarantee={leaseGuarantee}
+          leaseGuaranteeAmount={leaseGuaranteeAmount}
+          rightsOfUse={rightsOfUse}
+          shopType={shopType}
           idealForBusinesses={idealForBusinesses}
           floor={shopFloor}
           totalFloors={shopTotalFloors}
@@ -421,7 +466,16 @@ export function SellerPropertyDetailsStep({
           personalWashroom={personalWashroom}
           pantryCafeteria={pantryCafeteria}
           onBuiltUpAreaChange={onBuiltUpAreaChange}
-          onLandZoneChange={onLandZoneChange}
+          onAssetStatusChange={onAssetStatusChange}
+          onPaymentCompleteChange={onPaymentCompleteChange}
+          onPaymentRemainingChange={onPaymentRemainingChange}
+          onPaymentRemainingPercentChange={onPaymentRemainingPercentChange}
+          onAssuredReturnChange={onAssuredReturnChange}
+          onAssuredReturnPercentChange={onAssuredReturnPercentChange}
+          onLeaseGuaranteeChange={onLeaseGuaranteeChange}
+          onLeaseGuaranteeAmountChange={onLeaseGuaranteeAmountChange}
+          onRightsOfUseChange={onRightsOfUseChange}
+          onShopTypeChange={onShopTypeChange}
           onIdealForBusinessesChange={onIdealForBusinessesChange}
           onFloorChange={onShopFloorChange}
           onTotalFloorsChange={onShopTotalFloorsChange}

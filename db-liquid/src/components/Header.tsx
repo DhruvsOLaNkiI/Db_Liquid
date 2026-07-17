@@ -9,7 +9,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [creditPanelOpen, setCreditPanelOpen] = useState(false);
   const creditButtonRef = useRef<HTMLButtonElement>(null);
-  const { user, isAuthenticated, logout, buyerCredits } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout, buyerCredits } = useAuth();
 
   const loginHref = '/login';
   const signupHref = '/signup';
@@ -43,6 +43,11 @@ export function Header() {
       <Link to="/faq" className="nav-link">FAQ</Link>
       <Link to="/browse-property" className="nav-link">My Bid</Link>
       <Link to="/seller/dashboard" className="nav-link">My Listings</Link>
+      {isAdmin && (
+        <Link to="/admin/verification" className="nav-link text-[#FF7A00]">
+          Admin
+        </Link>
+      )}
       <Link to="/home#ecosystem" className="nav-link">DB Asset / DB Expo</Link>
     </>
   );
@@ -146,6 +151,15 @@ export function Header() {
           <Link to="/faq" className="block text-sm font-medium text-white/90 py-1" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
           <Link to="/browse-property" className="block text-sm font-medium text-white/90 py-1" onClick={() => setIsMenuOpen(false)}>My Bid</Link>
           <Link to="/seller/dashboard" className="block text-sm font-medium text-white/90 py-1" onClick={() => setIsMenuOpen(false)}>My Listings</Link>
+          {isAdmin && (
+            <Link
+              to="/admin/verification"
+              className="block text-sm font-medium text-[#FF7A00] py-1"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Admin
+            </Link>
+          )}
           <Link to="/home#ecosystem" className="block text-sm font-medium text-white/90 py-1" onClick={() => setIsMenuOpen(false)}>DB Asset / DB Expo</Link>
           <div className="pt-3 border-t border-white/10 flex flex-col gap-3">
             {isAuthenticated && user ? (

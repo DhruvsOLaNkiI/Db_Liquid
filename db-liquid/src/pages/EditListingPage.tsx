@@ -7,7 +7,7 @@ import { SellerPhotosStep } from '../components/listing/SellerPhotosStep';
 import { SellerPropertyDetailsStep } from '../components/listing/SellerPropertyDetailsStep';
 import { useAuth } from '../context/AuthContext';
 import { useListings } from '../context/ListingsContext';
-import { isPlotType, isResidentialUnitType, isCommercialShopType } from '../data/propertyTypes';
+import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
 import { formatPrice, getTotalPrice } from '../types/listing';
 import {
   canEditListing,
@@ -95,8 +95,8 @@ export function EditListingPage() {
 
   const isPlot = isPlotType(listing.propertyType);
   const isResidential = isResidentialUnitType(listing.propertyType);
-  const isCommercialShop = isCommercialShopType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialShop;
+  const isCommercialUnit = isCommercialUnitType(listing.propertyType);
+  const showFloorFields = !isPlot && !isCommercialUnit;
   const totalPrice = getTotalPrice(form.pricePerSqFt, isPlot ? Number(form.landSqFt) : Number(form.builtUpArea));
 
   const patchForm = (patch: Partial<ListingEditFormState>) => {
@@ -202,7 +202,7 @@ export function EditListingPage() {
               <SellerPropertyDetailsStep
                 isPlot={isPlot}
                 isResidential={isResidential}
-                isCommercialShop={isCommercialShop}
+                isCommercialUnit={isCommercialUnit}
                 bedrooms={form.bedrooms}
                 washrooms={form.washrooms}
                 balconies={form.balconies}
@@ -223,7 +223,16 @@ export function EditListingPage() {
                 plotRoadWidthMeters={form.plotRoadWidthMeters}
                 plotConstructionDone={form.plotConstructionDone}
                 plotGatedColony={form.plotGatedColony}
-                landZone={form.landZone}
+                assetStatus={form.assetStatus}
+                paymentComplete={form.paymentComplete}
+                paymentRemaining={form.paymentRemaining}
+                paymentRemainingPercent={form.paymentRemainingPercent}
+                assuredReturn={form.assuredReturn}
+                assuredReturnPercent={form.assuredReturnPercent}
+                leaseGuarantee={form.leaseGuarantee}
+                leaseGuaranteeAmount={form.leaseGuaranteeAmount}
+                rightsOfUse={form.rightsOfUse}
+                shopType={form.shopType}
                 idealForBusinesses={form.idealForBusinesses}
                 shopFloor={form.floor}
                 shopTotalFloors={form.totalFloors}
@@ -253,7 +262,20 @@ export function EditListingPage() {
                 onPlotRoadWidthMetersChange={(v) => patchForm({ plotRoadWidthMeters: v })}
                 onPlotConstructionDoneChange={(v) => patchForm({ plotConstructionDone: v })}
                 onPlotGatedColonyChange={(v) => patchForm({ plotGatedColony: v })}
-                onLandZoneChange={(v) => patchForm({ landZone: v })}
+                onAssetStatusChange={(v) => patchForm({ assetStatus: v })}
+                onPaymentCompleteChange={(v) =>
+                  patchForm({ paymentComplete: v, paymentRemaining: v ? false : form.paymentRemaining })
+                }
+                onPaymentRemainingChange={(v) =>
+                  patchForm({ paymentRemaining: v, paymentComplete: v ? false : form.paymentComplete })
+                }
+                onPaymentRemainingPercentChange={(v) => patchForm({ paymentRemainingPercent: v })}
+                onAssuredReturnChange={(v) => patchForm({ assuredReturn: v })}
+                onAssuredReturnPercentChange={(v) => patchForm({ assuredReturnPercent: v })}
+                onLeaseGuaranteeChange={(v) => patchForm({ leaseGuarantee: v })}
+                onLeaseGuaranteeAmountChange={(v) => patchForm({ leaseGuaranteeAmount: v })}
+                onRightsOfUseChange={(v) => patchForm({ rightsOfUse: v })}
+                onShopTypeChange={(v) => patchForm({ shopType: v })}
                 onIdealForBusinessesChange={(v) => patchForm({ idealForBusinesses: v })}
                 onShopFloorChange={(v) => patchForm({ floor: v })}
                 onShopTotalFloorsChange={(v) => patchForm({ totalFloors: v })}

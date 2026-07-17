@@ -103,6 +103,19 @@ export type PropertyListing = {
   plotConstructionDone?: boolean;
   plotGatedColony?: boolean;
   landZone?: string;
+  /** Commercial shop — Under Construction / Ready to Move In */
+  assetStatus?: string;
+  paymentComplete?: boolean;
+  paymentRemaining?: boolean;
+  paymentRemainingPercent?: number;
+  assuredReturn?: boolean;
+  assuredReturnPercent?: number;
+  leaseGuarantee?: boolean;
+  leaseGuaranteeAmount?: number;
+  /** Self use / By Developer */
+  rightsOfUse?: string;
+  /** Mall / Highstreet / Society Shop */
+  shopType?: string;
   idealForBusinesses?: string;
   personalWashroom?: boolean;
   pantryCafeteria?: string;
@@ -268,6 +281,16 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     plotConstructionDone: raw.plotConstructionDone,
     plotGatedColony: raw.plotGatedColony,
     landZone: raw.landZone,
+    assetStatus: raw.assetStatus,
+    paymentComplete: raw.paymentComplete,
+    paymentRemaining: raw.paymentRemaining,
+    paymentRemainingPercent: raw.paymentRemainingPercent,
+    assuredReturn: raw.assuredReturn,
+    assuredReturnPercent: raw.assuredReturnPercent,
+    leaseGuarantee: raw.leaseGuarantee,
+    leaseGuaranteeAmount: raw.leaseGuaranteeAmount,
+    rightsOfUse: raw.rightsOfUse,
+    shopType: raw.shopType,
     idealForBusinesses: raw.idealForBusinesses,
     personalWashroom: raw.personalWashroom,
     pantryCafeteria: raw.pantryCafeteria,

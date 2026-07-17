@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice, formatPriceShort } from '../../types/listing';
-import { isCommercialShopType, isPlotType } from '../../data/propertyTypes';
+import { isCommercialUnitType, isPlotType } from '../../data/propertyTypes';
 import {
   buildListingFullAddress,
   estimateBookingAmount,
@@ -29,7 +29,7 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   const registration = estimateRegistrationCharges(totalPrice);
   const bookingAmount = estimateBookingAmount(totalPrice);
   const isPlot = isPlotType(listing.propertyType);
-  const isShop = isCommercialShopType(listing.propertyType);
+  const isCommercialUnit = isCommercialUnitType(listing.propertyType);
   const floorLabel = formatListingFloor(listing.floor, listing.totalFloors);
 
   rows.push({
@@ -108,8 +108,38 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
     }
   }
 
-  if (isShop) {
-    if (listing.landZone) rows.push({ label: 'Land Zone', value: listing.landZone });
+  if (isCommercialUnit) {
+    if (listing.assetStatus) rows.push({ label: 'Asset Status', value: listing.assetStatus });
+    if (listing.paymentComplete) rows.push({ label: 'Payment', value: 'Complete' });
+    if (listing.paymentRemaining) {
+      rows.push({
+        label: 'Payment Remaining',
+        value:
+          listing.paymentRemainingPercent != null
+            ? `${listing.paymentRemainingPercent}%`
+            : 'Yes',
+      });
+    }
+    if (listing.assuredReturn) {
+      rows.push({
+        label: 'Assured Return',
+        value:
+          listing.assuredReturnPercent != null
+            ? `${listing.assuredReturnPercent}%`
+            : 'Yes',
+      });
+    }
+    if (listing.leaseGuarantee) {
+      rows.push({
+        label: 'Lease Guarantee',
+        value:
+          listing.leaseGuaranteeAmount != null
+            ? `₹${listing.leaseGuaranteeAmount.toLocaleString('en-IN')}`
+            : 'Yes',
+      });
+    }
+    if (listing.rightsOfUse) rows.push({ label: 'Rights of Use', value: listing.rightsOfUse });
+    if (listing.shopType) rows.push({ label: 'Shop Type', value: listing.shopType });
     if (listing.idealForBusinesses) {
       rows.push({ label: 'Ideal for', value: listing.idealForBusinesses });
     }
@@ -125,7 +155,7 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
     if (listing.pantryCafeteria) {
       rows.push({ label: 'Pantry / Cafeteria', value: listing.pantryCafeteria });
     }
-    if (listing.cornerShop) rows.push({ label: 'Corner Shop', value: 'Yes' });
+    if (listing.cornerShop) rows.push({ label: 'Corner Unit', value: 'Yes' });
     if (listing.mainRoadFacing) {
       rows.push({ label: 'Main Road Facing', value: 'Yes' });
     }

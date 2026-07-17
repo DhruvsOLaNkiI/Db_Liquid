@@ -147,16 +147,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       return;
     }
+    // /api/auth/me is source of truth for roles (including admin) — do not overwrite with cache
+    applyAuthenticatedUser(me.user, setUser);
     await reloadUsersFromServer();
-    const found = findUserById(me.user.id);
-    applyAuthenticatedUser(found ? { ...me.user, ...found, password: '' } : me.user, setUser);
   }, []);
 
   const syncCreditWallet = useCallback(() => {
     const userId = user?.id;
     if (!userId) return;
     const fresh = findUserById(userId);
-    if (fresh) setUser(ensureDualRole(fresh));
+    if (!fresh) return;
+    // Only refresh credits — never replace roles from the shared users cache
+    setUser((prev) =>
+      prev
+        ? ensureDualRole({
+            ...prev,
+            credits: fresh.credits,
+            creditHistory: fresh.creditHistory ?? prev.creditHistory,
+          })
+        : prev,
+    );
   }, [user?.id]);
 
   const updateUserCredits = useCallback((credits: number) => {
@@ -208,11 +218,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const result = await topUpCreditsForUser(user.id, creditAmount);
     if (result.ok) {
-      const fresh = findUserById(user.id);
-      if (fresh) setUser(ensureDualRole(fresh));
+      setUser((prev) =>
+        prev
+          ? ensureDualRole({
+              ...prev,
+              credits: result.credits,
+            })
+          : prev,
+      );
+      syncCreditWallet();
     }
     return result;
-  }, [user]);
+  }, [user, syncCreditWallet]);
 
   const logout = useCallback(() => {
     void logoutViaApi();
@@ -234,6 +251,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await fetchAuthMe();
       if (!me.ok) {
         logout();
+        return;
+      }
+      // Keep roles in sync (e.g. admin granted in Mongo while session is open)
+      const nextRoles = me.user.roles ?? [];
+      const prevRoles = user.roles ?? [];
+      const rolesChanged =
+        nextRoles.length !== prevRoles.length ||
+        nextRoles.some((role) => !prevRoles.includes(role));
+      if (rolesChanged || me.user.credits !== user.credits) {
+        applyAuthenticatedUser(me.user, setUser);
       }
     };
 

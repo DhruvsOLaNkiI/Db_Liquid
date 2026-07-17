@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { SentryTestButton } from '../components/SentryTestButton';
 import { useAuth } from '../context/AuthContext';
@@ -9,15 +9,25 @@ const inputClass =
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin, sessionReady } = useAuth();
 
-  const nextPath = searchParams.get('next');
+  const locationState = location.state as { from?: string; adminRequired?: boolean } | null;
+  const nextPath = searchParams.get('next') || locationState?.from || null;
+  const adminRequired = Boolean(locationState?.adminRequired);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!sessionReady || !isAuthenticated) return;
+    if (isAdmin && (adminRequired || nextPath === '/admin/verification')) {
+      navigate(nextPath || '/admin/verification', { replace: true });
+    }
+  }, [sessionReady, isAuthenticated, isAdmin, adminRequired, nextPath, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -31,7 +41,8 @@ export function LoginPage() {
       return;
     }
 
-    navigate(nextPath || '/');
+    const dest = nextPath || (adminRequired ? '/admin/verification' : '/');
+    navigate(dest);
   };
 
   return (
@@ -44,6 +55,11 @@ export function LoginPage() {
             <p className="text-gray-600">
               One account to browse, bid, and list properties.
             </p>
+            {adminRequired && (
+              <p className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                Admin access required. Sign in with an account that has the admin role.
+              </p>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="bg-gray-50 rounded-3xl p-8 border border-gray-100 space-y-5">

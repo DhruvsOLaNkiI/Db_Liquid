@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   User,
   Users,
+  Trash2,
   X,
   XCircle,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ import {
   fetchAdminUsers,
   fetchBidAudit,
   fetchVerificationQueue,
+  deleteAdminListing,
   reviewUserKyc,
   reviewVerificationDocument,
   type AdminUserProfile,
@@ -138,13 +140,21 @@ function DocumentPreview({ doc }: { doc: VerificationDocument }) {
 
 function UserProfileRow({
   user,
+  listings,
+  expanded,
+  onToggle,
   onReviewed,
 }: {
   user: AdminUserProfile;
+  listings: VerificationQueueListing[];
+  expanded: boolean;
+  onToggle: () => void;
   onReviewed: () => void;
 }) {
   const [busy, setBusy] = useState<'aadhar' | 'pan' | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const listingCount = user.listingCount ?? listings.length;
 
   const handleKyc = async (field: 'aadhar' | 'pan', verified: boolean) => {
     setBusy(field);
@@ -161,103 +171,190 @@ function UserProfileRow({
     onReviewed();
   };
 
+  const handleDeleteListing = async (listingId: string, location: string) => {
+    const ok = window.confirm(
+      `Delete this property permanently?\n\n${location}\n\nThis cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeletingId(listingId);
+    setError('');
+    const result = await deleteAdminListing(listingId);
+    setDeletingId(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    notifyDataRefresh();
+    onReviewed();
+  };
+
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50/80 align-top">
-      <td className="px-4 py-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
-            {user.profileImageUrl ? (
-              <img src={user.profileImageUrl} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              <User size={18} className="text-gray-400" />
-            )}
+    <>
+      <tr className="border-b border-gray-100 hover:bg-gray-50/80 align-top">
+        <td className="px-4 py-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
+              {user.profileImageUrl ? (
+                <img src={user.profileImageUrl} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <User size={18} className="text-gray-400" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900">{user.name || '—'}</p>
+              <p className="text-xs text-gray-400 break-all">{user.id}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Joined {formatDate(user.createdAt)}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-gray-900">{user.name || '—'}</p>
-            <p className="text-xs text-gray-400 break-all">{user.id}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Joined {formatDate(user.createdAt)}</p>
+        </td>
+        <td className="px-4 py-4 text-sm">
+          <div className="space-y-1.5">
+            <p className="flex items-center gap-1.5 text-gray-800 break-all">
+              <Mail size={13} className="text-gray-400 shrink-0" />
+              {user.email || '—'}
+            </p>
+            <p className="flex items-center gap-1.5 text-gray-800">
+              <Phone size={13} className="text-gray-400 shrink-0" />
+              {user.phone || '—'}
+            </p>
           </div>
-        </div>
-      </td>
-      <td className="px-4 py-4 text-sm">
-        <div className="space-y-1.5">
-          <p className="flex items-center gap-1.5 text-gray-800 break-all">
-            <Mail size={13} className="text-gray-400 shrink-0" />
-            {user.email || '—'}
-          </p>
-          <p className="flex items-center gap-1.5 text-gray-800">
-            <Phone size={13} className="text-gray-400 shrink-0" />
-            {user.phone || '—'}
-          </p>
-        </div>
-      </td>
-      <td className="px-4 py-4 text-sm">
-        <div className="flex flex-wrap gap-1">
-          {(user.roles ?? []).map((role) => (
-            <span
-              key={role}
-              className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 capitalize"
-            >
-              {role}
-            </span>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-2">{user.listingCount ?? 0} listing(s)</p>
-      </td>
-      <td className="px-4 py-4">
-        <div className="flex flex-col items-center gap-2">
-          <VerificationTick verified={Boolean(user.aadharVerified)} label="Aadhar" />
-          <p className="text-xs font-mono text-gray-600 text-center">
-            {user.aadharNumber ? formatAadharInput(user.aadharNumber) : 'Not provided'}
-          </p>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              disabled={busy === 'aadhar' || !user.aadharNumber}
-              onClick={() => void handleKyc('aadhar', true)}
-              className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
-            >
-              {busy === 'aadhar' ? <Loader2 size={12} className="animate-spin" /> : 'Verify'}
-            </button>
-            <button
-              type="button"
-              disabled={busy === 'aadhar'}
-              onClick={() => void handleKyc('aadhar', false)}
-              className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
-            >
-              Revoke
-            </button>
+        </td>
+        <td className="px-4 py-4 text-sm">
+          <div className="flex flex-wrap gap-1">
+            {(user.roles ?? []).map((role) => (
+              <span
+                key={role}
+                className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 capitalize"
+              >
+                {role}
+              </span>
+            ))}
           </div>
-          {error && <p className="text-xs text-red-600 text-center max-w-[140px]">{error}</p>}
-        </div>
-      </td>
-      <td className="px-4 py-4">
-        <div className="flex flex-col items-center gap-2">
-          <VerificationTick verified={Boolean(user.panVerified)} label="PAN" />
-          <p className="text-xs font-mono text-gray-600 uppercase text-center">
-            {user.panNumber || 'Not provided'}
-          </p>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              disabled={busy === 'pan' || !user.panNumber}
-              onClick={() => void handleKyc('pan', true)}
-              className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
-            >
-              {busy === 'pan' ? <Loader2 size={12} className="animate-spin" /> : 'Verify'}
-            </button>
-            <button
-              type="button"
-              disabled={busy === 'pan'}
-              onClick={() => void handleKyc('pan', false)}
-              className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
-            >
-              Revoke
-            </button>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+          >
+            <Building2 size={13} />
+            {listingCount} propert{listingCount === 1 ? 'y' : 'ies'}
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </td>
+        <td className="px-4 py-4">
+          <div className="flex flex-col items-center gap-2">
+            <VerificationTick verified={Boolean(user.aadharVerified)} label="Aadhar" />
+            <p className="text-xs font-mono text-gray-600 text-center">
+              {user.aadharNumber ? formatAadharInput(user.aadharNumber) : 'Not provided'}
+            </p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={busy === 'aadhar' || !user.aadharNumber}
+                onClick={() => void handleKyc('aadhar', true)}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
+              >
+                {busy === 'aadhar' ? <Loader2 size={12} className="animate-spin" /> : 'Verify'}
+              </button>
+              <button
+                type="button"
+                disabled={busy === 'aadhar'}
+                onClick={() => void handleKyc('aadhar', false)}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Revoke
+              </button>
+            </div>
+            {error && <p className="text-xs text-red-600 text-center max-w-[140px]">{error}</p>}
           </div>
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td className="px-4 py-4">
+          <div className="flex flex-col items-center gap-2">
+            <VerificationTick verified={Boolean(user.panVerified)} label="PAN" />
+            <p className="text-xs font-mono text-gray-600 uppercase text-center">
+              {user.panNumber || 'Not provided'}
+            </p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={busy === 'pan' || !user.panNumber}
+                onClick={() => void handleKyc('pan', true)}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
+              >
+                {busy === 'pan' ? <Loader2 size={12} className="animate-spin" /> : 'Verify'}
+              </button>
+              <button
+                type="button"
+                disabled={busy === 'pan'}
+                onClick={() => void handleKyc('pan', false)}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Revoke
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+
+      {expanded && (
+        <tr className="border-b border-gray-100 bg-slate-50/80">
+          <td colSpan={5} className="px-4 py-4">
+            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-gray-900">
+                  Properties by {user.name || 'user'} ({listings.length})
+                </p>
+                <p className="text-xs text-gray-500">Admin can delete any listing</p>
+              </div>
+              {listings.length === 0 ? (
+                <p className="px-4 py-8 text-sm text-gray-500 text-center">No properties listed by this user.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {listings.map((listing) => (
+                    <li
+                      key={listing.id}
+                      className="px-4 py-3 flex flex-wrap items-center gap-3 justify-between"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-gray-900 truncate">{listing.location}</p>
+                        <p className="text-sm text-gray-500">
+                          {listing.propertyType} · {formatPrice(listing.totalPrice)} · Listed{' '}
+                          {formatDate(listing.publishedAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          to={`/browse-property/${listing.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
+                        >
+                          <ExternalLink size={12} />
+                          View
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={deletingId === listing.id}
+                          onClick={() => void handleDeleteListing(listing.id, listing.location)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {deletingId === listing.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -393,9 +490,31 @@ function PropertyListingRow({
   onToggle: () => void;
   onReviewed: () => void;
 }) {
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const verifiedCount = PROPERTY_VERIFICATION_LABELS.filter(
     (item) => listing.verifications[item.key],
   ).length;
+
+  const handleDelete = async () => {
+    const ok = window.confirm(
+      `Delete this property permanently?\n\n${listing.location}\n\nThis cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setDeleteError('');
+    const result = await deleteAdminListing(listing.id);
+    setDeleting(false);
+
+    if (!result.ok) {
+      setDeleteError(result.error);
+      return;
+    }
+
+    notifyDataRefresh();
+    onReviewed();
+  };
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -406,6 +525,7 @@ function PropertyListingRow({
             {listing.propertyType} · {listing.sellerName} · {formatPrice(listing.totalPrice)}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">Listed {formatDate(listing.publishedAt)}</p>
+          {deleteError && <p className="text-xs text-red-600 mt-1">{deleteError}</p>}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -429,6 +549,16 @@ function PropertyListingRow({
           >
             <ExternalLink size={14} />
           </Link>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={() => void handleDelete()}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            title="Delete listing"
+          >
+            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Delete
+          </button>
           <button
             type="button"
             onClick={onToggle}
@@ -455,6 +585,7 @@ export function VerificationDashboardPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<PropertyFilter>('all');
   const [expandedListingId, setExpandedListingId] = useState<string | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [auditListingId, setAuditListingId] = useState('');
   const [auditIp, setAuditIp] = useState('');
 
@@ -609,7 +740,8 @@ export function VerificationDashboardPage() {
             <div className="mb-4">
               <h1 className="text-2xl font-bold text-gray-900">User profiles</h1>
               <p className="text-sm text-gray-600 mt-1">
-                {users.length} user{users.length === 1 ? '' : 's'} · {verifiedUsersCount} fully KYC verified (Aadhar + PAN)
+                {users.length} user{users.length === 1 ? '' : 's'} · {verifiedUsersCount} fully KYC
+                verified (Aadhar + PAN) · open a user to see and delete their properties
               </p>
             </div>
 
@@ -631,14 +763,23 @@ export function VerificationDashboardPage() {
                       <tr className="text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                         <th className="px-4 py-3">User</th>
                         <th className="px-4 py-3">Contact</th>
-                        <th className="px-4 py-3">Roles</th>
+                        <th className="px-4 py-3">Roles / properties</th>
                         <th className="px-4 py-3 text-center">Aadhar verification</th>
                         <th className="px-4 py-3 text-center">PAN verification</th>
                       </tr>
                     </thead>
                     <tbody>
                       {users.map((user) => (
-                        <UserProfileRow key={user.id} user={user} onReviewed={loadAll} />
+                        <UserProfileRow
+                          key={user.id}
+                          user={user}
+                          listings={listings.filter((listing) => listing.sellerId === user.id)}
+                          expanded={expandedUserId === user.id}
+                          onToggle={() =>
+                            setExpandedUserId((current) => (current === user.id ? null : user.id))
+                          }
+                          onReviewed={loadAll}
+                        />
                       ))}
                     </tbody>
                   </table>
