@@ -96,8 +96,37 @@ export type PropertyListing = {
   facing?: string;
   parking?: number;
   possession?: string;
+  /** Month name when Under Construction */
+  availableFromMonth?: string;
+  /** Year when Under Construction */
+  availableFromYear?: string;
+  /** Age band when Ready to Move */
+  ageOfConstruction?: string;
+  /** Optional booking / token amount (₹) */
+  bookingTokenAmount?: number;
+  priceNegotiable?: boolean;
   cornerPlot?: boolean;
   boundaryWall?: boolean;
+  /** Plot / property number (e.g. Plot 42, A-12) */
+  propertyNumber?: string;
+  /** Plot width (for villa / plot) */
+  plotWidth?: number;
+  /** Plot length (for villa / plot) */
+  plotLength?: number;
+  /** Plot / land area in sq.ft (villa keeps this separate from built-up areaSqFt) */
+  plotAreaSqFt?: number;
+  /** Floors allowed for construction (villa) */
+  floorsAllowed?: string;
+  /** Project or society name */
+  projectName?: string;
+  /** Carpet area in sq.ft */
+  carpetArea?: number;
+  /** Super area in sq.ft (builder floor / penthouse) */
+  superArea?: number;
+  /** Private terrace (penthouse) */
+  privateTerrace?: boolean;
+  /** Monthly maintenance charges (optional) */
+  maintenanceCharges?: number;
   plotOpenSides?: string;
   plotRoadWidthMeters?: number;
   plotConstructionDone?: boolean;
@@ -274,8 +303,23 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     facing: raw.facing,
     parking: raw.parking,
     possession: raw.possession,
+    availableFromMonth: raw.availableFromMonth?.trim() || undefined,
+    availableFromYear: raw.availableFromYear?.trim() || undefined,
+    ageOfConstruction: raw.ageOfConstruction?.trim() || undefined,
+    bookingTokenAmount: raw.bookingTokenAmount,
+    priceNegotiable: raw.priceNegotiable,
     cornerPlot: raw.cornerPlot,
     boundaryWall: raw.boundaryWall,
+    propertyNumber: raw.propertyNumber?.trim() || undefined,
+    plotWidth: raw.plotWidth,
+    plotLength: raw.plotLength,
+    plotAreaSqFt: raw.plotAreaSqFt,
+    floorsAllowed: raw.floorsAllowed?.trim() || undefined,
+    projectName: raw.projectName?.trim() || undefined,
+    carpetArea: raw.carpetArea,
+    superArea: raw.superArea,
+    privateTerrace: raw.privateTerrace,
+    maintenanceCharges: raw.maintenanceCharges,
     plotOpenSides: raw.plotOpenSides,
     plotRoadWidthMeters: raw.plotRoadWidthMeters,
     plotConstructionDone: raw.plotConstructionDone,

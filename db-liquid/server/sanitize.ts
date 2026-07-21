@@ -92,23 +92,27 @@ export function sanitizeListing(listing: Listing, viewerId?: string): Listing {
     chatBuyerName: chatAllowed ? listing.chatBuyerName : '',
     chatBuyerPhone: chatAllowed ? listing.chatBuyerPhone : '',
     chatMessages: chatAllowed ? listing.chatMessages : [],
+    // Never ship inline base64 — it turns /api/listings into multi-MB payloads.
+    // Signed URLs are attached later from storageKey only.
     verificationDocuments: isSeller
       ? listing.verificationDocuments?.map((doc) => ({
           ...doc,
-          dataUrl: doc.storageKey ? '' : doc.dataUrl || '',
+          dataUrl: '',
+          url: undefined,
         }))
       : listing.verificationDocuments?.map((doc) => {
           const { storageKey: _key, url: _url, ...rest } = doc;
           return { ...rest, dataUrl: '', storageKey: undefined, url: undefined };
         }),
-    // Keep storageKey so routes can attach signed URLs for all viewers; strip key after signing for non-sellers.
     propertyPhotos: listing.propertyPhotos?.map((photo) => ({
       ...photo,
-      dataUrl: photo.storageKey ? '' : photo.dataUrl || '',
+      dataUrl: '',
+      url: undefined,
     })),
     propertyVideos: listing.propertyVideos?.map((video) => ({
       ...video,
-      dataUrl: video.storageKey ? '' : video.dataUrl || '',
+      dataUrl: '',
+      url: undefined,
     })),
   };
 

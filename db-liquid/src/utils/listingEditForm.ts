@@ -1,4 +1,11 @@
-import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
+import {
+  isPlotType,
+  isResidentialUnitType,
+  isCommercialUnitType,
+  isVillaType,
+  isBuilderFloorType,
+  isPenthouseType,
+} from '../data/propertyTypes';
 import type { PropertyListing, PropertyPhoto, PropertyVideo } from '../types/listing';
 import { getListingStatus } from '../types/listing';
 import {
@@ -22,18 +29,30 @@ export type ListingEditFormState = {
   hasStudyRoom: boolean;
   builtUpArea: string;
   landSqFt: string;
+  propertyNumber: string;
   plotWidth: string;
   plotLength: string;
+  floorsAllowed: string;
+  projectName: string;
+  carpetArea: string;
+  superArea: string;
+  maintenanceCharges: string;
   furnishing: string;
   facing: string;
   parking: number;
   possession: string;
+  availableFromMonth: string;
+  availableFromYear: string;
+  ageOfConstruction: string;
+  bookingTokenAmount: string;
+  priceNegotiable: boolean;
   cornerPlot: boolean;
   boundaryWall: boolean | undefined;
   plotOpenSides: string;
   plotRoadWidthMeters: string;
   plotConstructionDone: boolean | undefined;
   plotGatedColony: boolean | undefined;
+  privateTerrace: boolean;
   assetStatus: string;
   paymentComplete: boolean;
   paymentRemaining: boolean;
@@ -69,7 +88,6 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
   const bathMatch = summary.match(/(\d+)\s*bath/i);
   const balconyMatch = summary.match(/(\d+)\s*balcony/i);
   const kitchenMatch = summary.match(/(\d+)\s*kitchen/i);
-  const plotDimMatch = summary.match(/\((\d+)\s*×\s*(\d+)\s*ft\)/i);
   const landMatch = summary.match(/([\d,]+)\s*sq\.ft/i);
 
   const { state: parsedState } = getListingCityState(listing);
@@ -90,13 +108,28 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
     builtUpArea: isPlot ? '' : String(listing.areaSqFt || ''),
     landSqFt: isPlot
       ? String(listing.areaSqFt || landMatch?.[1]?.replace(/,/g, '') || '')
-      : '',
-    plotWidth: plotDimMatch ? plotDimMatch[1] : '',
-    plotLength: plotDimMatch ? plotDimMatch[2] : '',
+      : listing.plotAreaSqFt != null
+        ? String(listing.plotAreaSqFt)
+        : '',
+    propertyNumber: listing.propertyNumber || '',
+    plotWidth: listing.plotWidth != null ? String(listing.plotWidth) : '',
+    plotLength: listing.plotLength != null ? String(listing.plotLength) : '',
+    floorsAllowed: listing.floorsAllowed || '',
+    projectName: listing.projectName || '',
+    carpetArea: listing.carpetArea != null ? String(listing.carpetArea) : '',
+    superArea: listing.superArea != null ? String(listing.superArea) : '',
+    maintenanceCharges:
+      listing.maintenanceCharges != null ? String(listing.maintenanceCharges) : '',
     furnishing: listing.furnishing || '',
     facing: listing.facing || '',
     parking: listing.parking ?? 1,
     possession: listing.possession || '',
+    availableFromMonth: listing.availableFromMonth || '',
+    availableFromYear: listing.availableFromYear || '',
+    ageOfConstruction: listing.ageOfConstruction || '',
+    bookingTokenAmount:
+      listing.bookingTokenAmount != null ? String(listing.bookingTokenAmount) : '',
+    priceNegotiable: listing.priceNegotiable === true,
     cornerPlot: listing.cornerPlot ?? false,
     boundaryWall: listing.boundaryWall,
     plotOpenSides: listing.plotOpenSides || '',
@@ -105,6 +138,7 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
       : '',
     plotConstructionDone: listing.plotConstructionDone,
     plotGatedColony: listing.plotGatedColony,
+    privateTerrace: listing.privateTerrace === true,
     assetStatus: listing.assetStatus || '',
     paymentComplete: listing.paymentComplete === true,
     paymentRemaining: listing.paymentRemaining === true,
@@ -136,7 +170,10 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
   const isPlot = isPlotType(listing.propertyType);
   const isResidential = isResidentialUnitType(listing.propertyType);
   const isCommercialUnit = isCommercialUnitType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialUnit;
+  const isVilla = isVillaType(listing.propertyType);
+  const isBuilderFloor = isBuilderFloorType(listing.propertyType);
+  const isPenthouse = isPenthouseType(listing.propertyType);
+  const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
 
   const location = buildListingLocation(form.locality, form.stateName);
   const areaSqFt = isPlot
@@ -157,12 +194,22 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     hasStudyRoom: form.hasStudyRoom,
     builtUpArea: form.builtUpArea,
     landSqFt: form.landSqFt,
-    plotWidth: form.plotWidth,
-    plotLength: form.plotLength,
+    propertyNumber: form.propertyNumber || undefined,
+    floorsAllowed: form.floorsAllowed || undefined,
+    projectName: form.projectName || undefined,
+    carpetArea: form.carpetArea || undefined,
+    superArea: form.superArea || undefined,
+    privateTerrace: isPenthouse ? form.privateTerrace : undefined,
+    maintenanceCharges: form.maintenanceCharges || undefined,
     furnishing: form.furnishing || undefined,
     facing: form.facing || undefined,
     parking: form.parking || undefined,
     possession: form.possession || undefined,
+    availableFromMonth: form.availableFromMonth || undefined,
+    availableFromYear: form.availableFromYear || undefined,
+    ageOfConstruction: form.ageOfConstruction || undefined,
+    bookingTokenAmount: form.bookingTokenAmount || undefined,
+    priceNegotiable: isVilla ? form.priceNegotiable : undefined,
     cornerPlot: form.cornerPlot,
     boundaryWall: form.boundaryWall === true,
     plotOpenSides: form.plotOpenSides || undefined,
@@ -199,13 +246,16 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     address: form.address.trim(),
     state: form.stateName.trim(),
     pincode: form.pincode.trim() || undefined,
-    floor: showFloorFields && form.floor.trim() ? form.floor.trim() : isCommercialUnit && form.floor.trim() ? form.floor.trim() : undefined,
+    floor:
+      (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+      form.floor.trim()
+        ? form.floor.trim()
+        : undefined,
     totalFloors:
-      showFloorFields && form.totalFloors.trim()
+      (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+      form.totalFloors.trim()
         ? form.totalFloors.trim()
-        : isCommercialUnit && form.totalFloors.trim()
-          ? form.totalFloors.trim()
-          : undefined,
+        : undefined,
     areaSqFt,
     detailsSummary,
     description,
@@ -215,9 +265,41 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     facing: form.facing || undefined,
     parking: form.parking || undefined,
     possession: form.possession || undefined,
-    cornerPlot: isPlot ? form.cornerPlot : undefined,
+    availableFromMonth:
+      isVilla && form.possession === 'Under Construction' && form.availableFromMonth
+        ? form.availableFromMonth
+        : undefined,
+    availableFromYear:
+      isVilla && form.possession === 'Under Construction' && form.availableFromYear
+        ? form.availableFromYear
+        : undefined,
+    ageOfConstruction:
+      isVilla && form.possession === 'Ready to Move' && form.ageOfConstruction
+        ? form.ageOfConstruction
+        : undefined,
+    bookingTokenAmount:
+      isVilla && form.possession === 'Ready to Move' && form.bookingTokenAmount.trim()
+        ? Number(form.bookingTokenAmount)
+        : undefined,
+    priceNegotiable: isVilla ? form.priceNegotiable : undefined,
+    cornerPlot: isPlot || isVilla ? form.cornerPlot : undefined,
     boundaryWall: isPlot && form.boundaryWall === true ? true : undefined,
-    plotOpenSides: isPlot && form.plotOpenSides ? form.plotOpenSides : undefined,
+    propertyNumber: isPlot && form.propertyNumber.trim() ? form.propertyNumber.trim() : undefined,
+    plotAreaSqFt: isVilla && form.landSqFt.trim() ? Number(form.landSqFt) : undefined,
+    floorsAllowed:
+      (isVilla || isBuilderFloor) && form.floorsAllowed.trim()
+        ? form.floorsAllowed.trim()
+        : undefined,
+    projectName: !isPlot && form.projectName.trim() ? form.projectName.trim() : undefined,
+    carpetArea: !isPlot && form.carpetArea.trim() ? Number(form.carpetArea) : undefined,
+    superArea:
+      (isBuilderFloor || isPenthouse) && form.superArea.trim()
+        ? Number(form.superArea)
+        : undefined,
+    privateTerrace: isPenthouse ? form.privateTerrace : undefined,
+    maintenanceCharges:
+      !isPlot && form.maintenanceCharges.trim() ? Number(form.maintenanceCharges) : undefined,
+    plotOpenSides: (isPlot || isVilla) && form.plotOpenSides ? form.plotOpenSides : undefined,
     plotRoadWidthMeters:
       isPlot && form.plotRoadWidthMeters.trim() ? Number(form.plotRoadWidthMeters) : undefined,
     plotConstructionDone: isPlot ? form.plotConstructionDone : undefined,
@@ -263,8 +345,8 @@ export function validateEditForm(listing: PropertyListing, form: ListingEditForm
   const isResidential = isResidentialUnitType(listing.propertyType);
 
   if (isPlot) {
-    if (!form.landSqFt.trim() || !form.plotWidth.trim() || !form.plotLength.trim()) {
-      return 'Enter plot area and dimensions.';
+    if (!form.landSqFt.trim()) {
+      return 'Enter plot area and tap Apply.';
     }
   } else if (isCommercialUnitType(listing.propertyType)) {
     if (!form.builtUpArea.trim()) return 'Enter built-up area.';

@@ -14,7 +14,11 @@ export async function connectMongo(): Promise<Db> {
     throw new Error('Missing MONGODB_URI_ATLAS in .env');
   }
 
-  client = new MongoClient(URI);
+  client = new MongoClient(URI, {
+    serverSelectionTimeoutMS: 10_000,
+    connectTimeoutMS: 10_000,
+    maxPoolSize: 20,
+  });
   await client.connect();
   db = client.db(DB_NAME);
   return db;

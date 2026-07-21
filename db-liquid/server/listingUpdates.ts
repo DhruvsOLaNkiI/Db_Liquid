@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto';
+import { logger } from './logger';
 import { mergeListingsForSave } from './mergeListings';
+import { parseDataUrlOrBase64, putPrivateObject } from './objectStorage';
 import type { Listing } from './sanitize';
 
 export class ListingUpdateError extends Error {
@@ -59,6 +62,67 @@ export function stripVerificationPayloads<T extends Listing>(listings: T[]): T[]
     propertyPhotos: stripMediaPayloads(listing.propertyPhotos),
     propertyVideos: stripMediaPayloads(listing.propertyVideos),
   }));
+}
+
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+};
+
+/**
+ * Move any remaining inline base64 media into object storage so listing
+ * documents (and /api/listings payloads) stay small. Content-hash keys make
+ * re-syncs of the same media idempotent.
+ */
+async function externalizeMediaArray<
+  T extends { storageKey?: string; dataUrl?: string; mimeType?: string },
+>(items: T[] | undefined, purpose: string): Promise<T[] | undefined> {
+  if (!items?.length) return items;
+  const next: T[] = [];
+  for (const item of items) {
+    if (item?.storageKey || typeof item?.dataUrl !== 'string' || !item.dataUrl.startsWith('data:')) {
+      next.push(item);
+      continue;
+    }
+    try {
+      const parsed = parseDataUrlOrBase64(item.dataUrl);
+      if (!parsed.buffer.length) {
+        next.push(item);
+        continue;
+      }
+      const mimeType = parsed.mimeType || item.mimeType || 'image/jpeg';
+      const hash = createHash('sha256').update(parsed.buffer).digest('hex').slice(0, 32);
+      const key = `${purpose}/${hash}${EXT_BY_MIME[mimeType] ?? '.jpg'}`;
+      const stored = await putPrivateObject({
+        buffer: parsed.buffer,
+        fileName: key,
+        mimeType,
+        purpose,
+        key,
+      });
+      next.push({ ...item, storageKey: stored.storageKey, mimeType, dataUrl: '' });
+    } catch (error) {
+      // Keep the inline payload rather than losing the media on storage errors,
+      // but log it — silent failures let multi-MB base64 pile up in MongoDB.
+      logger.error({ err: error, purpose }, 'externalize-inline-media failed; keeping inline payload');
+      next.push(item);
+    }
+  }
+  return next;
+}
+
+export async function externalizeInlineMedia<T extends Listing>(listings: T[]): Promise<T[]> {
+  return Promise.all(
+    listings.map(async (listing) => ({
+      ...listing,
+      propertyPhotos: await externalizeMediaArray(listing.propertyPhotos, 'photo'),
+      propertyVideos: await externalizeMediaArray(listing.propertyVideos, 'video'),
+      verificationDocuments: await externalizeMediaArray(listing.verificationDocuments, 'kyc'),
+    })),
+  );
 }
 
 /** Authenticated user sync — only create/update listings this user may write. */

@@ -7,7 +7,14 @@ import { SellerPhotosStep } from '../components/listing/SellerPhotosStep';
 import { SellerPropertyDetailsStep } from '../components/listing/SellerPropertyDetailsStep';
 import { useAuth } from '../context/AuthContext';
 import { useListings } from '../context/ListingsContext';
-import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
+import {
+  isPlotType,
+  isResidentialUnitType,
+  isCommercialUnitType,
+  isVillaType,
+  isBuilderFloorType,
+  isPenthouseType,
+} from '../data/propertyTypes';
 import { formatPrice, getTotalPrice } from '../types/listing';
 import {
   canEditListing,
@@ -96,7 +103,10 @@ export function EditListingPage() {
   const isPlot = isPlotType(listing.propertyType);
   const isResidential = isResidentialUnitType(listing.propertyType);
   const isCommercialUnit = isCommercialUnitType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialUnit;
+  const isVilla = isVillaType(listing.propertyType);
+  const isBuilderFloor = isBuilderFloorType(listing.propertyType);
+  const isPenthouse = isPenthouseType(listing.propertyType);
+  const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
   const totalPrice = getTotalPrice(form.pricePerSqFt, isPlot ? Number(form.landSqFt) : Number(form.builtUpArea));
 
   const patchForm = (patch: Partial<ListingEditFormState>) => {
@@ -183,18 +193,21 @@ export function EditListingPage() {
               <SellerLocalityStep
                 propertyType={listing.propertyType}
                 showFloorFields={showFloorFields}
+                showProjectName={!isPlot}
                 locality={form.locality}
                 address={form.address}
                 state={form.stateName}
                 pincode={form.pincode}
                 floor={form.floor}
                 totalFloors={form.totalFloors}
+                projectName={form.projectName}
                 onLocalityChange={(v) => patchForm({ locality: v })}
                 onAddressChange={(v) => patchForm({ address: v })}
                 onStateChange={(v) => patchForm({ stateName: v })}
                 onPincodeChange={(v) => patchForm({ pincode: v })}
                 onFloorChange={(v) => patchForm({ floor: v })}
                 onTotalFloorsChange={(v) => patchForm({ totalFloors: v })}
+                onProjectNameChange={(v) => patchForm({ projectName: v })}
               />
             )}
 
@@ -203,6 +216,9 @@ export function EditListingPage() {
                 isPlot={isPlot}
                 isResidential={isResidential}
                 isCommercialUnit={isCommercialUnit}
+                isVilla={isVilla}
+                isBuilderFloor={isBuilderFloor}
+                isPenthouse={isPenthouse}
                 bedrooms={form.bedrooms}
                 washrooms={form.washrooms}
                 balconies={form.balconies}
@@ -211,18 +227,27 @@ export function EditListingPage() {
                 hasStudyRoom={form.hasStudyRoom}
                 builtUpArea={form.builtUpArea}
                 landSqFt={form.landSqFt}
-                plotWidth={form.plotWidth}
-                plotLength={form.plotLength}
+                propertyNumber={form.propertyNumber}
+                floorsAllowed={form.floorsAllowed}
+                carpetArea={form.carpetArea}
+                superArea={form.superArea}
+                maintenanceCharges={form.maintenanceCharges}
                 furnishing={form.furnishing}
                 facing={form.facing}
                 parking={form.parking}
                 possession={form.possession}
+                availableFromMonth={form.availableFromMonth}
+                availableFromYear={form.availableFromYear}
+                ageOfConstruction={form.ageOfConstruction}
+                bookingTokenAmount={form.bookingTokenAmount}
+                priceNegotiable={form.priceNegotiable}
                 cornerPlot={form.cornerPlot}
                 boundaryWall={form.boundaryWall}
                 plotOpenSides={form.plotOpenSides}
                 plotRoadWidthMeters={form.plotRoadWidthMeters}
                 plotConstructionDone={form.plotConstructionDone}
                 plotGatedColony={form.plotGatedColony}
+                privateTerrace={form.privateTerrace}
                 assetStatus={form.assetStatus}
                 paymentComplete={form.paymentComplete}
                 paymentRemaining={form.paymentRemaining}
@@ -250,18 +275,27 @@ export function EditListingPage() {
                 onHasStudyRoomChange={(v) => patchForm({ hasStudyRoom: v })}
                 onBuiltUpAreaChange={(v) => patchForm({ builtUpArea: v })}
                 onLandSqFtChange={(v) => patchForm({ landSqFt: v })}
-                onPlotWidthChange={(v) => patchForm({ plotWidth: v })}
-                onPlotLengthChange={(v) => patchForm({ plotLength: v })}
+                onPropertyNumberChange={(v) => patchForm({ propertyNumber: v })}
+                onFloorsAllowedChange={(v) => patchForm({ floorsAllowed: v })}
+                onCarpetAreaChange={(v) => patchForm({ carpetArea: v })}
+                onSuperAreaChange={(v) => patchForm({ superArea: v })}
+                onMaintenanceChargesChange={(v) => patchForm({ maintenanceCharges: v })}
                 onFurnishingChange={(v) => patchForm({ furnishing: v })}
                 onFacingChange={(v) => patchForm({ facing: v })}
                 onParkingChange={(v) => patchForm({ parking: v })}
                 onPossessionChange={(v) => patchForm({ possession: v })}
+                onAvailableFromMonthChange={(v) => patchForm({ availableFromMonth: v })}
+                onAvailableFromYearChange={(v) => patchForm({ availableFromYear: v })}
+                onAgeOfConstructionChange={(v) => patchForm({ ageOfConstruction: v })}
+                onBookingTokenAmountChange={(v) => patchForm({ bookingTokenAmount: v })}
+                onPriceNegotiableChange={(v) => patchForm({ priceNegotiable: v })}
                 onCornerPlotChange={(v) => patchForm({ cornerPlot: v })}
                 onBoundaryWallChange={(v) => patchForm({ boundaryWall: v })}
                 onPlotOpenSidesChange={(v) => patchForm({ plotOpenSides: v })}
                 onPlotRoadWidthMetersChange={(v) => patchForm({ plotRoadWidthMeters: v })}
                 onPlotConstructionDoneChange={(v) => patchForm({ plotConstructionDone: v })}
                 onPlotGatedColonyChange={(v) => patchForm({ plotGatedColony: v })}
+                onPrivateTerraceChange={(v) => patchForm({ privateTerrace: v })}
                 onAssetStatusChange={(v) => patchForm({ assetStatus: v })}
                 onPaymentCompleteChange={(v) =>
                   patchForm({ paymentComplete: v, paymentRemaining: v ? false : form.paymentRemaining })

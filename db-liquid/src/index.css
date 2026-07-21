@@ -102,13 +102,32 @@ body {
 
 .dark-theme-page input,
 .dark-theme-page select,
-.dark-theme-page textarea {
+.dark-theme-page textarea,
+.dark-theme-page .form-select-trigger {
   color: #ffffff !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .dark-theme-page input::placeholder {
   color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark-theme-page [data-form-select-menu] {
+  background-color: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark-theme-page [data-form-select-menu] button {
+  color: #e5e7eb !important;
+}
+
+.dark-theme-page [data-form-select-menu] button:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark-theme-page [data-form-select-menu] button[aria-selected='true'] {
+  background-color: rgba(255, 122, 0, 0.22) !important;
+  color: #ffffff !important;
 }
 
 /* Glassmorphism cards for property pages */

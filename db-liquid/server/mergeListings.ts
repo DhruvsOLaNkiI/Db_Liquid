@@ -3,6 +3,31 @@ import { mergeViewAnalytics } from './listingViews';
 
 type Bid = Listing['bids'][number];
 
+type MediaItem = { id?: string; dataUrl?: string; storageKey?: string; url?: string };
+
+/**
+ * Stale clients can echo back multi-MB inline base64 for media that was
+ * already externalized to object storage. Keep the externalized copy so the
+ * DB (and /api/listings payload) stays small.
+ */
+function reconcileMediaArray<T extends MediaItem>(
+  existingItems: T[] | undefined,
+  incomingItems: T[] | undefined,
+): T[] | undefined {
+  if (!incomingItems) return existingItems;
+  if (!existingItems?.length) return incomingItems;
+
+  const existingById = new Map(
+    existingItems.filter((item) => item?.id).map((item) => [item.id, item]),
+  );
+
+  return incomingItems.map((item) => {
+    if (!item?.id || item.storageKey) return item;
+    const previous = existingById.get(item.id);
+    return previous?.storageKey ? previous : item;
+  });
+}
+
 function isAcceptedBuyer(listing: Listing, viewerId?: string) {
   if (!viewerId || !listing.acceptedBidId) return false;
   const accepted = listing.bids.find((bid) => bid.id === listing.acceptedBidId);
@@ -49,7 +74,12 @@ function mergeListing(existing: Listing, incoming: Listing, viewerId?: string): 
             ? null
             : existing.acceptedAt,
       bids: mergeBids(existing.bids, incoming.bids, viewerId, true),
-      verificationDocuments: incoming.verificationDocuments ?? existing.verificationDocuments,
+      propertyPhotos: reconcileMediaArray(existing.propertyPhotos, incoming.propertyPhotos),
+      propertyVideos: reconcileMediaArray(existing.propertyVideos, incoming.propertyVideos),
+      verificationDocuments: reconcileMediaArray(
+        existing.verificationDocuments,
+        incoming.verificationDocuments,
+      ),
       lastDeclinedBuyerUserId:
         incoming.lastDeclinedBuyerUserId ?? existing.lastDeclinedBuyerUserId,
       lastDeclinedAt: incoming.lastDeclinedAt ?? existing.lastDeclinedAt,

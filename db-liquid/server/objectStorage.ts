@@ -67,11 +67,13 @@ export async function putPrivateObject(input: {
   fileName: string;
   mimeType: string;
   purpose?: string;
+  /** Deterministic key (e.g. content hash) to dedupe repeated uploads. */
+  key?: string;
 }): Promise<StoredObjectMeta> {
   const safePurpose = (input.purpose || 'kyc').replace(/[^a-z0-9_-]/gi, '');
   const id = randomUUID();
   const ext = extensionFor(input.mimeType, input.fileName);
-  const storageKey = `${safePurpose}/${id}${ext}`;
+  const storageKey = input.key ?? `${safePurpose}/${id}${ext}`;
 
   if (useS3()) {
     const client = getS3Client();

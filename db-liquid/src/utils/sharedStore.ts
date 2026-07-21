@@ -155,13 +155,31 @@ async function apiSyncListings(listings: PropertyListing[]) {
   // Only send listings this user can write. Other sellers' sanitized copies in the
   // local cache used to make the server reject the entire publish with
   // "Cannot modify another seller's listing."
-  const payload = userId
+  const owned = userId
     ? listings.filter(
         (listing) =>
           listing.sellerId === userId ||
           listing.bids.some((bid) => bid.bidderUserId === userId),
       )
     : listings;
+
+  // Never echo multi-MB inline base64 back to the server — that re-pollutes MongoDB
+  // and makes every page load take ~40s.
+  const payload = owned.map((listing) => ({
+    ...listing,
+    propertyPhotos: listing.propertyPhotos?.map((p) => ({
+      ...p,
+      dataUrl: p.storageKey ? '' : (p.dataUrl?.startsWith('data:') ? '' : p.dataUrl),
+    })),
+    propertyVideos: listing.propertyVideos?.map((v) => ({
+      ...v,
+      dataUrl: v.storageKey ? '' : (v.dataUrl?.startsWith('data:') ? '' : v.dataUrl),
+    })),
+    verificationDocuments: listing.verificationDocuments?.map((d) => ({
+      ...d,
+      dataUrl: d.storageKey ? '' : (d.dataUrl?.startsWith('data:') ? '' : d.dataUrl),
+    })),
+  }));
 
   const res = await apiFetch('/api/v1/listings/sync', {
     method: 'PUT',
@@ -314,8 +332,11 @@ export async function bootstrapSharedStore(options?: {
     return;
   }
 
-  const apiUsers = includeUsers ? await apiGetUsers() : [];
-  const apiListings = includeListings ? await apiGetListings() : [];
+  // Fetch in parallel — sequential awaits doubled first-paint time.
+  const [apiUsers, apiListings] = await Promise.all([
+    includeUsers ? apiGetUsers() : Promise.resolve([]),
+    includeListings ? apiGetListings() : Promise.resolve([]),
+  ]);
 
   const localUsers = includeUsers ? readLocalUsers() : [];
   const localListings = includeListings ? readLocalListings() : [];

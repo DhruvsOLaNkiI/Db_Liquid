@@ -12,7 +12,14 @@ import {
 } from '../components/listing/SellerVerificationStep';
 import { PropertyTypeSelect } from '../components/PropertyTypeSelect';
 import { useListings } from '../context/ListingsContext';
-import { isPlotType, isResidentialUnitType, isCommercialUnitType } from '../data/propertyTypes';
+import {
+  isPlotType,
+  isResidentialUnitType,
+  isCommercialUnitType,
+  isVillaType,
+  isBuilderFloorType,
+  isPenthouseType,
+} from '../data/propertyTypes';
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, PropertyVideo, VerificationDocType, VerificationDocument } from '../types/listing';
 import { useAuth } from '../context/AuthContext';
@@ -69,8 +76,12 @@ export function ListYourPropertyPage() {
   const [hasStudyRoom, setHasStudyRoom] = useState(() => d('hasStudyRoom', false));
   const [builtUpArea, setBuiltUpArea] = useState(() => d('builtUpArea', ''));
   const [landSqFt, setLandSqFt] = useState(() => d('landSqFt', ''));
-  const [plotWidth, setPlotWidth] = useState(() => d('plotWidth', ''));
-  const [plotLength, setPlotLength] = useState(() => d('plotLength', ''));
+  const [propertyNumber, setPropertyNumber] = useState(() => d('propertyNumber', ''));
+  const [floorsAllowed, setFloorsAllowed] = useState(() => d('floorsAllowed', ''));
+  const [projectName, setProjectName] = useState(() => d('projectName', ''));
+  const [carpetArea, setCarpetArea] = useState(() => d('carpetArea', ''));
+  const [superArea, setSuperArea] = useState(() => d('superArea', ''));
+  const [maintenanceCharges, setMaintenanceCharges] = useState(() => d('maintenanceCharges', ''));
   const [verifications, setVerifications] = useState<ListingVerifications>(() =>
     d('verifications', {
       titleVerified: false,
@@ -92,6 +103,11 @@ export function ListYourPropertyPage() {
   const [facing, setFacing] = useState(() => d('facing', ''));
   const [parking, setParking] = useState(() => d('parking', 1));
   const [possession, setPossession] = useState(() => d('possession', ''));
+  const [availableFromMonth, setAvailableFromMonth] = useState(() => d('availableFromMonth', ''));
+  const [availableFromYear, setAvailableFromYear] = useState(() => d('availableFromYear', ''));
+  const [ageOfConstruction, setAgeOfConstruction] = useState(() => d('ageOfConstruction', ''));
+  const [bookingTokenAmount, setBookingTokenAmount] = useState(() => d('bookingTokenAmount', ''));
+  const [priceNegotiable, setPriceNegotiable] = useState(() => d('priceNegotiable', false));
   const [cornerPlot, setCornerPlot] = useState(() => d('cornerPlot', false));
   const [boundaryWall, setBoundaryWall] = useState<boolean | undefined>(() =>
     d('boundaryWall', undefined),
@@ -106,6 +122,7 @@ export function ListYourPropertyPage() {
   const [plotGatedColony, setPlotGatedColony] = useState<boolean | undefined>(() =>
     d('plotGatedColony', undefined),
   );
+  const [privateTerrace, setPrivateTerrace] = useState(() => d('privateTerrace', false));
   const [assetStatus, setAssetStatus] = useState(() => d('assetStatus', ''));
   const [paymentComplete, setPaymentComplete] = useState(() => d('paymentComplete', false));
   const [paymentRemaining, setPaymentRemaining] = useState(() => d('paymentRemaining', false));
@@ -159,8 +176,12 @@ export function ListYourPropertyPage() {
     hasStudyRoom,
     builtUpArea,
     landSqFt,
-    plotWidth,
-    plotLength,
+    propertyNumber,
+    floorsAllowed,
+    projectName,
+    carpetArea,
+    superArea,
+    maintenanceCharges,
     verifications,
     verificationUploads: Object.fromEntries(
       Object.entries(verificationUploads).map(([key, upload]) => [
@@ -185,12 +206,18 @@ export function ListYourPropertyPage() {
     facing,
     parking,
     possession,
+    availableFromMonth,
+    availableFromYear,
+    ageOfConstruction,
+    bookingTokenAmount,
+    priceNegotiable,
     cornerPlot,
     boundaryWall,
     plotOpenSides,
     plotRoadWidthMeters,
     plotConstructionDone,
     plotGatedColony,
+    privateTerrace,
     assetStatus,
     paymentComplete,
     paymentRemaining,
@@ -229,7 +256,15 @@ export function ListYourPropertyPage() {
   const isPlot = isPlotType(propertyType);
   const isResidential = isResidentialUnitType(propertyType);
   const isCommercialUnit = isCommercialUnitType(propertyType);
-  const showFloorFields = !isPlot && !isCommercialUnit && propertyType.length > 0;
+  const isVilla = isVillaType(propertyType);
+  const isBuilderFloor = isBuilderFloorType(propertyType);
+  const isPenthouse = isPenthouseType(propertyType);
+  const showFloorFields =
+    !isPlot &&
+    !isCommercialUnit &&
+    !isBuilderFloor &&
+    !isPenthouse &&
+    propertyType.length > 0;
   const location = locality.trim() && stateName.trim() ? buildListingLocation(locality, stateName) : '';
   const areaSqFt = getAreaSqFt(isPlot, builtUpArea, landSqFt);
   const totalPrice = getTotalPrice(pricePerSqFt, areaSqFt);
@@ -246,12 +281,22 @@ export function ListYourPropertyPage() {
     hasStudyRoom,
     builtUpArea,
     landSqFt,
-    plotWidth,
-    plotLength,
+    propertyNumber: propertyNumber || undefined,
+    floorsAllowed: floorsAllowed || undefined,
+    projectName: projectName || undefined,
+    carpetArea: carpetArea || undefined,
+    superArea: superArea || undefined,
+    privateTerrace: isPenthouse ? privateTerrace : undefined,
+    maintenanceCharges: maintenanceCharges || undefined,
     furnishing: furnishing || undefined,
     facing: facing || undefined,
     parking: parking || undefined,
     possession: possession || undefined,
+    availableFromMonth: availableFromMonth || undefined,
+    availableFromYear: availableFromYear || undefined,
+    ageOfConstruction: ageOfConstruction || undefined,
+    bookingTokenAmount: bookingTokenAmount || undefined,
+    priceNegotiable: isVilla ? priceNegotiable : undefined,
     cornerPlot,
     boundaryWall: boundaryWall === true,
     plotOpenSides: plotOpenSides || undefined,
@@ -379,7 +424,7 @@ export function ListYourPropertyPage() {
       return locality.trim().length > 0 && address.trim().length > 0 && stateName.trim().length > 0;
     }
     if (step === 2) {
-      if (isPlot) return landSqFt.trim() && plotWidth.trim() && plotLength.trim();
+      if (isPlot) return landSqFt.trim().length > 0;
       if (isCommercialUnit) {
         return (
           builtUpArea.trim().length > 0 &&
@@ -476,13 +521,16 @@ export function ListYourPropertyPage() {
         address: address.trim(),
         state: stateName.trim(),
         pincode: pincode.trim() || undefined,
-        floor: showFloorFields && floor.trim() ? floor.trim() : isCommercialUnit && floor.trim() ? floor.trim() : undefined,
+        floor:
+          (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+          floor.trim()
+            ? floor.trim()
+            : undefined,
         totalFloors:
-          showFloorFields && totalFloors.trim()
+          (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+          totalFloors.trim()
             ? totalFloors.trim()
-            : isCommercialUnit && totalFloors.trim()
-              ? totalFloors.trim()
-              : undefined,
+            : undefined,
         pricePerSqFt: Number(pricePerSqFt),
         totalPrice,
         areaSqFt,
@@ -504,9 +552,43 @@ export function ListYourPropertyPage() {
         facing: facing || undefined,
         parking: parking || undefined,
         possession: possession || undefined,
-        cornerPlot: isPlot ? cornerPlot : undefined,
+        availableFromMonth:
+          isVilla && possession === 'Under Construction' && availableFromMonth
+            ? availableFromMonth
+            : undefined,
+        availableFromYear:
+          isVilla && possession === 'Under Construction' && availableFromYear
+            ? availableFromYear
+            : undefined,
+        ageOfConstruction:
+          isVilla && possession === 'Ready to Move' && ageOfConstruction
+            ? ageOfConstruction
+            : undefined,
+        bookingTokenAmount:
+          isVilla && possession === 'Ready to Move' && bookingTokenAmount.trim()
+            ? Number(bookingTokenAmount)
+            : undefined,
+        priceNegotiable: isVilla ? priceNegotiable : undefined,
+        cornerPlot: isPlot || isVilla ? cornerPlot : undefined,
         boundaryWall: isPlot && boundaryWall === true ? true : undefined,
-        plotOpenSides: isPlot && plotOpenSides ? plotOpenSides : undefined,
+        propertyNumber: isPlot && propertyNumber.trim() ? propertyNumber.trim() : undefined,
+        plotAreaSqFt: isVilla && landSqFt.trim() ? Number(landSqFt) : undefined,
+        floorsAllowed:
+          (isVilla || isBuilderFloor) && floorsAllowed.trim()
+            ? floorsAllowed.trim()
+            : undefined,
+        projectName: !isPlot && projectName.trim() ? projectName.trim() : undefined,
+        carpetArea:
+          !isPlot && carpetArea.trim() ? Number(carpetArea) : undefined,
+        superArea:
+          (isBuilderFloor || isPenthouse) && superArea.trim()
+            ? Number(superArea)
+            : undefined,
+        privateTerrace: isPenthouse ? privateTerrace : undefined,
+        maintenanceCharges:
+          !isPlot && maintenanceCharges.trim() ? Number(maintenanceCharges) : undefined,
+        plotOpenSides:
+          (isPlot || isVilla) && plotOpenSides ? plotOpenSides : undefined,
         plotRoadWidthMeters:
           isPlot && plotRoadWidthMeters.trim() ? Number(plotRoadWidthMeters) : undefined,
         plotConstructionDone: isPlot ? plotConstructionDone : undefined,
@@ -651,18 +733,21 @@ export function ListYourPropertyPage() {
               <SellerLocalityStep
                 propertyType={propertyType}
                 showFloorFields={showFloorFields}
+                showProjectName={!isPlot}
                 locality={locality}
                 address={address}
                 state={stateName}
                 pincode={pincode}
                 floor={floor}
                 totalFloors={totalFloors}
+                projectName={projectName}
                 onLocalityChange={setLocality}
                 onAddressChange={setAddress}
                 onStateChange={setStateName}
                 onPincodeChange={setPincode}
                 onFloorChange={setFloor}
                 onTotalFloorsChange={setTotalFloors}
+                onProjectNameChange={setProjectName}
               />
             )}
 
@@ -671,6 +756,9 @@ export function ListYourPropertyPage() {
                 isPlot={isPlot}
                 isResidential={isResidential}
                 isCommercialUnit={isCommercialUnit}
+                isVilla={isVilla}
+                isBuilderFloor={isBuilderFloor}
+                isPenthouse={isPenthouse}
                 bedrooms={bedrooms}
                 washrooms={washrooms}
                 balconies={balconies}
@@ -679,18 +767,27 @@ export function ListYourPropertyPage() {
                 hasStudyRoom={hasStudyRoom}
                 builtUpArea={builtUpArea}
                 landSqFt={landSqFt}
-                plotWidth={plotWidth}
-                plotLength={plotLength}
+                propertyNumber={propertyNumber}
+                floorsAllowed={floorsAllowed}
+                carpetArea={carpetArea}
+                superArea={superArea}
+                maintenanceCharges={maintenanceCharges}
                 furnishing={furnishing}
                 facing={facing}
                 parking={parking}
                 possession={possession}
+                availableFromMonth={availableFromMonth}
+                availableFromYear={availableFromYear}
+                ageOfConstruction={ageOfConstruction}
+                bookingTokenAmount={bookingTokenAmount}
+                priceNegotiable={priceNegotiable}
                 cornerPlot={cornerPlot}
                 boundaryWall={boundaryWall}
                 plotOpenSides={plotOpenSides}
                 plotRoadWidthMeters={plotRoadWidthMeters}
                 plotConstructionDone={plotConstructionDone}
                 plotGatedColony={plotGatedColony}
+                privateTerrace={privateTerrace}
                 assetStatus={assetStatus}
                 paymentComplete={paymentComplete}
                 paymentRemaining={paymentRemaining}
@@ -718,18 +815,27 @@ export function ListYourPropertyPage() {
                 onHasStudyRoomChange={setHasStudyRoom}
                 onBuiltUpAreaChange={setBuiltUpArea}
                 onLandSqFtChange={setLandSqFt}
-                onPlotWidthChange={setPlotWidth}
-                onPlotLengthChange={setPlotLength}
+                onPropertyNumberChange={setPropertyNumber}
+                onFloorsAllowedChange={setFloorsAllowed}
+                onCarpetAreaChange={setCarpetArea}
+                onSuperAreaChange={setSuperArea}
+                onMaintenanceChargesChange={setMaintenanceCharges}
                 onFurnishingChange={setFurnishing}
                 onFacingChange={setFacing}
                 onParkingChange={setParking}
                 onPossessionChange={setPossession}
+                onAvailableFromMonthChange={setAvailableFromMonth}
+                onAvailableFromYearChange={setAvailableFromYear}
+                onAgeOfConstructionChange={setAgeOfConstruction}
+                onBookingTokenAmountChange={setBookingTokenAmount}
+                onPriceNegotiableChange={setPriceNegotiable}
                 onCornerPlotChange={setCornerPlot}
                 onBoundaryWallChange={setBoundaryWall}
                 onPlotOpenSidesChange={setPlotOpenSides}
                 onPlotRoadWidthMetersChange={setPlotRoadWidthMeters}
                 onPlotConstructionDoneChange={setPlotConstructionDone}
                 onPlotGatedColonyChange={setPlotGatedColony}
+                onPrivateTerraceChange={setPrivateTerrace}
                 onAssetStatusChange={setAssetStatus}
                 onPaymentCompleteChange={setPaymentComplete}
                 onPaymentRemainingChange={setPaymentRemaining}
@@ -809,6 +915,12 @@ export function ListYourPropertyPage() {
                       {locality}, {stateName}
                     </span>
                   </div>
+                  {!isPlot && projectName.trim() && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-500 shrink-0">Project / Society</span>
+                      <span className="font-semibold text-right max-w-[60%]">{projectName}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between gap-4">
                     <span className="text-gray-500 shrink-0">Address</span>
                     <span className="font-medium text-right max-w-[60%] text-gray-700">{address}</span>

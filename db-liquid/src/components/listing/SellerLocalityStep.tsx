@@ -10,35 +10,41 @@ const selectClass =
 type Props = {
   propertyType: string;
   showFloorFields: boolean;
+  showProjectName?: boolean;
   locality: string;
   address: string;
   state: string;
   pincode: string;
   floor: string;
   totalFloors: string;
+  projectName?: string;
   onLocalityChange: (v: string) => void;
   onAddressChange: (v: string) => void;
   onStateChange: (v: string) => void;
   onPincodeChange: (v: string) => void;
   onFloorChange: (v: string) => void;
   onTotalFloorsChange: (v: string) => void;
+  onProjectNameChange?: (v: string) => void;
 };
 
 export function SellerLocalityStep({
   propertyType,
   showFloorFields,
+  showProjectName = false,
   locality,
   address,
   state,
   pincode,
   floor,
   totalFloors,
+  projectName = '',
   onLocalityChange,
   onAddressChange,
   onStateChange,
   onPincodeChange,
   onFloorChange,
   onTotalFloorsChange,
+  onProjectNameChange,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -66,6 +72,22 @@ export function SellerLocalityStep({
           />
         </div>
 
+        {showProjectName && (
+          <div>
+            <label htmlFor="projectName" className="block text-sm font-medium text-gray-600 mb-2">
+              Project name / Society
+            </label>
+            <input
+              id="projectName"
+              type="text"
+              value={projectName}
+              onChange={(e) => onProjectNameChange?.(e.target.value)}
+              placeholder="e.g. Green Valley Society"
+              className={inputClass}
+            />
+          </div>
+        )}
+
         <div>
           <label htmlFor="address" className="block text-sm font-medium text-gray-600 mb-2">
             Full address <span className="text-red-500">*</span>
@@ -75,7 +97,7 @@ export function SellerLocalityStep({
             value={address}
             onChange={(e) => onAddressChange(e.target.value)}
             rows={3}
-            placeholder="House / flat no., building or society name, street, landmark"
+            placeholder="House / flat no., street, landmark"
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-base"
           />
         </div>

@@ -112,6 +112,8 @@ function CheckboxRow({
 
 type Props = {
   builtUpArea: string;
+  carpetArea: string;
+  maintenanceCharges: string;
   assetStatus: string;
   paymentComplete: boolean;
   paymentRemaining: boolean;
@@ -132,6 +134,8 @@ type Props = {
   personalWashroom: boolean | undefined;
   pantryCafeteria: string;
   onBuiltUpAreaChange: (v: string) => void;
+  onCarpetAreaChange: (v: string) => void;
+  onMaintenanceChargesChange: (v: string) => void;
   onAssetStatusChange: (v: string) => void;
   onPaymentCompleteChange: (v: boolean) => void;
   onPaymentRemainingChange: (v: boolean) => void;
@@ -155,6 +159,8 @@ type Props = {
 
 export function CommercialShopDetailsSection({
   builtUpArea,
+  carpetArea,
+  maintenanceCharges,
   assetStatus,
   paymentComplete,
   paymentRemaining,
@@ -175,6 +181,8 @@ export function CommercialShopDetailsSection({
   personalWashroom,
   pantryCafeteria,
   onBuiltUpAreaChange,
+  onCarpetAreaChange,
+  onMaintenanceChargesChange,
   onAssetStatusChange,
   onPaymentCompleteChange,
   onPaymentRemainingChange,
@@ -450,6 +458,30 @@ export function CommercialShopDetailsSection({
             value={builtUpArea}
             onChange={(e) => onBuiltUpAreaChange(e.target.value)}
             placeholder="e.g. 10000"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Carpet area (sq.ft) <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="number"
+            value={carpetArea}
+            onChange={(e) => onCarpetAreaChange(e.target.value)}
+            placeholder="e.g. 8500"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            Maintenance charges <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="number"
+            value={maintenanceCharges}
+            onChange={(e) => onMaintenanceChargesChange(e.target.value)}
+            placeholder="e.g. 5000 / month"
             className={inputClass}
           />
         </div>

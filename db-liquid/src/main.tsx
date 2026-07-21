@@ -24,8 +24,10 @@ function Bootstrap() {
     const path = window.location.pathname.replace(/\/$/, '') || '/';
     const authOnly = AUTH_ONLY_PATHS.has(path);
 
+    // Do not wait for listings — ListingsProvider loads them after paint.
+    // Waiting on /api/listings used to freeze the skeleton for 15–40s.
     bootstrapSharedStore({
-      includeListings: !authOnly,
+      includeListings: false,
       includeUsers: !authOnly,
     })
       .then(() => setReady(true))

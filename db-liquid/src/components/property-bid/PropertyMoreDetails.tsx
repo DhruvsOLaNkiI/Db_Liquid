@@ -80,12 +80,60 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   if (listing.possession) {
     rows.push({ label: 'Possession', value: listing.possession });
   }
+  if (listing.possession === 'Under Construction') {
+    if (listing.availableFromMonth || listing.availableFromYear) {
+      rows.push({
+        label: 'Available From',
+        value: [listing.availableFromMonth, listing.availableFromYear].filter(Boolean).join(' '),
+      });
+    }
+  }
+  if (listing.possession === 'Ready to Move' && listing.ageOfConstruction) {
+    rows.push({ label: 'Age of Construction', value: listing.ageOfConstruction });
+  }
+  if (listing.bookingTokenAmount != null && listing.bookingTokenAmount > 0) {
+    rows.push({
+      label: 'Booking / Token',
+      value: `₹${listing.bookingTokenAmount.toLocaleString('en-IN')}`,
+    });
+  }
+  if (listing.priceNegotiable) {
+    rows.push({ label: 'Price Negotiable', value: 'Yes' });
+  }
 
   if (floorLabel) {
     rows.push({ label: 'Floor', value: floorLabel });
   }
 
+  if (listing.projectName) {
+    rows.push({ label: 'Project / Society', value: listing.projectName });
+  }
+  if (listing.carpetArea != null && listing.carpetArea > 0) {
+    rows.push({
+      label: 'Carpet Area',
+      value: `${listing.carpetArea.toLocaleString('en-IN')} sq.ft`,
+    });
+  }
+  if (listing.superArea != null && listing.superArea > 0) {
+    rows.push({
+      label: 'Super Area',
+      value: `${listing.superArea.toLocaleString('en-IN')} sq.ft`,
+    });
+  }
+  if (listing.privateTerrace) {
+    rows.push({ label: 'Private Terrace', value: 'Yes' });
+  }
+  if (listing.maintenanceCharges != null && listing.maintenanceCharges > 0) {
+    rows.push({
+      label: 'Maintenance',
+      value: `₹${listing.maintenanceCharges.toLocaleString('en-IN')} / month`,
+    });
+  }
+
   if (isPlot) {
+    if (listing.propertyNumber) {
+      rows.push({ label: 'Property Number', value: listing.propertyNumber });
+    }
     if (listing.cornerPlot) rows.push({ label: 'Corner Plot', value: 'Yes' });
     if (listing.boundaryWall) rows.push({ label: 'Boundary Wall', value: 'Yes' });
     if (listing.plotOpenSides) {
@@ -105,6 +153,31 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
     }
     if (listing.plotGatedColony) {
       rows.push({ label: 'In a gated colony', value: 'Yes' });
+    }
+  }
+
+  if (listing.propertyType === 'Villa') {
+    if (listing.plotAreaSqFt != null && listing.plotAreaSqFt > 0) {
+      rows.push({
+        label: 'Plot Area',
+        value: `${listing.plotAreaSqFt.toLocaleString('en-IN')} sq.ft`,
+      });
+    }
+    if (listing.cornerPlot) rows.push({ label: 'Corner Plot', value: 'Yes' });
+    if (listing.plotOpenSides) {
+      rows.push({
+        label: 'Open Sides',
+        value: `${listing.plotOpenSides} side${listing.plotOpenSides === '1' ? '' : 's'}`,
+      });
+    }
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+  }
+
+  if (listing.propertyType === 'Builder Floor Apartment') {
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
     }
   }
 

@@ -90,7 +90,7 @@ async function replaceAll(collectionName: 'users' | 'listings', items: unknown[]
 export async function getUsers(): Promise<Entity[]> {
   await ensureStoreIndexes();
   const col = await usersCol();
-  const docs = await col.find({}).toArray();
+  const docs = await col.find({}).maxTimeMS(15_000).toArray();
   return docs.map(stripMongoId);
 }
 
@@ -99,16 +99,36 @@ export async function saveUsers(users: unknown[]) {
   await replaceAll('users', users);
 }
 
-export async function getListings(): Promise<Entity[]> {
+/** Omit multi-MB inline base64 from API reads so list endpoints stay fast. */
+const LISTING_SLIM_PROJECTION = {
+  'propertyPhotos.dataUrl': 0,
+  'propertyVideos.dataUrl': 0,
+  'verificationDocuments.dataUrl': 0,
+  'propertyPhotos.url': 0,
+  'propertyVideos.url': 0,
+  'verificationDocuments.url': 0,
+} as const;
+
+export async function getListings(options?: { slim?: boolean }): Promise<Entity[]> {
   await ensureStoreIndexes();
   const col = await listingsCol();
-  const docs = await col.find({}).sort({ publishedAt: -1 }).toArray();
+  const projection = options?.slim ? LISTING_SLIM_PROJECTION : undefined;
+  const docs = await col
+    .find({}, projection ? { projection } : undefined)
+    .sort({ publishedAt: -1 })
+    .maxTimeMS(15_000)
+    .toArray();
   return docs.map(stripMongoId);
 }
 
 export async function saveListings(listings: unknown[]) {
   await ensureStoreIndexes();
-  await replaceAll('listings', listings);
+  // Final chokepoint guard: never persist inline base64 media to MongoDB.
+  // Stale in-memory copies (slow read-modify-write cycles) would otherwise
+  // resurrect multi-MB payloads and make every listings read take ~40s.
+  const { externalizeInlineMedia } = await import('./listingUpdates');
+  const externalized = await externalizeInlineMedia(listings as never[]);
+  await replaceAll('listings', externalized);
 }
 
 export async function getUserById(id: string): Promise<Entity | null> {
@@ -131,10 +151,11 @@ export async function findUserByEmail(email: string): Promise<Entity | null> {
   return match ? stripMongoId(match) : null;
 }
 
-export async function getListingById(id: string): Promise<Entity | null> {
+export async function getListingById(id: string, options?: { slim?: boolean }): Promise<Entity | null> {
   await ensureStoreIndexes();
   const col = await listingsCol();
-  const doc = await col.findOne({ id });
+  const projection = options?.slim ? LISTING_SLIM_PROJECTION : undefined;
+  const doc = await col.findOne({ id }, projection ? { projection } : undefined);
   return doc ? stripMongoId(doc) : null;
 }
 
@@ -150,7 +171,12 @@ export async function getListingsPage(options?: {
   const total = await col.countDocuments();
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const skip = (page - 1) * limit;
-  const docs = await col.find({}).sort({ publishedAt: -1 }).skip(skip).limit(limit).toArray();
+  const docs = await col
+    .find({}, { projection: LISTING_SLIM_PROJECTION })
+    .sort({ publishedAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
   return {
     listings: docs.map(stripMongoId),
     page,
@@ -245,6 +271,19 @@ async function migrateAppStateArraysIfNeeded() {
 /** One-time import: app_state arrays / JSON files → per-entity collections. */
 export async function migrateLegacyJsonIfNeeded() {
   await ensureStoreIndexes();
+
+  const usersColRef = await usersCol();
+  const listingsColRef = await listingsCol();
+  const [userCount, listingCount] = await Promise.all([
+    usersColRef.estimatedDocumentCount(),
+    listingsColRef.estimatedDocumentCount(),
+  ]);
+
+  // Already on split collections — skip legacy merge (avoids blocking startup)
+  if (userCount > 0 && listingCount > 0) {
+    return;
+  }
+
   await migrateAppStateArraysIfNeeded();
 
   const users = await getUsers();

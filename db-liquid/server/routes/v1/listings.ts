@@ -4,6 +4,7 @@ import { saveListings, updateListings } from '../../mongoStore';
 import {
   applyAdminListingsMerge,
   applyListingsSync,
+  externalizeInlineMedia,
   ListingUpdateError,
   stripVerificationPayloads,
 } from '../../listingUpdates';
@@ -12,7 +13,8 @@ export async function putListingsSync(req: AuthenticatedRequest, res: Response) 
   try {
     const count = await updateListings(async (existing) => {
       const merged = applyListingsSync(req.auth!.userId, existing as never[], req.body);
-      const stripped = stripVerificationPayloads(merged as never[]);
+      const externalized = await externalizeInlineMedia(merged as never[]);
+      const stripped = stripVerificationPayloads(externalized as never[]);
       await saveListings(stripped);
       return stripped.length;
     });
@@ -30,7 +32,8 @@ export async function putAdminListings(req: AuthenticatedRequest, res: Response)
   try {
     const count = await updateListings(async (existing) => {
       const merged = applyAdminListingsMerge(existing as never[], req.body);
-      const stripped = stripVerificationPayloads(merged as never[]);
+      const externalized = await externalizeInlineMedia(merged as never[]);
+      const stripped = stripVerificationPayloads(externalized as never[]);
       await saveListings(stripped);
       return stripped.length;
     });

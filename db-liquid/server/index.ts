@@ -418,7 +418,7 @@ app.get('/api/listings', optionalAuth, async (req, res) => {
       return;
     }
 
-    const listings = await getListings();
+    const listings = await getListings({ slim: true });
     const sanitized = sanitizeListings(listings, viewerId);
     const withSignedMedia = await Promise.all(
       sanitized.map((listing) => attachSignedUrlsToListingMedia(listing, viewerId)),
@@ -434,7 +434,7 @@ app.get('/api/listings', optionalAuth, async (req, res) => {
 app.get('/api/listings/:id', optionalAuth, async (req, res) => {
   try {
     const viewerId = getViewerId(req);
-    const listing = await getListingById(req.params.id);
+    const listing = await getListingById(req.params.id, { slim: true });
     if (!listing) {
       res.status(404).json({ error: 'Listing not found.' });
       return;
@@ -1039,7 +1039,9 @@ async function start() {
     }
   }
 
+  logger.info('Connecting to MongoDB…');
   await connectMongo();
+  logger.info('Running store migration check…');
   await migrateLegacyJsonIfNeeded();
 
   const server = app.listen(PORT, '0.0.0.0', () => {

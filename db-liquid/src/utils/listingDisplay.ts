@@ -205,7 +205,35 @@ export const FACING_OPTIONS = [
   'South-East',
   'South-West',
 ] as const;
-export const POSSESSION_OPTIONS = ['Ready to move', 'Under construction'] as const;
+export const POSSESSION_OPTIONS = ['Under Construction', 'Ready to Move'] as const;
+
+export const AGE_OF_CONSTRUCTION_OPTIONS = [
+  'New Construction',
+  'Less than 5 years',
+  '5 to 10 years',
+  '10 to 15 years',
+  '15 to 20 years',
+  'Above 20 years',
+] as const;
+
+export const AVAILABLE_FROM_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+export function availableFromYears(fromYear = new Date().getFullYear()) {
+  return Array.from({ length: 12 }, (_, i) => String(fromYear + i));
+}
 
 export const LAND_ZONE_OPTIONS = [
   'Commercial',
@@ -246,7 +274,57 @@ export const COMMERCIAL_SHOP_WASHROOM_OPTIONS = ['0', '1', '2', '3', '3+'] as co
 
 export const PANTRY_CAFE_OPTIONS = ['Dry', 'Wet', 'Not Available'] as const;
 
-export const PLOT_OPEN_SIDES_OPTIONS = ['1', '2', '3', '4+'] as const;
+export const PLOT_OPEN_SIDES_OPTIONS = ['1', '2', '3', '4'] as const;
+
+export const FLOORS_ALLOWED_OPTIONS = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  'G+1',
+  'G+2',
+  'G+3',
+  'G+4',
+] as const;
+
+export const BUILDER_FLOOR_NO_OPTIONS = [
+  'Ground',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '10+',
+] as const;
+
+export const BUILDER_TOTAL_FLOORS_OPTIONS = [
+  ...Array.from({ length: 20 }, (_, i) => String(i + 1)),
+  '20+',
+] as const;
+
+export const PENTHOUSE_FLOOR_NO_OPTIONS = [
+  'Top Floor',
+  ...Array.from({ length: 50 }, (_, i) => String(i + 1)),
+  '50+',
+] as const;
+
+export const PENTHOUSE_TOTAL_FLOORS_OPTIONS = [
+  ...Array.from({ length: 60 }, (_, i) => String(i + 1)),
+  '60+',
+] as const;
+
+export type RoadWidthUnit = 'm' | 'ft';
+
+export const ROAD_WIDTH_UNIT_OPTIONS: { value: RoadWidthUnit; label: string }[] = [
+  { value: 'm', label: 'Meters' },
+  { value: 'ft', label: 'Feet' },
+];
 
 export type PlotAreaUnit = 'sq-ft' | 'sq-yrd' | 'sq-m';
 
@@ -255,6 +333,22 @@ export const PLOT_AREA_UNIT_OPTIONS: { value: PlotAreaUnit; label: string }[] = 
   { value: 'sq-yrd', label: 'Sq-yrd' },
   { value: 'sq-m', label: 'Sq-m' },
 ];
+
+/** Villa plot area units — Sq-ft and Sq-Yards only. */
+export const VILLA_PLOT_AREA_UNIT_OPTIONS: { value: PlotAreaUnit; label: string }[] = [
+  { value: 'sq-ft', label: 'Sq-ft' },
+  { value: 'sq-yrd', label: 'Sq-Yards' },
+];
+
+export function roadWidthToMeters(value: number, unit: RoadWidthUnit) {
+  if (unit === 'ft') return Math.round(value * 0.3048 * 100) / 100;
+  return value;
+}
+
+export function metersToRoadWidth(meters: number, unit: RoadWidthUnit) {
+  if (unit === 'ft') return Math.round((meters / 0.3048) * 100) / 100;
+  return meters;
+}
 
 const PLOT_UNIT_TO_SQ_FT: Record<PlotAreaUnit, number> = {
   'sq-ft': 1,
@@ -275,26 +369,10 @@ export function convertPlotAreaToSqFt(value: number, unit: PlotAreaUnit) {
 export function applyPlotAreaInput(
   unit: PlotAreaUnit,
   plotAreaInput: string,
-  plotWidth: string,
-  plotLength: string,
 ): { sqFt: string; areaInUnit: string } | { error: string } {
-  const width = Number(plotWidth);
-  const length = Number(plotLength);
-
-  if (plotWidth.trim() && plotLength.trim()) {
-    if (!Number.isFinite(width) || !Number.isFinite(length) || width <= 0 || length <= 0) {
-      return { error: 'Enter valid width and length.' };
-    }
-    const areaInUnit = width * length;
-    return {
-      sqFt: String(convertPlotAreaToSqFt(areaInUnit, unit)),
-      areaInUnit: String(areaInUnit),
-    };
-  }
-
   const area = Number(plotAreaInput);
   if (!plotAreaInput.trim() || !Number.isFinite(area) || area <= 0) {
-    return { error: 'Enter plot area or both width and length, then tap Apply.' };
+    return { error: 'Enter plot area, then tap Apply.' };
   }
 
   return {
@@ -314,12 +392,22 @@ type DetailsInput = {
   hasStudyRoom: boolean;
   builtUpArea: string;
   landSqFt: string;
-  plotWidth: string;
-  plotLength: string;
+  propertyNumber?: string;
+  floorsAllowed?: string;
+  projectName?: string;
+  carpetArea?: string;
+  superArea?: string;
+  privateTerrace?: boolean;
+  maintenanceCharges?: string;
   furnishing?: string;
   facing?: string;
   parking?: number;
   possession?: string;
+  availableFromMonth?: string;
+  availableFromYear?: string;
+  ageOfConstruction?: string;
+  bookingTokenAmount?: string;
+  priceNegotiable?: boolean;
   cornerPlot?: boolean;
   boundaryWall?: boolean;
   plotOpenSides?: string;
@@ -360,12 +448,22 @@ export function buildListingDetailsSummary(input: DetailsInput) {
     hasStudyRoom,
     builtUpArea,
     landSqFt,
-    plotWidth,
-    plotLength,
+    propertyNumber,
+    floorsAllowed,
+    projectName,
+    carpetArea,
+    superArea,
+    privateTerrace,
+    maintenanceCharges,
     furnishing,
     facing,
     parking,
     possession,
+    availableFromMonth,
+    availableFromYear,
+    ageOfConstruction,
+    bookingTokenAmount,
+    priceNegotiable,
     cornerPlot,
     boundaryWall,
     plotOpenSides,
@@ -395,7 +493,9 @@ export function buildListingDetailsSummary(input: DetailsInput) {
   } = input;
 
   let base = isPlot
-    ? `${landSqFt} sq.ft (${plotWidth} × ${plotLength} ft)`
+    ? propertyNumber?.trim()
+      ? `${landSqFt} sq.ft · No. ${propertyNumber.trim()}`
+      : `${landSqFt} sq.ft`
     : isResidential
       ? `${bedrooms} bed · ${washrooms} bath · ${balconies} balcony · ${kitchens} kitchen${hasServiceRoom ? ' · Service room' : ''}${hasStudyRoom ? ' · Study room' : ''} · ${builtUpArea} sq.ft`
       : isCommercialUnit
@@ -403,6 +503,11 @@ export function buildListingDetailsSummary(input: DetailsInput) {
         : `${builtUpArea} sq.ft`;
 
   const extras: string[] = [];
+  if (!isPlot && projectName) extras.push(projectName);
+  if (!isPlot && carpetArea) extras.push(`Carpet ${carpetArea} sq.ft`);
+  if (!isPlot && superArea) extras.push(`Super ${superArea} sq.ft`);
+  if (privateTerrace) extras.push('Private terrace');
+  if (!isPlot && maintenanceCharges) extras.push(`Maintenance ₹${maintenanceCharges}`);
   if (isCommercialUnit && assetStatus) extras.push(assetStatus);
   else if (isCommercialUnit && landZone) extras.push(landZone);
   if (isCommercialUnit && shopType) extras.push(shopType);
@@ -446,12 +551,22 @@ export function buildListingDetailsSummary(input: DetailsInput) {
   if (facing) extras.push(`${facing} facing`);
   if (parking && parking > 0) extras.push(`${parking} parking`);
   if (possession) extras.push(possession);
+  if (possession === 'Under Construction' && availableFromMonth && availableFromYear) {
+    extras.push(`Available ${availableFromMonth} ${availableFromYear}`);
+  }
+  if (possession === 'Ready to Move' && ageOfConstruction) extras.push(ageOfConstruction);
+  if (bookingTokenAmount) extras.push(`Token ₹${bookingTokenAmount}`);
+  if (priceNegotiable) extras.push('Price negotiable');
   if (isPlot && cornerPlot) extras.push('Corner plot');
   if (isPlot && boundaryWall) extras.push('Boundary wall');
   if (isPlot && plotOpenSides) extras.push(`${plotOpenSides} open side${plotOpenSides === '1' ? '' : 's'}`);
   if (isPlot && plotRoadWidthMeters) extras.push(`${plotRoadWidthMeters} m road`);
   if (isPlot && plotConstructionDone) extras.push('Construction done');
   if (isPlot && plotGatedColony) extras.push('Gated colony');
+  if (!isPlot && floorsAllowed) extras.push(`${floorsAllowed} floors allowed`);
+  if (!isPlot && cornerPlot) extras.push('Corner plot');
+  if (!isPlot && plotOpenSides) extras.push(`${plotOpenSides} open side${plotOpenSides === '1' ? '' : 's'}`);
+  if (!isPlot && landSqFt) extras.push(`Plot ${landSqFt} sq.ft`);
 
   if (extras.length > 0) {
     base = `${base} · ${extras.join(' · ')}`;

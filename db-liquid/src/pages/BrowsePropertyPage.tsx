@@ -5,7 +5,6 @@ import { filterListings, ListingFilters, type ListingStatusFilter } from '../com
 import { PropertyListingCard } from '../components/PropertyListingCard';
 import { useAuth } from '../context/AuthContext';
 import { useListings } from '../context/ListingsContext';
-import { loadSampleListingsForBrowse } from '../utils/testDataExcel';
 
 export function BrowsePropertyPage() {
   const { listings, reloadListings } = useListings();
@@ -38,6 +37,8 @@ export function BrowsePropertyPage() {
     setLoadingSample(true);
     setSampleError('');
     try {
+      // Load xlsx (~420 KB) only when the button is clicked, not on page load.
+      const { loadSampleListingsForBrowse } = await import('../utils/testDataExcel');
       const result = await loadSampleListingsForBrowse();
       reloadListings({ force: true });
       if (result.listings === 0) {

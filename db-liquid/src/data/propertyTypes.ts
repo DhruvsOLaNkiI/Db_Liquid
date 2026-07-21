@@ -61,6 +61,16 @@ export function isResidentialUnitType(type: string) {
   return (RESIDENTIAL_UNIT_TYPES as readonly string[]).includes(type);
 }
 
+export function isVillaType(type: string) {
+  return type === 'Villa';}
+
+export function isBuilderFloorType(type: string) {
+  return type === 'Builder Floor Apartment';}
+
+export function isPenthouseType(type: string) {
+  return type === 'Penthouse';
+}
+
 export function isCommercialShopType(type: string) {
   return type === 'Commercial Shop' || type === 'Commercial Showroom';
 }

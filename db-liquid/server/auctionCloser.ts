@@ -1,5 +1,5 @@
 import { refundBidCreditToUser } from './creditRefunds';
-import { updateUsersAndListings } from './mongoStore';
+import { getListings, updateUsersAndListings } from './mongoStore';
 
 export type CloseExpiredResult = {
   scanned: number;
@@ -44,6 +44,19 @@ function shouldClose(listing: ListingRecord, nowMs: number) {
 export async function closeExpiredAuctions(now = new Date()): Promise<CloseExpiredResult> {
   const nowMs = now.getTime();
   const nowIso = now.toISOString();
+
+  // Cheap read-only pre-check. Without it, this job rewrites every user and
+  // listing to MongoDB each run even when nothing changed, which both hammers
+  // the database and can resurrect stale data read before a concurrent write.
+  const candidates = (await getListings()) as ListingRecord[];
+  if (!candidates.some((listing) => shouldClose(listing, nowMs))) {
+    return {
+      scanned: candidates.length,
+      closed: 0,
+      closedListingIds: [],
+      refundedBids: 0,
+    };
+  }
 
   return updateUsersAndListings(async ({ users, listings }) => {
     const closedListingIds: string[] = [];
