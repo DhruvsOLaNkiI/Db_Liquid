@@ -5,6 +5,7 @@ import {
   isVillaType,
   isBuilderFloorType,
   isPenthouseType,
+  isCommercialShowroomType,
 } from '../data/propertyTypes';
 import type { PropertyListing, PropertyPhoto, PropertyVideo } from '../types/listing';
 import { getListingStatus } from '../types/listing';
@@ -52,7 +53,11 @@ export type ListingEditFormState = {
   plotRoadWidthMeters: string;
   plotConstructionDone: boolean | undefined;
   plotGatedColony: boolean | undefined;
+  landZone: string;
   privateTerrace: boolean;
+  currentlyLeasedOut: boolean | undefined;
+  entranceWidthFeet: string;
+  floorsOffered: string;
   assetStatus: string;
   paymentComplete: boolean;
   paymentRemaining: boolean;
@@ -123,7 +128,13 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
     furnishing: listing.furnishing || '',
     facing: listing.facing || '',
     parking: listing.parking ?? 1,
-    possession: listing.possession || '',
+    possession:
+      listing.possession ||
+      (listing.assetStatus === 'Ready to Move In'
+        ? 'Ready to Move'
+        : listing.assetStatus === 'Under Construction'
+          ? 'Under Construction'
+          : ''),
     availableFromMonth: listing.availableFromMonth || '',
     availableFromYear: listing.availableFromYear || '',
     ageOfConstruction: listing.ageOfConstruction || '',
@@ -138,7 +149,12 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
       : '',
     plotConstructionDone: listing.plotConstructionDone,
     plotGatedColony: listing.plotGatedColony,
+    landZone: listing.landZone || '',
     privateTerrace: listing.privateTerrace === true,
+    currentlyLeasedOut: listing.currentlyLeasedOut,
+    entranceWidthFeet:
+      listing.entranceWidthFeet != null ? String(listing.entranceWidthFeet) : '',
+    floorsOffered: listing.floorsOffered || '',
     assetStatus: listing.assetStatus || '',
     paymentComplete: listing.paymentComplete === true,
     paymentRemaining: listing.paymentRemaining === true,
@@ -173,6 +189,7 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
   const isVilla = isVillaType(listing.propertyType);
   const isBuilderFloor = isBuilderFloorType(listing.propertyType);
   const isPenthouse = isPenthouseType(listing.propertyType);
+  const isCommercialShowroom = isCommercialShowroomType(listing.propertyType);
   const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
 
   const location = buildListingLocation(form.locality, form.stateName);
@@ -200,6 +217,9 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     carpetArea: form.carpetArea || undefined,
     superArea: form.superArea || undefined,
     privateTerrace: isPenthouse ? form.privateTerrace : undefined,
+    currentlyLeasedOut: isCommercialShowroom ? form.currentlyLeasedOut : undefined,
+    entranceWidthFeet: form.entranceWidthFeet || undefined,
+    floorsOffered: form.floorsOffered || undefined,
     maintenanceCharges: form.maintenanceCharges || undefined,
     furnishing: form.furnishing || undefined,
     facing: form.facing || undefined,
@@ -209,13 +229,14 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     availableFromYear: form.availableFromYear || undefined,
     ageOfConstruction: form.ageOfConstruction || undefined,
     bookingTokenAmount: form.bookingTokenAmount || undefined,
-    priceNegotiable: isVilla ? form.priceNegotiable : undefined,
+    priceNegotiable: form.priceNegotiable,
     cornerPlot: form.cornerPlot,
     boundaryWall: form.boundaryWall === true,
     plotOpenSides: form.plotOpenSides || undefined,
     plotRoadWidthMeters: form.plotRoadWidthMeters || undefined,
     plotConstructionDone: form.plotConstructionDone,
     plotGatedColony: form.plotGatedColony,
+    landZone: form.landZone || undefined,
     assetStatus: form.assetStatus || undefined,
     paymentComplete: form.paymentComplete,
     paymentRemaining: form.paymentRemaining,
@@ -266,26 +287,38 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     parking: form.parking || undefined,
     possession: form.possession || undefined,
     availableFromMonth:
-      isVilla && form.possession === 'Under Construction' && form.availableFromMonth
+      form.possession === 'Under Construction' && form.availableFromMonth
         ? form.availableFromMonth
         : undefined,
     availableFromYear:
-      isVilla && form.possession === 'Under Construction' && form.availableFromYear
+      form.possession === 'Under Construction' && form.availableFromYear
         ? form.availableFromYear
         : undefined,
     ageOfConstruction:
-      isVilla && form.possession === 'Ready to Move' && form.ageOfConstruction
+      form.possession === 'Ready to Move' && form.ageOfConstruction
         ? form.ageOfConstruction
         : undefined,
     bookingTokenAmount:
-      isVilla && form.possession === 'Ready to Move' && form.bookingTokenAmount.trim()
+      form.possession === 'Ready to Move' && form.bookingTokenAmount.trim()
         ? Number(form.bookingTokenAmount)
         : undefined,
-    priceNegotiable: isVilla ? form.priceNegotiable : undefined,
+    priceNegotiable: form.priceNegotiable,
     cornerPlot: isPlot || isVilla ? form.cornerPlot : undefined,
     boundaryWall: isPlot && form.boundaryWall === true ? true : undefined,
     propertyNumber: isPlot && form.propertyNumber.trim() ? form.propertyNumber.trim() : undefined,
-    plotAreaSqFt: isVilla && form.landSqFt.trim() ? Number(form.landSqFt) : undefined,
+    plotAreaSqFt:
+      (isVilla || isCommercialShowroom) && form.landSqFt.trim()
+        ? Number(form.landSqFt)
+        : undefined,
+    currentlyLeasedOut: isCommercialShowroom ? form.currentlyLeasedOut : undefined,
+    entranceWidthFeet:
+      isCommercialShowroom && form.entranceWidthFeet.trim()
+        ? Number(form.entranceWidthFeet)
+        : undefined,
+    floorsOffered:
+      isCommercialShowroom && form.floorsOffered.trim()
+        ? form.floorsOffered.trim()
+        : undefined,
     floorsAllowed:
       (isVilla || isBuilderFloor) && form.floorsAllowed.trim()
         ? form.floorsAllowed.trim()
@@ -304,12 +337,20 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
       isPlot && form.plotRoadWidthMeters.trim() ? Number(form.plotRoadWidthMeters) : undefined,
     plotConstructionDone: isPlot ? form.plotConstructionDone : undefined,
     plotGatedColony: isPlot ? form.plotGatedColony : undefined,
-    landZone: undefined,
+    landZone:
+      (isPlot || isCommercialUnit) && form.landZone.trim()
+        ? form.landZone.trim()
+        : undefined,
     assetStatus: isCommercialUnit && form.assetStatus ? form.assetStatus : undefined,
-    paymentComplete: isCommercialUnit && form.paymentComplete ? true : undefined,
-    paymentRemaining: isCommercialUnit && form.paymentRemaining ? true : undefined,
+    paymentComplete:
+      isCommercialUnit && !isCommercialShowroom && form.paymentComplete ? true : undefined,
+    paymentRemaining:
+      isCommercialUnit && !isCommercialShowroom && form.paymentRemaining ? true : undefined,
     paymentRemainingPercent:
-      isCommercialUnit && form.paymentRemaining && form.paymentRemainingPercent.trim()
+      isCommercialUnit &&
+      !isCommercialShowroom &&
+      form.paymentRemaining &&
+      form.paymentRemainingPercent.trim()
         ? Number(form.paymentRemainingPercent)
         : undefined,
     assuredReturn: isCommercialUnit && form.assuredReturn ? true : undefined,
@@ -317,15 +358,25 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
       isCommercialUnit && form.assuredReturn && form.assuredReturnPercent.trim()
         ? Number(form.assuredReturnPercent)
         : undefined,
-    leaseGuarantee: isCommercialUnit && form.leaseGuarantee ? true : undefined,
+    leaseGuarantee:
+      isCommercialUnit && !isCommercialShowroom && form.leaseGuarantee ? true : undefined,
     leaseGuaranteeAmount:
-      isCommercialUnit && form.leaseGuarantee && form.leaseGuaranteeAmount.trim()
+      isCommercialUnit &&
+      !isCommercialShowroom &&
+      form.leaseGuarantee &&
+      form.leaseGuaranteeAmount.trim()
         ? Number(form.leaseGuaranteeAmount)
         : undefined,
-    rightsOfUse: isCommercialUnit && form.rightsOfUse ? form.rightsOfUse : undefined,
-    shopType: isCommercialUnit && form.shopType ? form.shopType : undefined,
+    rightsOfUse:
+      isCommercialUnit && !isCommercialShowroom && form.rightsOfUse
+        ? form.rightsOfUse
+        : undefined,
+    shopType:
+      isCommercialUnit && !isCommercialShowroom && form.shopType ? form.shopType : undefined,
     idealForBusinesses:
-      isCommercialUnit && form.idealForBusinesses.trim() ? form.idealForBusinesses.trim() : undefined,
+      isCommercialUnit && !isCommercialShowroom && form.idealForBusinesses.trim()
+        ? form.idealForBusinesses.trim()
+        : undefined,
     shopWashrooms: isCommercialUnit && form.shopWashrooms ? form.shopWashrooms : undefined,
     personalWashroom: isCommercialUnit ? form.personalWashroom : undefined,
     pantryCafeteria: isCommercialUnit && form.pantryCafeteria ? form.pantryCafeteria : undefined,
@@ -349,21 +400,29 @@ export function validateEditForm(listing: PropertyListing, form: ListingEditForm
       return 'Enter plot area and tap Apply.';
     }
   } else if (isCommercialUnitType(listing.propertyType)) {
+    const isShowroom = isCommercialShowroomType(listing.propertyType);
     if (!form.builtUpArea.trim()) return 'Enter built-up area.';
-    if (!form.assetStatus.trim()) return 'Select asset status.';
-    if (!form.rightsOfUse.trim()) return 'Select rights of use.';
-    if (!form.shopType.trim()) return 'Select shop type.';
     if (!form.floor.trim() || !form.totalFloors.trim()) return 'Select floor details.';
     if (!form.furnishing.trim()) return 'Select furnished status.';
     if (!form.shopWashrooms.trim()) return 'Select number of washrooms.';
-    if (form.paymentRemaining && !form.paymentRemainingPercent.trim()) {
-      return 'Enter remaining payment percentage.';
-    }
-    if (form.assuredReturn && !form.assuredReturnPercent.trim()) {
-      return 'Enter assured return percentage.';
-    }
-    if (form.leaseGuarantee && !form.leaseGuaranteeAmount.trim()) {
-      return 'Enter lease guarantee amount.';
+    if (isShowroom) {
+      if (!form.possession.trim()) return 'Select possession status.';
+      if (form.assuredReturn && !form.assuredReturnPercent.trim()) {
+        return 'Enter assured return percentage.';
+      }
+    } else {
+      if (!form.assetStatus.trim()) return 'Select asset status.';
+      if (!form.rightsOfUse.trim()) return 'Select rights of use.';
+      if (!form.shopType.trim()) return 'Select shop type.';
+      if (form.paymentRemaining && !form.paymentRemainingPercent.trim()) {
+        return 'Enter remaining payment percentage.';
+      }
+      if (form.assuredReturn && !form.assuredReturnPercent.trim()) {
+        return 'Enter assured return percentage.';
+      }
+      if (form.leaseGuarantee && !form.leaseGuaranteeAmount.trim()) {
+        return 'Enter lease guarantee amount.';
+      }
     }
   } else if (isResidential) {
     if (!form.builtUpArea.trim() || form.bedrooms <= 0) {

@@ -1,21 +1,19 @@
 import { useState } from 'react';
 import { CommercialShopDetailsSection } from './CommercialShopDetailsSection';
 import { FormSelect } from './FormSelect';
+import { TransactionAvailabilitySection } from './TransactionAvailabilitySection';
 import {
-  AGE_OF_CONSTRUCTION_OPTIONS,
   applyPlotAreaInput,
-  AVAILABLE_FROM_MONTHS,
-  availableFromYears,
   BUILDER_FLOOR_NO_OPTIONS,
   BUILDER_TOTAL_FLOORS_OPTIONS,
   FACING_OPTIONS,
   FLOORS_ALLOWED_OPTIONS,
   FURNISHING_OPTIONS,
+  LAND_ZONE_OPTIONS,
   PENTHOUSE_FLOOR_NO_OPTIONS,
   PENTHOUSE_TOTAL_FLOORS_OPTIONS,
   PLOT_AREA_UNIT_OPTIONS,
   PLOT_OPEN_SIDES_OPTIONS,
-  POSSESSION_OPTIONS,
   VILLA_PLOT_AREA_UNIT_OPTIONS,
   type PlotAreaUnit,
 } from '../../utils/listingDisplay';
@@ -111,6 +109,7 @@ type Props = {
   isVilla?: boolean;
   isBuilderFloor?: boolean;
   isPenthouse?: boolean;
+  isCommercialShowroom?: boolean;
   bedrooms: number;
   washrooms: number;
   balconies: number;
@@ -139,7 +138,11 @@ type Props = {
   plotRoadWidthMeters: string;
   plotConstructionDone: boolean | undefined;
   plotGatedColony: boolean | undefined;
+  landZone: string;
   privateTerrace: boolean;
+  currentlyLeasedOut: boolean | undefined;
+  entranceWidthFeet: string;
+  floorsOffered: string;
   assetStatus: string;
   paymentComplete: boolean;
   paymentRemaining: boolean;
@@ -187,7 +190,11 @@ type Props = {
   onPlotRoadWidthMetersChange: (v: string) => void;
   onPlotConstructionDoneChange: (v: boolean) => void;
   onPlotGatedColonyChange: (v: boolean) => void;
+  onLandZoneChange: (v: string) => void;
   onPrivateTerraceChange: (v: boolean) => void;
+  onCurrentlyLeasedOutChange: (v: boolean) => void;
+  onEntranceWidthFeetChange: (v: string) => void;
+  onFloorsOfferedChange: (v: string) => void;
   onAssetStatusChange: (v: string) => void;
   onPaymentCompleteChange: (v: boolean) => void;
   onPaymentRemainingChange: (v: boolean) => void;
@@ -216,6 +223,7 @@ export function SellerPropertyDetailsStep({
   isVilla = false,
   isBuilderFloor = false,
   isPenthouse = false,
+  isCommercialShowroom = false,
   bedrooms,
   washrooms,
   balconies,
@@ -244,7 +252,11 @@ export function SellerPropertyDetailsStep({
   plotRoadWidthMeters,
   plotConstructionDone,
   plotGatedColony,
+  landZone,
   privateTerrace,
+  currentlyLeasedOut,
+  entranceWidthFeet,
+  floorsOffered,
   assetStatus,
   paymentComplete,
   paymentRemaining,
@@ -292,7 +304,11 @@ export function SellerPropertyDetailsStep({
   onPlotRoadWidthMetersChange,
   onPlotConstructionDoneChange,
   onPlotGatedColonyChange,
+  onLandZoneChange,
   onPrivateTerraceChange,
+  onCurrentlyLeasedOutChange,
+  onEntranceWidthFeetChange,
+  onFloorsOfferedChange,
   onAssetStatusChange,
   onPaymentCompleteChange,
   onPaymentRemainingChange,
@@ -432,6 +448,18 @@ export function SellerPropertyDetailsStep({
           </h2>
 
           <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Land Zone</label>
+            <FormSelect
+              value={landZone}
+              onChange={onLandZoneChange}
+              options={LAND_ZONE_OPTIONS}
+              placeholder="Select Land Zone"
+              className={selectClass}
+              aria-label="Land Zone"
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">No. of open sides</label>
             <select
               value={plotOpenSides}
@@ -484,9 +512,14 @@ export function SellerPropertyDetailsStep({
         </>
       ) : isCommercialUnit ? (
         <CommercialShopDetailsSection
+          isShowroom={isCommercialShowroom}
           builtUpArea={builtUpArea}
           carpetArea={carpetArea}
           maintenanceCharges={maintenanceCharges}
+          plotArea={landSqFt}
+          entranceWidthFeet={entranceWidthFeet}
+          floorsOffered={floorsOffered}
+          landZone={landZone}
           assetStatus={assetStatus}
           paymentComplete={paymentComplete}
           paymentRemaining={paymentRemaining}
@@ -509,6 +542,10 @@ export function SellerPropertyDetailsStep({
           onBuiltUpAreaChange={onBuiltUpAreaChange}
           onCarpetAreaChange={onCarpetAreaChange}
           onMaintenanceChargesChange={onMaintenanceChargesChange}
+          onPlotAreaChange={onLandSqFtChange}
+          onEntranceWidthFeetChange={onEntranceWidthFeetChange}
+          onFloorsOfferedChange={onFloorsOfferedChange}
+          onLandZoneChange={onLandZoneChange}
           onAssetStatusChange={onAssetStatusChange}
           onPaymentCompleteChange={onPaymentCompleteChange}
           onPaymentRemainingChange={onPaymentRemainingChange}
@@ -653,23 +690,6 @@ export function SellerPropertyDetailsStep({
                 ))}
               </select>
             </div>
-            {!isVilla && (
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Possession</label>
-                <select
-                  value={possession}
-                  onChange={(e) => onPossessionChange(e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">Select</option>
-                  {POSSESSION_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-2">Parking slots</label>
               <CountStepper label="Parking" value={parking} onChange={onParkingChange} />
@@ -868,119 +888,6 @@ export function SellerPropertyDetailsStep({
             </div>
           </section>
         )}
-
-        {isVilla && (
-          <section className="space-y-4 pt-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-              Transaction type, property availability
-            </h2>
-
-            <div>
-              <p className="block text-sm font-medium text-gray-600 mb-3">Possession status</p>
-              <div className="flex flex-wrap gap-6">
-                {POSSESSION_OPTIONS.map((option) => (
-                  <label
-                    key={option}
-                    className="inline-flex items-center gap-2.5 text-sm font-medium text-gray-700 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="villa-possession"
-                      checked={possession === option}
-                      onChange={() => onPossessionChange(option)}
-                      className="w-4 h-4 accent-primary"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {possession === 'Under Construction' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Available from</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <select
-                    value={availableFromMonth}
-                    onChange={(e) => onAvailableFromMonthChange(e.target.value)}
-                    className={selectClass}
-                    aria-label="Available from month"
-                  >
-                    <option value="">Month</option>
-                    {AVAILABLE_FROM_MONTHS.map((month) => (
-                      <option key={month} value={month}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={availableFromYear}
-                    onChange={(e) => onAvailableFromYearChange(e.target.value)}
-                    className={selectClass}
-                    aria-label="Available from year"
-                  >
-                    <option value="">Year</option>
-                    {availableFromYears().map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {possession === 'Ready to Move' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Age of construction
-                  </label>
-                  <select
-                    value={ageOfConstruction}
-                    onChange={(e) => onAgeOfConstructionChange(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Select</option>
-                    {AGE_OF_CONSTRUCTION_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Booking / token amount{' '}
-                    <span className="text-gray-400 font-normal">(optional)</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      value={bookingTokenAmount}
-                      onChange={(e) => onBookingTokenAmountChange(e.target.value)}
-                      placeholder="Booking / token amount"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <label className="inline-flex items-center gap-2.5 text-sm font-medium text-gray-700 cursor-pointer pt-1">
-              <input
-                type="checkbox"
-                checked={priceNegotiable}
-                onChange={(e) => onPriceNegotiableChange(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 accent-primary"
-              />
-              Price negotiable
-            </label>
-          </section>
-        )}
         </>
       ) : (
         <section className="space-y-4">
@@ -1021,6 +928,35 @@ export function SellerPropertyDetailsStep({
           </div>
         </section>
       )}
+
+      <TransactionAvailabilitySection
+        possession={possession}
+        availableFromMonth={availableFromMonth}
+        availableFromYear={availableFromYear}
+        ageOfConstruction={ageOfConstruction}
+        bookingTokenAmount={bookingTokenAmount}
+        priceNegotiable={priceNegotiable}
+        showShowroomAvailability={isCommercialShowroom}
+        currentlyLeasedOut={currentlyLeasedOut}
+        assuredReturn={assuredReturn}
+        assuredReturnPercent={assuredReturnPercent}
+        onPossessionChange={(v) => {
+          onPossessionChange(v);
+          if (isCommercialUnit) {
+            if (v === 'Under Construction') onAssetStatusChange('Under Construction');
+            else if (v === 'Ready to Move') onAssetStatusChange('Ready to Move In');
+            else onAssetStatusChange('');
+          }
+        }}
+        onAvailableFromMonthChange={onAvailableFromMonthChange}
+        onAvailableFromYearChange={onAvailableFromYearChange}
+        onAgeOfConstructionChange={onAgeOfConstructionChange}
+        onBookingTokenAmountChange={onBookingTokenAmountChange}
+        onPriceNegotiableChange={onPriceNegotiableChange}
+        onCurrentlyLeasedOutChange={onCurrentlyLeasedOutChange}
+        onAssuredReturnChange={onAssuredReturnChange}
+        onAssuredReturnPercentChange={onAssuredReturnPercentChange}
+      />
 
       <section>
         <label className="block text-sm font-semibold text-gray-900 mb-2">

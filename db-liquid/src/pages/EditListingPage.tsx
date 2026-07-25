@@ -14,6 +14,7 @@ import {
   isVillaType,
   isBuilderFloorType,
   isPenthouseType,
+  isCommercialShowroomType,
 } from '../data/propertyTypes';
 import { formatPrice, getTotalPrice } from '../types/listing';
 import {
@@ -106,6 +107,7 @@ export function EditListingPage() {
   const isVilla = isVillaType(listing.propertyType);
   const isBuilderFloor = isBuilderFloorType(listing.propertyType);
   const isPenthouse = isPenthouseType(listing.propertyType);
+  const isCommercialShowroom = isCommercialShowroomType(listing.propertyType);
   const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
   const totalPrice = getTotalPrice(form.pricePerSqFt, isPlot ? Number(form.landSqFt) : Number(form.builtUpArea));
 
@@ -219,6 +221,7 @@ export function EditListingPage() {
                 isVilla={isVilla}
                 isBuilderFloor={isBuilderFloor}
                 isPenthouse={isPenthouse}
+                isCommercialShowroom={isCommercialShowroom}
                 bedrooms={form.bedrooms}
                 washrooms={form.washrooms}
                 balconies={form.balconies}
@@ -247,7 +250,11 @@ export function EditListingPage() {
                 plotRoadWidthMeters={form.plotRoadWidthMeters}
                 plotConstructionDone={form.plotConstructionDone}
                 plotGatedColony={form.plotGatedColony}
+                landZone={form.landZone}
                 privateTerrace={form.privateTerrace}
+                currentlyLeasedOut={form.currentlyLeasedOut}
+                entranceWidthFeet={form.entranceWidthFeet}
+                floorsOffered={form.floorsOffered}
                 assetStatus={form.assetStatus}
                 paymentComplete={form.paymentComplete}
                 paymentRemaining={form.paymentRemaining}
@@ -295,7 +302,11 @@ export function EditListingPage() {
                 onPlotRoadWidthMetersChange={(v) => patchForm({ plotRoadWidthMeters: v })}
                 onPlotConstructionDoneChange={(v) => patchForm({ plotConstructionDone: v })}
                 onPlotGatedColonyChange={(v) => patchForm({ plotGatedColony: v })}
+                onLandZoneChange={(v) => patchForm({ landZone: v })}
                 onPrivateTerraceChange={(v) => patchForm({ privateTerrace: v })}
+                onCurrentlyLeasedOutChange={(v) => patchForm({ currentlyLeasedOut: v })}
+                onEntranceWidthFeetChange={(v) => patchForm({ entranceWidthFeet: v })}
+                onFloorsOfferedChange={(v) => patchForm({ floorsOffered: v })}
                 onAssetStatusChange={(v) => patchForm({ assetStatus: v })}
                 onPaymentCompleteChange={(v) =>
                   patchForm({ paymentComplete: v, paymentRemaining: v ? false : form.paymentRemaining })

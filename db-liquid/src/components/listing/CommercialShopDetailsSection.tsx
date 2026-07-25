@@ -1,11 +1,16 @@
+import { FormSelect } from './FormSelect';
 import {
   COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS,
   COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS,
   COMMERCIAL_SHOP_FURNISHING_OPTIONS,
   COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS,
   COMMERCIAL_SHOP_WASHROOM_OPTIONS,
+  COMMERCIAL_SHOWROOM_FLOOR_LABEL_OPTIONS,
+  COMMERCIAL_SHOWROOM_FLOOR_NUMBER_OPTIONS,
+  COMMERCIAL_SHOWROOM_FLOORS_OFFERED_OPTIONS,
+  COMMERCIAL_SHOWROOM_TOTAL_FLOOR_OPTIONS,
+  LAND_ZONE_OPTIONS,
   PANTRY_CAFE_OPTIONS,
-  SHOP_ASSET_STATUS_OPTIONS,
   SHOP_RIGHTS_OF_USE_OPTIONS,
   SHOP_TYPE_OPTIONS,
 } from '../../utils/listingDisplay';
@@ -111,9 +116,14 @@ function CheckboxRow({
 }
 
 type Props = {
+  isShowroom?: boolean;
   builtUpArea: string;
   carpetArea: string;
   maintenanceCharges: string;
+  plotArea: string;
+  entranceWidthFeet: string;
+  floorsOffered: string;
+  landZone: string;
   assetStatus: string;
   paymentComplete: boolean;
   paymentRemaining: boolean;
@@ -136,6 +146,10 @@ type Props = {
   onBuiltUpAreaChange: (v: string) => void;
   onCarpetAreaChange: (v: string) => void;
   onMaintenanceChargesChange: (v: string) => void;
+  onPlotAreaChange: (v: string) => void;
+  onEntranceWidthFeetChange: (v: string) => void;
+  onFloorsOfferedChange: (v: string) => void;
+  onLandZoneChange: (v: string) => void;
   onAssetStatusChange: (v: string) => void;
   onPaymentCompleteChange: (v: boolean) => void;
   onPaymentRemainingChange: (v: boolean) => void;
@@ -158,10 +172,15 @@ type Props = {
 };
 
 export function CommercialShopDetailsSection({
+  isShowroom = false,
   builtUpArea,
   carpetArea,
   maintenanceCharges,
-  assetStatus,
+  plotArea,
+  entranceWidthFeet,
+  floorsOffered,
+  landZone,
+  assetStatus: _assetStatus,
   paymentComplete,
   paymentRemaining,
   paymentRemainingPercent,
@@ -183,7 +202,11 @@ export function CommercialShopDetailsSection({
   onBuiltUpAreaChange,
   onCarpetAreaChange,
   onMaintenanceChargesChange,
-  onAssetStatusChange,
+  onPlotAreaChange,
+  onEntranceWidthFeetChange,
+  onFloorsOfferedChange,
+  onLandZoneChange,
+  onAssetStatusChange: _onAssetStatusChange,
   onPaymentCompleteChange,
   onPaymentRemainingChange,
   onPaymentRemainingPercentChange,
@@ -203,148 +226,189 @@ export function CommercialShopDetailsSection({
   onPersonalWashroomChange,
   onPantryCafeteriaChange,
 }: Props) {
+  const floorLabels = isShowroom
+    ? COMMERCIAL_SHOWROOM_FLOOR_LABEL_OPTIONS
+    : COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS;
+  const floorNumbers = isShowroom
+    ? COMMERCIAL_SHOWROOM_FLOOR_NUMBER_OPTIONS
+    : COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS;
+  const totalFloorOptions = isShowroom
+    ? COMMERCIAL_SHOWROOM_TOTAL_FLOOR_OPTIONS
+    : COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS;
+
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Unit details</h2>
+      {!isShowroom && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+            Unit details
+          </h2>
 
-        <OptionPills
-          label="Asset status"
-          options={SHOP_ASSET_STATUS_OPTIONS}
-          value={assetStatus}
-          onChange={onAssetStatusChange}
-        />
-
-        <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3">
-          <p className="text-sm font-medium text-gray-600">Payment & returns</p>
-          <div className="flex flex-wrap gap-x-6 gap-y-3">
-            <CheckboxRow
-              label="Payment complete"
-              checked={paymentComplete}
-              onChange={(checked) => {
-                onPaymentCompleteChange(checked);
-                if (checked) onPaymentRemainingChange(false);
-              }}
-            />
-            <CheckboxRow
-              label="Payment remaining"
-              checked={paymentRemaining}
-              onChange={(checked) => {
-                onPaymentRemainingChange(checked);
-                if (checked) onPaymentCompleteChange(false);
-              }}
-            />
-            <CheckboxRow
-              label="Assured return"
-              checked={assuredReturn}
-              onChange={onAssuredReturnChange}
-            />
-            <CheckboxRow
-              label="Lease guarantee"
-              checked={leaseGuarantee}
-              onChange={onLeaseGuaranteeChange}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Land Zone</label>
+            <FormSelect
+              value={landZone}
+              onChange={onLandZoneChange}
+              options={LAND_ZONE_OPTIONS}
+              placeholder="Select Land Zone"
+              className={selectClass}
+              aria-label="Land Zone"
             />
           </div>
 
-          {paymentRemaining && (
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                Remaining payment (%)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="0.1"
-                value={paymentRemainingPercent}
-                onChange={(e) => onPaymentRemainingPercentChange(e.target.value)}
-                placeholder="e.g. 30"
-                className={inputClass}
-              />
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+            <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+              <p className="text-sm font-medium text-gray-600">Payment</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-3">
+                <CheckboxRow
+                  label="Payment complete"
+                  checked={paymentComplete}
+                  onChange={(checked) => {
+                    onPaymentCompleteChange(checked);
+                    if (checked) onPaymentRemainingChange(false);
+                  }}
+                />
+                <CheckboxRow
+                  label="Payment remaining"
+                  checked={paymentRemaining}
+                  onChange={(checked) => {
+                    onPaymentRemainingChange(checked);
+                    if (checked) onPaymentCompleteChange(false);
+                  }}
+                />
+              </div>
 
-          {assuredReturn && (
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                Assured return (%)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="0.1"
-                value={assuredReturnPercent}
-                onChange={(e) => onAssuredReturnPercentChange(e.target.value)}
-                placeholder="e.g. 8"
-                className={inputClass}
-              />
+              {paymentRemaining && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Remaining payment (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    value={paymentRemainingPercent}
+                    onChange={(e) => onPaymentRemainingPercentChange(e.target.value)}
+                    placeholder="e.g. 30"
+                    className={inputClass}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          {leaseGuarantee && (
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                Lease guarantee amount (₹)
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={leaseGuaranteeAmount}
-                onChange={(e) => onLeaseGuaranteeAmountChange(e.target.value)}
-                placeholder="e.g. 50000"
-                className={inputClass}
-              />
+            <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+              <p className="text-sm font-medium text-gray-600">Returns</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-3">
+                <CheckboxRow
+                  label="Assured return"
+                  checked={assuredReturn}
+                  onChange={onAssuredReturnChange}
+                />
+                <CheckboxRow
+                  label="Lease guarantee"
+                  checked={leaseGuarantee}
+                  onChange={onLeaseGuaranteeChange}
+                />
+              </div>
+
+              {assuredReturn && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Assured return (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    value={assuredReturnPercent}
+                    onChange={(e) => onAssuredReturnPercentChange(e.target.value)}
+                    placeholder="e.g. 8"
+                    className={inputClass}
+                  />
+                </div>
+              )}
+
+              {leaseGuarantee && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Lease guarantee amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={leaseGuaranteeAmount}
+                    onChange={(e) => onLeaseGuaranteeAmountChange(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className={inputClass}
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">Ideal for businesses</label>
-          <input
-            type="text"
-            value={idealForBusinesses}
-            onChange={(e) => onIdealForBusinessesChange(e.target.value)}
-            placeholder="e.g. Retail, Restaurant, Clinic"
-            className={inputClass}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Ideal for businesses
+            </label>
+            <input
+              type="text"
+              value={idealForBusinesses}
+              onChange={(e) => onIdealForBusinessesChange(e.target.value)}
+              placeholder="e.g. Retail, Restaurant, Clinic"
+              className={inputClass}
+            />
+          </div>
+        </section>
+      )}
+
+      {!isShowroom && (
+        <section className="space-y-5 pt-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+            Rights of use
+          </h2>
+
+          <OptionPills
+            label="Rights of use"
+            options={SHOP_RIGHTS_OF_USE_OPTIONS}
+            value={rightsOfUse}
+            onChange={onRightsOfUseChange}
           />
-        </div>
-      </section>
 
-      <section className="space-y-5 pt-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-          Rights of use
-        </h2>
-
-        <OptionPills
-          label="Rights of use"
-          options={SHOP_RIGHTS_OF_USE_OPTIONS}
-          value={rightsOfUse}
-          onChange={onRightsOfUseChange}
-        />
-
-        <OptionPills
-          label="Type"
-          options={SHOP_TYPE_OPTIONS}
-          value={shopType}
-          onChange={onShopTypeChange}
-        />
-      </section>
+          <OptionPills
+            label="Type"
+            options={SHOP_TYPE_OPTIONS}
+            value={shopType}
+            onChange={onShopTypeChange}
+          />
+        </section>
+      )}
 
       <section className="space-y-5 pt-2">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
           Property features
         </h2>
 
+        {isShowroom && (
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Land Zone</label>
+            <FormSelect
+              value={landZone}
+              onChange={onLandZoneChange}
+              options={LAND_ZONE_OPTIONS}
+              placeholder="Select Land Zone"
+              className={selectClass}
+              aria-label="Land Zone"
+            />
+          </div>
+        )}
+
         <div className="space-y-3">
           <OptionPills
             label="Floor no."
-            options={COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS}
-            value={
-              (COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS as readonly string[]).includes(floor)
-                ? floor
-                : ''
-            }
+            options={floorLabels}
+            value={(floorLabels as readonly string[]).includes(floor) ? floor : ''}
             onChange={onFloorChange}
           />
           <div>
@@ -352,16 +416,12 @@ export function CommercialShopDetailsSection({
               Or select floor number
             </label>
             <select
-              value={
-                (COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS as readonly string[]).includes(floor)
-                  ? floor
-                  : ''
-              }
+              value={(floorNumbers as readonly string[]).includes(floor) ? floor : ''}
               onChange={(e) => onFloorChange(e.target.value)}
               className={selectClass}
             >
               <option value="">Select floor number</option>
-              {COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS.map((option) => (
+              {floorNumbers.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -378,13 +438,29 @@ export function CommercialShopDetailsSection({
             className={selectClass}
           >
             <option value="">Select total floors</option>
-            {COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS.map((option) => (
+            {totalFloorOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
             ))}
           </select>
         </div>
+
+        {isShowroom && (
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Floor(s) offered for sale
+            </label>
+            <FormSelect
+              value={floorsOffered}
+              onChange={onFloorsOfferedChange}
+              options={COMMERCIAL_SHOWROOM_FLOORS_OFFERED_OPTIONS}
+              placeholder="Select"
+              className={selectClass}
+              aria-label="Floor(s) offered for sale"
+            />
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2">Washrooms</label>
@@ -410,7 +486,11 @@ export function CommercialShopDetailsSection({
         />
 
         <div className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-2 space-y-1">
-          <YesNoChoice label="Corner unit" value={cornerShop} onChange={onCornerShopChange} />
+          <YesNoChoice
+            label={isShowroom ? 'Corner showroom' : 'Corner unit'}
+            value={cornerShop}
+            onChange={onCornerShopChange}
+          />
           <YesNoChoice
             label="Is main road facing"
             value={mainRoadFacing}
@@ -452,7 +532,9 @@ export function CommercialShopDetailsSection({
       <section className="space-y-4 pt-2">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Area</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">Built-up area (sq.ft)</label>
+          <label className="block text-sm font-medium text-gray-600 mb-2">
+            {isShowroom ? 'Covered / built-up area (sq.ft)' : 'Built-up area (sq.ft)'}
+          </label>
           <input
             type="number"
             value={builtUpArea}
@@ -461,6 +543,35 @@ export function CommercialShopDetailsSection({
             className={inputClass}
           />
         </div>
+        {isShowroom && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Plot area (sq.ft) <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="number"
+                value={plotArea}
+                onChange={(e) => onPlotAreaChange(e.target.value)}
+                placeholder="e.g. 2000"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Width of entrance (ft){' '}
+                <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="number"
+                value={entranceWidthFeet}
+                onChange={(e) => onEntranceWidthFeetChange(e.target.value)}
+                placeholder="e.g. 20"
+                className={inputClass}
+              />
+            </div>
+          </>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2">
             Carpet area (sq.ft) <span className="text-gray-400 font-normal">(optional)</span>

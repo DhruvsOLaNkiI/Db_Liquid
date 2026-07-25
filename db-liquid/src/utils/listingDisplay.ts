@@ -236,12 +236,18 @@ export function availableFromYears(fromYear = new Date().getFullYear()) {
 }
 
 export const LAND_ZONE_OPTIONS = [
-  'Commercial',
   'Industrial',
+  'Commercial',
   'Residential',
-  'Mixed Use',
-  'SEZ',
-  'Agricultural',
+  'Transport and Communication',
+  'Public Utilities',
+  'Public and Semi Public Use',
+  'Open Spaces',
+  'Agricultural Zone',
+  'Special Economic Zone',
+  'Natural Conservation Zone',
+  'Government Use',
+  'Office in IT Park/SEZ',
 ] as const;
 
 export const SHOP_ASSET_STATUS_OPTIONS = ['Under Construction', 'Ready to Move In'] as const;
@@ -256,7 +262,23 @@ export const COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS = [
   'Ground',
 ] as const;
 
+export const COMMERCIAL_SHOWROOM_FLOOR_LABEL_OPTIONS = [
+  'Lower Basement',
+  'Upper Basement',
+  'Ground',
+] as const;
+
 export const COMMERCIAL_SHOP_FLOOR_NUMBER_OPTIONS = ['1', '2', '3', '4', '5', '5+'] as const;
+
+export const COMMERCIAL_SHOWROOM_FLOOR_NUMBER_OPTIONS = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '6+',
+] as const;
 
 export const COMMERCIAL_SHOP_FLOOR_OPTIONS = [
   ...COMMERCIAL_SHOP_FLOOR_LABEL_OPTIONS,
@@ -266,6 +288,17 @@ export const COMMERCIAL_SHOP_FLOOR_OPTIONS = [
 export const COMMERCIAL_SHOP_TOTAL_FLOOR_OPTIONS = [
   ...Array.from({ length: 13 }, (_, i) => String(i + 1)),
   '13+',
+] as const;
+
+export const COMMERCIAL_SHOWROOM_TOTAL_FLOOR_OPTIONS = [
+  ...Array.from({ length: 15 }, (_, i) => String(i + 1)),
+  '15+',
+] as const;
+
+export const COMMERCIAL_SHOWROOM_FLOORS_OFFERED_OPTIONS = [
+  'Entire Floor',
+  'Partial Floor',
+  'Multiple Floors',
 ] as const;
 
 export const COMMERCIAL_SHOP_FURNISHING_OPTIONS = ['Furnished', 'Unfurnished'] as const;
@@ -416,6 +449,9 @@ type DetailsInput = {
   plotGatedColony?: boolean;
   isCommercialUnit?: boolean;
   landZone?: string;
+  currentlyLeasedOut?: boolean;
+  entranceWidthFeet?: string;
+  floorsOffered?: string;
   assetStatus?: string;
   paymentComplete?: boolean;
   paymentRemaining?: boolean;
@@ -454,6 +490,9 @@ export function buildListingDetailsSummary(input: DetailsInput) {
     carpetArea,
     superArea,
     privateTerrace,
+    currentlyLeasedOut,
+    entranceWidthFeet,
+    floorsOffered,
     maintenanceCharges,
     furnishing,
     facing,
@@ -507,9 +546,14 @@ export function buildListingDetailsSummary(input: DetailsInput) {
   if (!isPlot && carpetArea) extras.push(`Carpet ${carpetArea} sq.ft`);
   if (!isPlot && superArea) extras.push(`Super ${superArea} sq.ft`);
   if (privateTerrace) extras.push('Private terrace');
+  if (currentlyLeasedOut === true) extras.push('Currently leased out');
+  if (currentlyLeasedOut === false) extras.push('Not leased out');
+  if (floorsOffered) extras.push(floorsOffered);
+  if (entranceWidthFeet) extras.push(`Entrance ${entranceWidthFeet} ft`);
   if (!isPlot && maintenanceCharges) extras.push(`Maintenance ₹${maintenanceCharges}`);
+  if (isPlot && landZone) extras.push(landZone);
   if (isCommercialUnit && assetStatus) extras.push(assetStatus);
-  else if (isCommercialUnit && landZone) extras.push(landZone);
+  if (isCommercialUnit && landZone) extras.push(landZone);
   if (isCommercialUnit && shopType) extras.push(shopType);
   if (isCommercialUnit && rightsOfUse) extras.push(rightsOfUse);
   if (isCommercialUnit && paymentComplete) extras.push('Payment complete');

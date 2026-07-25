@@ -19,6 +19,7 @@ import {
   isVillaType,
   isBuilderFloorType,
   isPenthouseType,
+  isCommercialShowroomType,
 } from '../data/propertyTypes';
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, PropertyVideo, VerificationDocType, VerificationDocument } from '../types/listing';
@@ -122,7 +123,13 @@ export function ListYourPropertyPage() {
   const [plotGatedColony, setPlotGatedColony] = useState<boolean | undefined>(() =>
     d('plotGatedColony', undefined),
   );
+  const [landZone, setLandZone] = useState(() => d('landZone', ''));
   const [privateTerrace, setPrivateTerrace] = useState(() => d('privateTerrace', false));
+  const [currentlyLeasedOut, setCurrentlyLeasedOut] = useState<boolean | undefined>(() =>
+    d('currentlyLeasedOut', undefined),
+  );
+  const [entranceWidthFeet, setEntranceWidthFeet] = useState(() => d('entranceWidthFeet', ''));
+  const [floorsOffered, setFloorsOffered] = useState(() => d('floorsOffered', ''));
   const [assetStatus, setAssetStatus] = useState(() => d('assetStatus', ''));
   const [paymentComplete, setPaymentComplete] = useState(() => d('paymentComplete', false));
   const [paymentRemaining, setPaymentRemaining] = useState(() => d('paymentRemaining', false));
@@ -217,7 +224,11 @@ export function ListYourPropertyPage() {
     plotRoadWidthMeters,
     plotConstructionDone,
     plotGatedColony,
+    landZone,
     privateTerrace,
+    currentlyLeasedOut,
+    entranceWidthFeet,
+    floorsOffered,
     assetStatus,
     paymentComplete,
     paymentRemaining,
@@ -259,6 +270,7 @@ export function ListYourPropertyPage() {
   const isVilla = isVillaType(propertyType);
   const isBuilderFloor = isBuilderFloorType(propertyType);
   const isPenthouse = isPenthouseType(propertyType);
+  const isCommercialShowroom = isCommercialShowroomType(propertyType);
   const showFloorFields =
     !isPlot &&
     !isCommercialUnit &&
@@ -287,6 +299,9 @@ export function ListYourPropertyPage() {
     carpetArea: carpetArea || undefined,
     superArea: superArea || undefined,
     privateTerrace: isPenthouse ? privateTerrace : undefined,
+    currentlyLeasedOut: isCommercialShowroom ? currentlyLeasedOut : undefined,
+    entranceWidthFeet: entranceWidthFeet || undefined,
+    floorsOffered: floorsOffered || undefined,
     maintenanceCharges: maintenanceCharges || undefined,
     furnishing: furnishing || undefined,
     facing: facing || undefined,
@@ -296,13 +311,14 @@ export function ListYourPropertyPage() {
     availableFromYear: availableFromYear || undefined,
     ageOfConstruction: ageOfConstruction || undefined,
     bookingTokenAmount: bookingTokenAmount || undefined,
-    priceNegotiable: isVilla ? priceNegotiable : undefined,
+    priceNegotiable,
     cornerPlot,
     boundaryWall: boundaryWall === true,
     plotOpenSides: plotOpenSides || undefined,
     plotRoadWidthMeters: plotRoadWidthMeters || undefined,
     plotConstructionDone,
     plotGatedColony,
+    landZone: landZone || undefined,
     assetStatus: assetStatus || undefined,
     paymentComplete: isCommercialUnit ? paymentComplete : undefined,
     paymentRemaining: isCommercialUnit ? paymentRemaining : undefined,
@@ -426,6 +442,17 @@ export function ListYourPropertyPage() {
     if (step === 2) {
       if (isPlot) return landSqFt.trim().length > 0;
       if (isCommercialUnit) {
+        if (isCommercialShowroom) {
+          return (
+            builtUpArea.trim().length > 0 &&
+            floor.trim().length > 0 &&
+            totalFloors.trim().length > 0 &&
+            furnishing.trim().length > 0 &&
+            shopWashrooms.trim().length > 0 &&
+            possession.trim().length > 0 &&
+            (!assuredReturn || assuredReturnPercent.trim().length > 0)
+          );
+        }
         return (
           builtUpArea.trim().length > 0 &&
           assetStatus.trim().length > 0 &&
@@ -553,26 +580,36 @@ export function ListYourPropertyPage() {
         parking: parking || undefined,
         possession: possession || undefined,
         availableFromMonth:
-          isVilla && possession === 'Under Construction' && availableFromMonth
+          possession === 'Under Construction' && availableFromMonth
             ? availableFromMonth
             : undefined,
         availableFromYear:
-          isVilla && possession === 'Under Construction' && availableFromYear
+          possession === 'Under Construction' && availableFromYear
             ? availableFromYear
             : undefined,
         ageOfConstruction:
-          isVilla && possession === 'Ready to Move' && ageOfConstruction
+          possession === 'Ready to Move' && ageOfConstruction
             ? ageOfConstruction
             : undefined,
         bookingTokenAmount:
-          isVilla && possession === 'Ready to Move' && bookingTokenAmount.trim()
+          possession === 'Ready to Move' && bookingTokenAmount.trim()
             ? Number(bookingTokenAmount)
             : undefined,
-        priceNegotiable: isVilla ? priceNegotiable : undefined,
+        priceNegotiable,
         cornerPlot: isPlot || isVilla ? cornerPlot : undefined,
         boundaryWall: isPlot && boundaryWall === true ? true : undefined,
         propertyNumber: isPlot && propertyNumber.trim() ? propertyNumber.trim() : undefined,
-        plotAreaSqFt: isVilla && landSqFt.trim() ? Number(landSqFt) : undefined,
+        plotAreaSqFt:
+          (isVilla || isCommercialShowroom) && landSqFt.trim()
+            ? Number(landSqFt)
+            : undefined,
+        currentlyLeasedOut: isCommercialShowroom ? currentlyLeasedOut : undefined,
+        entranceWidthFeet:
+          isCommercialShowroom && entranceWidthFeet.trim()
+            ? Number(entranceWidthFeet)
+            : undefined,
+        floorsOffered:
+          isCommercialShowroom && floorsOffered.trim() ? floorsOffered.trim() : undefined,
         floorsAllowed:
           (isVilla || isBuilderFloor) && floorsAllowed.trim()
             ? floorsAllowed.trim()
@@ -593,12 +630,20 @@ export function ListYourPropertyPage() {
           isPlot && plotRoadWidthMeters.trim() ? Number(plotRoadWidthMeters) : undefined,
         plotConstructionDone: isPlot ? plotConstructionDone : undefined,
         plotGatedColony: isPlot ? plotGatedColony : undefined,
-        landZone: undefined,
+        landZone:
+          (isPlot || isCommercialUnit) && landZone.trim()
+            ? landZone.trim()
+            : undefined,
         assetStatus: isCommercialUnit && assetStatus ? assetStatus : undefined,
-        paymentComplete: isCommercialUnit && paymentComplete ? true : undefined,
-        paymentRemaining: isCommercialUnit && paymentRemaining ? true : undefined,
+        paymentComplete:
+          isCommercialUnit && !isCommercialShowroom && paymentComplete ? true : undefined,
+        paymentRemaining:
+          isCommercialUnit && !isCommercialShowroom && paymentRemaining ? true : undefined,
         paymentRemainingPercent:
-          isCommercialUnit && paymentRemaining && paymentRemainingPercent.trim()
+          isCommercialUnit &&
+          !isCommercialShowroom &&
+          paymentRemaining &&
+          paymentRemainingPercent.trim()
             ? Number(paymentRemainingPercent)
             : undefined,
         assuredReturn: isCommercialUnit && assuredReturn ? true : undefined,
@@ -606,14 +651,23 @@ export function ListYourPropertyPage() {
           isCommercialUnit && assuredReturn && assuredReturnPercent.trim()
             ? Number(assuredReturnPercent)
             : undefined,
-        leaseGuarantee: isCommercialUnit && leaseGuarantee ? true : undefined,
+        leaseGuarantee:
+          isCommercialUnit && !isCommercialShowroom && leaseGuarantee ? true : undefined,
         leaseGuaranteeAmount:
-          isCommercialUnit && leaseGuarantee && leaseGuaranteeAmount.trim()
+          isCommercialUnit &&
+          !isCommercialShowroom &&
+          leaseGuarantee &&
+          leaseGuaranteeAmount.trim()
             ? Number(leaseGuaranteeAmount)
             : undefined,
-        rightsOfUse: isCommercialUnit && rightsOfUse ? rightsOfUse : undefined,
-        shopType: isCommercialUnit && shopType ? shopType : undefined,
-        idealForBusinesses: isCommercialUnit && idealForBusinesses.trim() ? idealForBusinesses.trim() : undefined,
+        rightsOfUse:
+          isCommercialUnit && !isCommercialShowroom && rightsOfUse ? rightsOfUse : undefined,
+        shopType:
+          isCommercialUnit && !isCommercialShowroom && shopType ? shopType : undefined,
+        idealForBusinesses:
+          isCommercialUnit && !isCommercialShowroom && idealForBusinesses.trim()
+            ? idealForBusinesses.trim()
+            : undefined,
         shopWashrooms: isCommercialUnit && shopWashrooms ? shopWashrooms : undefined,
         personalWashroom: isCommercialUnit ? personalWashroom : undefined,
         pantryCafeteria: isCommercialUnit && pantryCafeteria ? pantryCafeteria : undefined,
@@ -759,6 +813,7 @@ export function ListYourPropertyPage() {
                 isVilla={isVilla}
                 isBuilderFloor={isBuilderFloor}
                 isPenthouse={isPenthouse}
+                isCommercialShowroom={isCommercialShowroom}
                 bedrooms={bedrooms}
                 washrooms={washrooms}
                 balconies={balconies}
@@ -787,7 +842,11 @@ export function ListYourPropertyPage() {
                 plotRoadWidthMeters={plotRoadWidthMeters}
                 plotConstructionDone={plotConstructionDone}
                 plotGatedColony={plotGatedColony}
+                landZone={landZone}
                 privateTerrace={privateTerrace}
+                currentlyLeasedOut={currentlyLeasedOut}
+                entranceWidthFeet={entranceWidthFeet}
+                floorsOffered={floorsOffered}
                 assetStatus={assetStatus}
                 paymentComplete={paymentComplete}
                 paymentRemaining={paymentRemaining}
@@ -835,7 +894,11 @@ export function ListYourPropertyPage() {
                 onPlotRoadWidthMetersChange={setPlotRoadWidthMeters}
                 onPlotConstructionDoneChange={setPlotConstructionDone}
                 onPlotGatedColonyChange={setPlotGatedColony}
+                onLandZoneChange={setLandZone}
                 onPrivateTerraceChange={setPrivateTerrace}
+                onCurrentlyLeasedOutChange={setCurrentlyLeasedOut}
+                onEntranceWidthFeetChange={setEntranceWidthFeet}
+                onFloorsOfferedChange={setFloorsOffered}
                 onAssetStatusChange={setAssetStatus}
                 onPaymentCompleteChange={setPaymentComplete}
                 onPaymentRemainingChange={setPaymentRemaining}

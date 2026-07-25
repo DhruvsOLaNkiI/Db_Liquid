@@ -139,6 +139,12 @@ export type PropertyListing = {
   paymentRemainingPercent?: number;
   assuredReturn?: boolean;
   assuredReturnPercent?: number;
+  /** Commercial showroom — currently leased out */
+  currentlyLeasedOut?: boolean;
+  /** Commercial showroom — entrance width in feet */
+  entranceWidthFeet?: number;
+  /** Commercial showroom — e.g. Entire Floor */
+  floorsOffered?: string;
   leaseGuarantee?: boolean;
   leaseGuaranteeAmount?: number;
   /** Self use / By Developer */
@@ -331,6 +337,9 @@ export function normalizeListing(raw: Partial<PropertyListing> & { id: string })
     paymentRemainingPercent: raw.paymentRemainingPercent,
     assuredReturn: raw.assuredReturn,
     assuredReturnPercent: raw.assuredReturnPercent,
+    currentlyLeasedOut: raw.currentlyLeasedOut,
+    entranceWidthFeet: raw.entranceWidthFeet,
+    floorsOffered: raw.floorsOffered?.trim() || undefined,
     leaseGuarantee: raw.leaseGuarantee,
     leaseGuaranteeAmount: raw.leaseGuaranteeAmount,
     rightsOfUse: raw.rightsOfUse,

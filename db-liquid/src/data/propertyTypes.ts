@@ -75,6 +75,10 @@ export function isCommercialShopType(type: string) {
   return type === 'Commercial Shop' || type === 'Commercial Showroom';
 }
 
+export function isCommercialShowroomType(type: string) {
+  return type === 'Commercial Showroom';
+}
+
 export function isCommercialOfficeType(type: string) {
   return type === 'Commercial Office Space' || type === 'Office in IT Park/ SEZ';
 }

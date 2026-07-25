@@ -123,6 +123,11 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   if (listing.privateTerrace) {
     rows.push({ label: 'Private Terrace', value: 'Yes' });
   }
+  if (listing.currentlyLeasedOut === true) {
+    rows.push({ label: 'Currently Leased Out', value: 'Yes' });
+  } else if (listing.currentlyLeasedOut === false) {
+    rows.push({ label: 'Currently Leased Out', value: 'No' });
+  }
   if (listing.maintenanceCharges != null && listing.maintenanceCharges > 0) {
     rows.push({
       label: 'Maintenance',
@@ -154,6 +159,9 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
     if (listing.plotGatedColony) {
       rows.push({ label: 'In a gated colony', value: 'Yes' });
     }
+    if (listing.landZone) {
+      rows.push({ label: 'Land Zone', value: listing.landZone });
+    }
   }
 
   if (listing.propertyType === 'Villa') {
@@ -182,6 +190,22 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   }
 
   if (isCommercialUnit) {
+    if (listing.landZone) rows.push({ label: 'Land Zone', value: listing.landZone });
+    if (listing.floorsOffered) {
+      rows.push({ label: 'Floor(s) Offered', value: listing.floorsOffered });
+    }
+    if (listing.plotAreaSqFt != null && listing.plotAreaSqFt > 0) {
+      rows.push({
+        label: 'Plot Area',
+        value: `${listing.plotAreaSqFt.toLocaleString('en-IN')} sq.ft`,
+      });
+    }
+    if (listing.entranceWidthFeet != null && listing.entranceWidthFeet > 0) {
+      rows.push({
+        label: 'Entrance Width',
+        value: `${listing.entranceWidthFeet} ft`,
+      });
+    }
     if (listing.assetStatus) rows.push({ label: 'Asset Status', value: listing.assetStatus });
     if (listing.paymentComplete) rows.push({ label: 'Payment', value: 'Complete' });
     if (listing.paymentRemaining) {
