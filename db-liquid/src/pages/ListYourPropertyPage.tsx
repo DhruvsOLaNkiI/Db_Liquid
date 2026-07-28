@@ -20,6 +20,12 @@ import {
   isBuilderFloorType,
   isPenthouseType,
   isCommercialShowroomType,
+  isWarehouseGodownType,
+  isIndustrialLandType,
+  isIndustrialBuildingType,
+  isIndustrialShedType,
+  isAgriculturalLandType,
+  isFarmHouseType,
 } from '../data/propertyTypes';
 import { formatPrice, getAreaSqFt, getTotalPrice, getBiddingEndDate } from '../types/listing';
 import type { ListingVerifications, PropertyListing, PropertyPhoto, PropertyVideo, VerificationDocType, VerificationDocument } from '../types/listing';
@@ -78,6 +84,8 @@ export function ListYourPropertyPage() {
   const [builtUpArea, setBuiltUpArea] = useState(() => d('builtUpArea', ''));
   const [landSqFt, setLandSqFt] = useState(() => d('landSqFt', ''));
   const [propertyNumber, setPropertyNumber] = useState(() => d('propertyNumber', ''));
+  const [plotWidth, setPlotWidth] = useState(() => d('plotWidth', ''));
+  const [plotLength, setPlotLength] = useState(() => d('plotLength', ''));
   const [floorsAllowed, setFloorsAllowed] = useState(() => d('floorsAllowed', ''));
   const [projectName, setProjectName] = useState(() => d('projectName', ''));
   const [carpetArea, setCarpetArea] = useState(() => d('carpetArea', ''));
@@ -184,6 +192,8 @@ export function ListYourPropertyPage() {
     builtUpArea,
     landSqFt,
     propertyNumber,
+    plotWidth,
+    plotLength,
     floorsAllowed,
     projectName,
     carpetArea,
@@ -271,11 +281,20 @@ export function ListYourPropertyPage() {
   const isBuilderFloor = isBuilderFloorType(propertyType);
   const isPenthouse = isPenthouseType(propertyType);
   const isCommercialShowroom = isCommercialShowroomType(propertyType);
+  const isWarehouseGodown = isWarehouseGodownType(propertyType);
+  const isIndustrialLand = isIndustrialLandType(propertyType);
+  const isIndustrialBuilding = isIndustrialBuildingType(propertyType);
+  const isIndustrialShed = isIndustrialShedType(propertyType);
+  const isAgriculturalLand = isAgriculturalLandType(propertyType);
+  const isFarmHouse = isFarmHouseType(propertyType);
+  const isIndustrialUnit = isWarehouseGodown || isIndustrialBuilding || isIndustrialShed;
   const showFloorFields =
     !isPlot &&
     !isCommercialUnit &&
     !isBuilderFloor &&
     !isPenthouse &&
+    !isIndustrialUnit &&
+    !isFarmHouse &&
     propertyType.length > 0;
   const location = locality.trim() && stateName.trim() ? buildListingLocation(locality, stateName) : '';
   const areaSqFt = getAreaSqFt(isPlot, builtUpArea, landSqFt);
@@ -299,7 +318,10 @@ export function ListYourPropertyPage() {
     carpetArea: carpetArea || undefined,
     superArea: superArea || undefined,
     privateTerrace: isPenthouse ? privateTerrace : undefined,
-    currentlyLeasedOut: isCommercialShowroom ? currentlyLeasedOut : undefined,
+    currentlyLeasedOut:
+      isCommercialShowroom || isIndustrialUnit || isAgriculturalLand
+        ? currentlyLeasedOut
+        : undefined,
     entranceWidthFeet: entranceWidthFeet || undefined,
     floorsOffered: floorsOffered || undefined,
     maintenanceCharges: maintenanceCharges || undefined,
@@ -441,6 +463,28 @@ export function ListYourPropertyPage() {
     }
     if (step === 2) {
       if (isPlot) return landSqFt.trim().length > 0;
+      if (isWarehouseGodown) {
+        return (
+          (superArea.trim().length > 0 || builtUpArea.trim().length > 0) &&
+          floor.trim().length > 0 &&
+          totalFloors.trim().length > 0 &&
+          furnishing.trim().length > 0 &&
+          possession.trim().length > 0
+        );
+      }
+      if (isIndustrialBuilding) {
+        return (
+          (superArea.trim().length > 0 || builtUpArea.trim().length > 0) &&
+          totalFloors.trim().length > 0 &&
+          possession.trim().length > 0
+        );
+      }
+      if (isIndustrialShed) {
+        return (
+          (superArea.trim().length > 0 || builtUpArea.trim().length > 0) &&
+          possession.trim().length > 0
+        );
+      }
       if (isCommercialUnit) {
         if (isCommercialShowroom) {
           return (
@@ -465,6 +509,15 @@ export function ListYourPropertyPage() {
           (!paymentRemaining || paymentRemainingPercent.trim().length > 0) &&
           (!assuredReturn || assuredReturnPercent.trim().length > 0) &&
           (!leaseGuarantee || leaseGuaranteeAmount.trim().length > 0)
+        );
+      }
+      if (isFarmHouse) {
+        return (
+          bedrooms > 0 &&
+          (superArea.trim().length > 0 || builtUpArea.trim().length > 0) &&
+          totalFloors.trim().length > 0 &&
+          furnishing.trim().length > 0 &&
+          possession.trim().length > 0
         );
       }
       if (isResidential) return bedrooms > 0 && builtUpArea.trim().length > 0;
@@ -549,12 +602,22 @@ export function ListYourPropertyPage() {
         state: stateName.trim(),
         pincode: pincode.trim() || undefined,
         floor:
-          (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+          (showFloorFields ||
+            isCommercialUnit ||
+            isBuilderFloor ||
+            isPenthouse ||
+            isWarehouseGodown) &&
           floor.trim()
             ? floor.trim()
             : undefined,
         totalFloors:
-          (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+          (showFloorFields ||
+            isCommercialUnit ||
+            isBuilderFloor ||
+            isPenthouse ||
+            isWarehouseGodown ||
+            isIndustrialBuilding ||
+            isFarmHouse) &&
           totalFloors.trim()
             ? totalFloors.trim()
             : undefined,
@@ -591,19 +654,23 @@ export function ListYourPropertyPage() {
           possession === 'Ready to Move' && ageOfConstruction
             ? ageOfConstruction
             : undefined,
-        bookingTokenAmount:
-          possession === 'Ready to Move' && bookingTokenAmount.trim()
-            ? Number(bookingTokenAmount)
-            : undefined,
+        bookingTokenAmount: bookingTokenAmount.trim()
+          ? Number(bookingTokenAmount)
+          : undefined,
         priceNegotiable,
         cornerPlot: isPlot || isVilla ? cornerPlot : undefined,
         boundaryWall: isPlot && boundaryWall === true ? true : undefined,
         propertyNumber: isPlot && propertyNumber.trim() ? propertyNumber.trim() : undefined,
+        plotWidth: isPlot && plotWidth.trim() ? Number(plotWidth) : undefined,
+        plotLength: isPlot && plotLength.trim() ? Number(plotLength) : undefined,
         plotAreaSqFt:
           (isVilla || isCommercialShowroom) && landSqFt.trim()
             ? Number(landSqFt)
             : undefined,
-        currentlyLeasedOut: isCommercialShowroom ? currentlyLeasedOut : undefined,
+        currentlyLeasedOut:
+          isCommercialShowroom || isIndustrialUnit || isAgriculturalLand
+            ? currentlyLeasedOut
+            : undefined,
         entranceWidthFeet:
           isCommercialShowroom && entranceWidthFeet.trim()
             ? Number(entranceWidthFeet)
@@ -611,27 +678,43 @@ export function ListYourPropertyPage() {
         floorsOffered:
           isCommercialShowroom && floorsOffered.trim() ? floorsOffered.trim() : undefined,
         floorsAllowed:
-          (isVilla || isBuilderFloor) && floorsAllowed.trim()
+          (isPlot ||
+            isVilla ||
+            isBuilderFloor ||
+            isWarehouseGodown ||
+            isIndustrialBuilding ||
+            isIndustrialShed ||
+            isFarmHouse) &&
+          floorsAllowed.trim()
             ? floorsAllowed.trim()
             : undefined,
         projectName: !isPlot && projectName.trim() ? projectName.trim() : undefined,
         carpetArea:
-          !isPlot && carpetArea.trim() ? Number(carpetArea) : undefined,
+          !isPlot && !isIndustrialUnit && carpetArea.trim()
+            ? Number(carpetArea)
+            : undefined,
         superArea:
-          (isBuilderFloor || isPenthouse) && superArea.trim()
-            ? Number(superArea)
+          (isBuilderFloor || isPenthouse || isIndustrialUnit || isFarmHouse) &&
+          (superArea.trim() || builtUpArea.trim())
+            ? Number(superArea.trim() || builtUpArea)
             : undefined,
         privateTerrace: isPenthouse ? privateTerrace : undefined,
         maintenanceCharges:
           !isPlot && maintenanceCharges.trim() ? Number(maintenanceCharges) : undefined,
         plotOpenSides:
-          (isPlot || isVilla) && plotOpenSides ? plotOpenSides : undefined,
+          (isPlot || isVilla || isWarehouseGodown || isIndustrialShed || isFarmHouse) &&
+          plotOpenSides
+            ? plotOpenSides
+            : undefined,
         plotRoadWidthMeters:
-          isPlot && plotRoadWidthMeters.trim() ? Number(plotRoadWidthMeters) : undefined,
+          ((isPlot && !isIndustrialLand) || isWarehouseGodown || isFarmHouse) &&
+          plotRoadWidthMeters.trim()
+            ? Number(plotRoadWidthMeters)
+            : undefined,
         plotConstructionDone: isPlot ? plotConstructionDone : undefined,
         plotGatedColony: isPlot ? plotGatedColony : undefined,
         landZone:
-          (isPlot || isCommercialUnit) && landZone.trim()
+          (isPlot || isCommercialUnit || isIndustrialUnit) && landZone.trim()
             ? landZone.trim()
             : undefined,
         assetStatus: isCommercialUnit && assetStatus ? assetStatus : undefined,
@@ -814,6 +897,12 @@ export function ListYourPropertyPage() {
                 isBuilderFloor={isBuilderFloor}
                 isPenthouse={isPenthouse}
                 isCommercialShowroom={isCommercialShowroom}
+                isWarehouseGodown={isWarehouseGodown}
+                isIndustrialLand={isIndustrialLand}
+                isIndustrialBuilding={isIndustrialBuilding}
+                isIndustrialShed={isIndustrialShed}
+                isAgriculturalLand={isAgriculturalLand}
+                isFarmHouse={isFarmHouse}
                 bedrooms={bedrooms}
                 washrooms={washrooms}
                 balconies={balconies}
@@ -823,6 +912,8 @@ export function ListYourPropertyPage() {
                 builtUpArea={builtUpArea}
                 landSqFt={landSqFt}
                 propertyNumber={propertyNumber}
+                plotWidth={plotWidth}
+                plotLength={plotLength}
                 floorsAllowed={floorsAllowed}
                 carpetArea={carpetArea}
                 superArea={superArea}
@@ -875,6 +966,8 @@ export function ListYourPropertyPage() {
                 onBuiltUpAreaChange={setBuiltUpArea}
                 onLandSqFtChange={setLandSqFt}
                 onPropertyNumberChange={setPropertyNumber}
+                onPlotWidthChange={setPlotWidth}
+                onPlotLengthChange={setPlotLength}
                 onFloorsAllowedChange={setFloorsAllowed}
                 onCarpetAreaChange={setCarpetArea}
                 onSuperAreaChange={setSuperArea}

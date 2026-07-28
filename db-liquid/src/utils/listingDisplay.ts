@@ -303,6 +303,34 @@ export const COMMERCIAL_SHOWROOM_FLOORS_OFFERED_OPTIONS = [
 
 export const COMMERCIAL_SHOP_FURNISHING_OPTIONS = ['Furnished', 'Unfurnished'] as const;
 
+export const WAREHOUSE_FURNISHING_OPTIONS = [
+  'Furnished',
+  'Unfurnished',
+  'Semi-Furnished',
+] as const;
+
+export const WAREHOUSE_FLOOR_OPTIONS = [
+  'Lower Basement',
+  'Upper Basement',
+  'Ground',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '5+',
+] as const;
+
+export const WAREHOUSE_TOTAL_FLOOR_OPTIONS = [
+  ...Array.from({ length: 13 }, (_, i) => String(i + 1)),
+  '13+',
+] as const;
+
+export const WAREHOUSE_FLOORS_ALLOWED_OPTIONS = [
+  ...Array.from({ length: 20 }, (_, i) => String(i + 1)),
+  '20+',
+] as const;
+
 export const COMMERCIAL_SHOP_WASHROOM_OPTIONS = ['0', '1', '2', '3', '3+'] as const;
 
 export const PANTRY_CAFE_OPTIONS = ['Dry', 'Wet', 'Not Available'] as const;
@@ -607,7 +635,7 @@ export function buildListingDetailsSummary(input: DetailsInput) {
   if (isPlot && plotRoadWidthMeters) extras.push(`${plotRoadWidthMeters} m road`);
   if (isPlot && plotConstructionDone) extras.push('Construction done');
   if (isPlot && plotGatedColony) extras.push('Gated colony');
-  if (!isPlot && floorsAllowed) extras.push(`${floorsAllowed} floors allowed`);
+  if (floorsAllowed) extras.push(`${floorsAllowed} floors allowed`);
   if (!isPlot && cornerPlot) extras.push('Corner plot');
   if (!isPlot && plotOpenSides) extras.push(`${plotOpenSides} open side${plotOpenSides === '1' ? '' : 's'}`);
   if (!isPlot && landSqFt) extras.push(`Plot ${landSqFt} sq.ft`);

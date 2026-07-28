@@ -68,7 +68,11 @@ type Props = {
   ageOfConstruction: string;
   bookingTokenAmount: string;
   priceNegotiable: boolean;
-  /** Commercial Showroom — leased + assured returns rows */
+  /** Show currently leased out — showroom + warehouse */
+  showCurrentlyLeasedOut?: boolean;
+  /** Commercial Showroom — assured returns rows */
+  showAssuredReturns?: boolean;
+  /** @deprecated use showCurrentlyLeasedOut + showAssuredReturns */
   showShowroomAvailability?: boolean;
   currentlyLeasedOut?: boolean | undefined;
   assuredReturn?: boolean;
@@ -91,6 +95,8 @@ export function TransactionAvailabilitySection({
   ageOfConstruction,
   bookingTokenAmount,
   priceNegotiable,
+  showCurrentlyLeasedOut = false,
+  showAssuredReturns = false,
   showShowroomAvailability = false,
   currentlyLeasedOut,
   assuredReturn = false,
@@ -105,6 +111,9 @@ export function TransactionAvailabilitySection({
   onAssuredReturnChange,
   onAssuredReturnPercentChange,
 }: Props) {
+  const showLeased = showCurrentlyLeasedOut || showShowroomAvailability;
+  const showAssured = showAssuredReturns || showShowroomAvailability;
+
   return (
     <section className="space-y-4 pt-2">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
@@ -132,14 +141,17 @@ export function TransactionAvailabilitySection({
         </div>
       </div>
 
-      {showShowroomAvailability && onCurrentlyLeasedOutChange && onAssuredReturnChange && (
+      {showLeased && onCurrentlyLeasedOutChange && (
+        <YesNoRadioRow
+          label="Currently Leased out"
+          name="currently-leased-out"
+          value={currentlyLeasedOut}
+          onChange={onCurrentlyLeasedOutChange}
+        />
+      )}
+
+      {showAssured && onAssuredReturnChange && (
         <>
-          <YesNoRadioRow
-            label="Currently Leased out"
-            name="currently-leased-out"
-            value={currentlyLeasedOut}
-            onChange={onCurrentlyLeasedOutChange}
-          />
           <YesNoRadioRow
             label="Assured Returns"
             name="assured-returns"

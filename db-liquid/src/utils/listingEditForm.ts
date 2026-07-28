@@ -6,6 +6,12 @@ import {
   isBuilderFloorType,
   isPenthouseType,
   isCommercialShowroomType,
+  isWarehouseGodownType,
+  isIndustrialLandType,
+  isIndustrialBuildingType,
+  isIndustrialShedType,
+  isAgriculturalLandType,
+  isFarmHouseType,
 } from '../data/propertyTypes';
 import type { PropertyListing, PropertyPhoto, PropertyVideo } from '../types/listing';
 import { getListingStatus } from '../types/listing';
@@ -88,6 +94,11 @@ export function canEditListing(listing: PropertyListing, sellerId: string) {
 export function listingToEditForm(listing: PropertyListing): ListingEditFormState {
   const summary = listing.detailsSummary || '';
   const isPlot = isPlotType(listing.propertyType);
+  const isWarehouse = isWarehouseGodownType(listing.propertyType);
+  const isIndustrialBuilding = isIndustrialBuildingType(listing.propertyType);
+  const isIndustrialShed = isIndustrialShedType(listing.propertyType);
+  const isFarmHouseLoad = isFarmHouseType(listing.propertyType);
+  const isIndustrialUnitLoad = isWarehouse || isIndustrialBuilding || isIndustrialShed;
 
   const bedMatch = summary.match(/(\d+)\s*bed/i);
   const bathMatch = summary.match(/(\d+)\s*bath/i);
@@ -110,7 +121,11 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
     kitchens: kitchenMatch ? Number(kitchenMatch[1]) : 1,
     hasServiceRoom: /service room/i.test(summary),
     hasStudyRoom: /study room/i.test(summary),
-    builtUpArea: isPlot ? '' : String(listing.areaSqFt || ''),
+    builtUpArea: isPlot
+      ? ''
+      : isIndustrialUnitLoad || isFarmHouseLoad
+        ? String(listing.superArea || listing.areaSqFt || '')
+        : String(listing.areaSqFt || ''),
     landSqFt: isPlot
       ? String(listing.areaSqFt || landMatch?.[1]?.replace(/,/g, '') || '')
       : listing.plotAreaSqFt != null
@@ -122,7 +137,12 @@ export function listingToEditForm(listing: PropertyListing): ListingEditFormStat
     floorsAllowed: listing.floorsAllowed || '',
     projectName: listing.projectName || '',
     carpetArea: listing.carpetArea != null ? String(listing.carpetArea) : '',
-    superArea: listing.superArea != null ? String(listing.superArea) : '',
+    superArea:
+      listing.superArea != null
+        ? String(listing.superArea)
+        : isIndustrialUnitLoad || isFarmHouseLoad
+          ? String(listing.areaSqFt || '')
+          : '',
     maintenanceCharges:
       listing.maintenanceCharges != null ? String(listing.maintenanceCharges) : '',
     furnishing: listing.furnishing || '',
@@ -190,12 +210,27 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
   const isBuilderFloor = isBuilderFloorType(listing.propertyType);
   const isPenthouse = isPenthouseType(listing.propertyType);
   const isCommercialShowroom = isCommercialShowroomType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
+  const isWarehouseGodown = isWarehouseGodownType(listing.propertyType);
+  const isIndustrialLand = isIndustrialLandType(listing.propertyType);
+  const isIndustrialBuilding = isIndustrialBuildingType(listing.propertyType);
+  const isIndustrialShed = isIndustrialShedType(listing.propertyType);
+  const isAgriculturalLand = isAgriculturalLandType(listing.propertyType);
+  const isFarmHouse = isFarmHouseType(listing.propertyType);
+  const isIndustrialUnit = isWarehouseGodown || isIndustrialBuilding || isIndustrialShed;
+  const showFloorFields =
+    !isPlot &&
+    !isCommercialUnit &&
+    !isBuilderFloor &&
+    !isPenthouse &&
+    !isIndustrialUnit &&
+    !isFarmHouse;
 
   const location = buildListingLocation(form.locality, form.stateName);
   const areaSqFt = isPlot
     ? Number(form.landSqFt) || listing.areaSqFt
-    : Number(form.builtUpArea) || listing.areaSqFt;
+    : isIndustrialUnit || isFarmHouse
+      ? Number(form.superArea || form.builtUpArea) || listing.areaSqFt
+      : Number(form.builtUpArea) || listing.areaSqFt;
   const pricePerSqFt = Math.round(Number(form.pricePerSqFt));
   const totalPrice = pricePerSqFt * areaSqFt;
 
@@ -217,7 +252,10 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     carpetArea: form.carpetArea || undefined,
     superArea: form.superArea || undefined,
     privateTerrace: isPenthouse ? form.privateTerrace : undefined,
-    currentlyLeasedOut: isCommercialShowroom ? form.currentlyLeasedOut : undefined,
+    currentlyLeasedOut:
+      isCommercialShowroom || isIndustrialUnit || isAgriculturalLand
+        ? form.currentlyLeasedOut
+        : undefined,
     entranceWidthFeet: form.entranceWidthFeet || undefined,
     floorsOffered: form.floorsOffered || undefined,
     maintenanceCharges: form.maintenanceCharges || undefined,
@@ -268,12 +306,22 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
     state: form.stateName.trim(),
     pincode: form.pincode.trim() || undefined,
     floor:
-      (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+      (showFloorFields ||
+        isCommercialUnit ||
+        isBuilderFloor ||
+        isPenthouse ||
+        isWarehouseGodown) &&
       form.floor.trim()
         ? form.floor.trim()
         : undefined,
     totalFloors:
-      (showFloorFields || isCommercialUnit || isBuilderFloor || isPenthouse) &&
+      (showFloorFields ||
+        isCommercialUnit ||
+        isBuilderFloor ||
+        isPenthouse ||
+        isWarehouseGodown ||
+        isIndustrialBuilding ||
+        isFarmHouse) &&
       form.totalFloors.trim()
         ? form.totalFloors.trim()
         : undefined,
@@ -298,19 +346,23 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
       form.possession === 'Ready to Move' && form.ageOfConstruction
         ? form.ageOfConstruction
         : undefined,
-    bookingTokenAmount:
-      form.possession === 'Ready to Move' && form.bookingTokenAmount.trim()
-        ? Number(form.bookingTokenAmount)
-        : undefined,
+    bookingTokenAmount: form.bookingTokenAmount.trim()
+      ? Number(form.bookingTokenAmount)
+      : undefined,
     priceNegotiable: form.priceNegotiable,
     cornerPlot: isPlot || isVilla ? form.cornerPlot : undefined,
     boundaryWall: isPlot && form.boundaryWall === true ? true : undefined,
     propertyNumber: isPlot && form.propertyNumber.trim() ? form.propertyNumber.trim() : undefined,
+    plotWidth: isPlot && form.plotWidth.trim() ? Number(form.plotWidth) : undefined,
+    plotLength: isPlot && form.plotLength.trim() ? Number(form.plotLength) : undefined,
     plotAreaSqFt:
       (isVilla || isCommercialShowroom) && form.landSqFt.trim()
         ? Number(form.landSqFt)
         : undefined,
-    currentlyLeasedOut: isCommercialShowroom ? form.currentlyLeasedOut : undefined,
+    currentlyLeasedOut:
+      isCommercialShowroom || isIndustrialUnit || isAgriculturalLand
+        ? form.currentlyLeasedOut
+        : undefined,
     entranceWidthFeet:
       isCommercialShowroom && form.entranceWidthFeet.trim()
         ? Number(form.entranceWidthFeet)
@@ -320,25 +372,45 @@ export function editFormToListingPatch(listing: PropertyListing, form: ListingEd
         ? form.floorsOffered.trim()
         : undefined,
     floorsAllowed:
-      (isVilla || isBuilderFloor) && form.floorsAllowed.trim()
+      (isPlot ||
+        isVilla ||
+        isBuilderFloor ||
+        isWarehouseGodown ||
+        isIndustrialBuilding ||
+        isIndustrialShed ||
+        isFarmHouse) &&
+      form.floorsAllowed.trim()
         ? form.floorsAllowed.trim()
         : undefined,
     projectName: !isPlot && form.projectName.trim() ? form.projectName.trim() : undefined,
-    carpetArea: !isPlot && form.carpetArea.trim() ? Number(form.carpetArea) : undefined,
+    carpetArea:
+      !isPlot && !isIndustrialUnit && form.carpetArea.trim()
+        ? Number(form.carpetArea)
+        : undefined,
     superArea:
-      (isBuilderFloor || isPenthouse) && form.superArea.trim()
-        ? Number(form.superArea)
+      (isBuilderFloor || isPenthouse || isIndustrialUnit || isFarmHouse) &&
+      (form.superArea.trim() || form.builtUpArea.trim())
+        ? Number(form.superArea.trim() || form.builtUpArea)
         : undefined,
     privateTerrace: isPenthouse ? form.privateTerrace : undefined,
     maintenanceCharges:
-      !isPlot && form.maintenanceCharges.trim() ? Number(form.maintenanceCharges) : undefined,
-    plotOpenSides: (isPlot || isVilla) && form.plotOpenSides ? form.plotOpenSides : undefined,
+      !isPlot && !isIndustrialUnit && form.maintenanceCharges.trim()
+        ? Number(form.maintenanceCharges)
+        : undefined,
+    plotOpenSides:
+      (isPlot || isVilla || isWarehouseGodown || isIndustrialShed || isFarmHouse) &&
+      form.plotOpenSides
+        ? form.plotOpenSides
+        : undefined,
     plotRoadWidthMeters:
-      isPlot && form.plotRoadWidthMeters.trim() ? Number(form.plotRoadWidthMeters) : undefined,
+      ((isPlot && !isIndustrialLand) || isWarehouseGodown || isFarmHouse) &&
+      form.plotRoadWidthMeters.trim()
+        ? Number(form.plotRoadWidthMeters)
+        : undefined,
     plotConstructionDone: isPlot ? form.plotConstructionDone : undefined,
     plotGatedColony: isPlot ? form.plotGatedColony : undefined,
     landZone:
-      (isPlot || isCommercialUnit) && form.landZone.trim()
+      (isPlot || isCommercialUnit || isIndustrialUnit) && form.landZone.trim()
         ? form.landZone.trim()
         : undefined,
     assetStatus: isCommercialUnit && form.assetStatus ? form.assetStatus : undefined,
@@ -399,6 +471,18 @@ export function validateEditForm(listing: PropertyListing, form: ListingEditForm
     if (!form.landSqFt.trim()) {
       return 'Enter plot area and tap Apply.';
     }
+  } else if (isWarehouseGodownType(listing.propertyType)) {
+    if (!(form.superArea.trim() || form.builtUpArea.trim())) return 'Enter super area.';
+    if (!form.floor.trim() || !form.totalFloors.trim()) return 'Select floor details.';
+    if (!form.furnishing.trim()) return 'Select furnished status.';
+    if (!form.possession.trim()) return 'Select possession status.';
+  } else if (isIndustrialBuildingType(listing.propertyType)) {
+    if (!(form.superArea.trim() || form.builtUpArea.trim())) return 'Enter super area.';
+    if (!form.totalFloors.trim()) return 'Select total floors.';
+    if (!form.possession.trim()) return 'Select possession status.';
+  } else if (isIndustrialShedType(listing.propertyType)) {
+    if (!(form.superArea.trim() || form.builtUpArea.trim())) return 'Enter super area.';
+    if (!form.possession.trim()) return 'Select possession status.';
   } else if (isCommercialUnitType(listing.propertyType)) {
     const isShowroom = isCommercialShowroomType(listing.propertyType);
     if (!form.builtUpArea.trim()) return 'Enter built-up area.';
@@ -424,6 +508,12 @@ export function validateEditForm(listing: PropertyListing, form: ListingEditForm
         return 'Enter lease guarantee amount.';
       }
     }
+  } else if (isFarmHouseType(listing.propertyType)) {
+    if (form.bedrooms <= 0) return 'Enter bedrooms.';
+    if (!(form.superArea.trim() || form.builtUpArea.trim())) return 'Enter super area.';
+    if (!form.totalFloors.trim()) return 'Select total floors.';
+    if (!form.furnishing.trim()) return 'Select furnished status.';
+    if (!form.possession.trim()) return 'Select possession status.';
   } else if (isResidential) {
     if (!form.builtUpArea.trim() || form.bedrooms <= 0) {
       return 'Enter bedrooms and built-up area.';

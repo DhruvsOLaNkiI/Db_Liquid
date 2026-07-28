@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { CommercialShopDetailsSection } from './CommercialShopDetailsSection';
 import { FormSelect } from './FormSelect';
+import { FarmHouseDetailsSection } from './FarmHouseDetailsSection';
+import { IndustrialBuildingDetailsSection } from './IndustrialBuildingDetailsSection';
+import { IndustrialShedDetailsSection } from './IndustrialShedDetailsSection';
 import { TransactionAvailabilitySection } from './TransactionAvailabilitySection';
+import { WarehouseGodownDetailsSection } from './WarehouseGodownDetailsSection';
 import {
   applyPlotAreaInput,
   BUILDER_FLOOR_NO_OPTIONS,
@@ -110,6 +114,12 @@ type Props = {
   isBuilderFloor?: boolean;
   isPenthouse?: boolean;
   isCommercialShowroom?: boolean;
+  isWarehouseGodown?: boolean;
+  isIndustrialLand?: boolean;
+  isIndustrialBuilding?: boolean;
+  isIndustrialShed?: boolean;
+  isAgriculturalLand?: boolean;
+  isFarmHouse?: boolean;
   bedrooms: number;
   washrooms: number;
   balconies: number;
@@ -119,6 +129,8 @@ type Props = {
   builtUpArea: string;
   landSqFt: string;
   propertyNumber: string;
+  plotWidth: string;
+  plotLength: string;
   floorsAllowed: string;
   carpetArea: string;
   superArea: string;
@@ -171,6 +183,8 @@ type Props = {
   onBuiltUpAreaChange: (v: string) => void;
   onLandSqFtChange: (v: string) => void;
   onPropertyNumberChange: (v: string) => void;
+  onPlotWidthChange: (v: string) => void;
+  onPlotLengthChange: (v: string) => void;
   onFloorsAllowedChange: (v: string) => void;
   onCarpetAreaChange: (v: string) => void;
   onSuperAreaChange: (v: string) => void;
@@ -224,6 +238,12 @@ export function SellerPropertyDetailsStep({
   isBuilderFloor = false,
   isPenthouse = false,
   isCommercialShowroom = false,
+  isWarehouseGodown = false,
+  isIndustrialLand = false,
+  isIndustrialBuilding = false,
+  isIndustrialShed = false,
+  isAgriculturalLand = false,
+  isFarmHouse = false,
   bedrooms,
   washrooms,
   balconies,
@@ -233,6 +253,8 @@ export function SellerPropertyDetailsStep({
   builtUpArea,
   landSqFt,
   propertyNumber,
+  plotWidth,
+  plotLength,
   floorsAllowed,
   carpetArea,
   superArea,
@@ -285,6 +307,8 @@ export function SellerPropertyDetailsStep({
   onBuiltUpAreaChange,
   onLandSqFtChange,
   onPropertyNumberChange,
+  onPlotWidthChange,
+  onPlotLengthChange,
   onFloorsAllowedChange,
   onCarpetAreaChange,
   onSuperAreaChange,
@@ -427,6 +451,33 @@ export function SellerPropertyDetailsStep({
             </p>
           )}
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Plot length <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="number"
+                value={plotLength}
+                onChange={(e) => onPlotLengthChange(e.target.value)}
+                placeholder="e.g. 60"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Plot breadth <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="number"
+                value={plotWidth}
+                onChange={(e) => onPlotWidthChange(e.target.value)}
+                placeholder="e.g. 40"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
@@ -446,6 +497,20 @@ export function SellerPropertyDetailsStep({
           <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
             Property features
           </h2>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Floors allowed for construction
+            </label>
+            <FormSelect
+              value={floorsAllowed}
+              onChange={onFloorsAllowedChange}
+              options={FLOORS_ALLOWED_OPTIONS}
+              placeholder="Total Floor"
+              className={selectClass}
+              aria-label="Floors allowed for construction"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Land Zone</label>
@@ -475,21 +540,25 @@ export function SellerPropertyDetailsStep({
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">
-              Width of road facing the plot
-            </label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="number"
-                value={plotRoadWidthMeters}
-                onChange={(e) => onPlotRoadWidthMetersChange(e.target.value)}
-                placeholder="Road width"
-                className={`${inputClass} flex-1 min-w-0`}
-              />
-              <span className="text-sm font-medium text-gray-500 shrink-0 w-14 text-right">Meters</span>
+          {!isIndustrialLand && (
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Width of road facing the plot
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  value={plotRoadWidthMeters}
+                  onChange={(e) => onPlotRoadWidthMetersChange(e.target.value)}
+                  placeholder="Road width"
+                  className={`${inputClass} flex-1 min-w-0`}
+                />
+                <span className="text-sm font-medium text-gray-500 shrink-0 w-14 text-right">
+                  Meters
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-3 pt-1">
             <YesNoChoice
@@ -565,6 +634,80 @@ export function SellerPropertyDetailsStep({
           onMainRoadFacingChange={onMainRoadFacingChange}
           onPersonalWashroomChange={onPersonalWashroomChange}
           onPantryCafeteriaChange={onPantryCafeteriaChange}
+        />
+      ) : isWarehouseGodown ? (
+        <WarehouseGodownDetailsSection
+          landZone={landZone}
+          floor={shopFloor}
+          totalFloors={shopTotalFloors}
+          furnishing={furnishing}
+          floorsAllowed={floorsAllowed}
+          plotOpenSides={plotOpenSides}
+          plotRoadWidthMeters={plotRoadWidthMeters}
+          superArea={superArea || builtUpArea}
+          onLandZoneChange={onLandZoneChange}
+          onFloorChange={onShopFloorChange}
+          onTotalFloorsChange={onShopTotalFloorsChange}
+          onFurnishingChange={onFurnishingChange}
+          onFloorsAllowedChange={onFloorsAllowedChange}
+          onPlotOpenSidesChange={onPlotOpenSidesChange}
+          onPlotRoadWidthMetersChange={onPlotRoadWidthMetersChange}
+          onSuperAreaChange={(v) => {
+            onSuperAreaChange(v);
+            onBuiltUpAreaChange(v);
+          }}
+        />
+      ) : isIndustrialBuilding ? (
+        <IndustrialBuildingDetailsSection
+          landZone={landZone}
+          totalFloors={shopTotalFloors}
+          floorsAllowed={floorsAllowed}
+          superArea={superArea || builtUpArea}
+          onLandZoneChange={onLandZoneChange}
+          onTotalFloorsChange={onShopTotalFloorsChange}
+          onFloorsAllowedChange={onFloorsAllowedChange}
+          onSuperAreaChange={(v) => {
+            onSuperAreaChange(v);
+            onBuiltUpAreaChange(v);
+          }}
+        />
+      ) : isIndustrialShed ? (
+        <IndustrialShedDetailsSection
+          landZone={landZone}
+          floorsAllowed={floorsAllowed}
+          plotOpenSides={plotOpenSides}
+          superArea={superArea || builtUpArea}
+          onLandZoneChange={onLandZoneChange}
+          onFloorsAllowedChange={onFloorsAllowedChange}
+          onPlotOpenSidesChange={onPlotOpenSidesChange}
+          onSuperAreaChange={(v) => {
+            onSuperAreaChange(v);
+            onBuiltUpAreaChange(v);
+          }}
+        />
+      ) : isFarmHouse ? (
+        <FarmHouseDetailsSection
+          bedrooms={bedrooms}
+          washrooms={washrooms}
+          totalFloors={shopTotalFloors}
+          furnishing={furnishing}
+          floorsAllowed={floorsAllowed}
+          plotOpenSides={plotOpenSides}
+          plotRoadWidthMeters={plotRoadWidthMeters}
+          carpetArea={carpetArea}
+          superArea={superArea || builtUpArea}
+          onBedroomsChange={onBedroomsChange}
+          onWashroomsChange={onWashroomsChange}
+          onTotalFloorsChange={onShopTotalFloorsChange}
+          onFurnishingChange={onFurnishingChange}
+          onFloorsAllowedChange={onFloorsAllowedChange}
+          onPlotOpenSidesChange={onPlotOpenSidesChange}
+          onPlotRoadWidthMetersChange={onPlotRoadWidthMetersChange}
+          onCarpetAreaChange={onCarpetAreaChange}
+          onSuperAreaChange={(v) => {
+            onSuperAreaChange(v);
+            onBuiltUpAreaChange(v);
+          }}
         />
       ) : isResidential ? (
         <>
@@ -937,6 +1080,14 @@ export function SellerPropertyDetailsStep({
         bookingTokenAmount={bookingTokenAmount}
         priceNegotiable={priceNegotiable}
         showShowroomAvailability={isCommercialShowroom}
+        showCurrentlyLeasedOut={
+          isCommercialShowroom ||
+          isWarehouseGodown ||
+          isIndustrialBuilding ||
+          isIndustrialShed ||
+          isAgriculturalLand
+        }
+        showAssuredReturns={isCommercialShowroom}
         currentlyLeasedOut={currentlyLeasedOut}
         assuredReturn={assuredReturn}
         assuredReturnPercent={assuredReturnPercent}

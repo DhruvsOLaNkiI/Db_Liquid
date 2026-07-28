@@ -1,7 +1,14 @@
 import type { ReactNode } from 'react';
 import type { PropertyListing } from '../../types/listing';
 import { formatPrice, formatPriceShort } from '../../types/listing';
-import { isCommercialUnitType, isPlotType } from '../../data/propertyTypes';
+import {
+  isCommercialUnitType,
+  isIndustrialBuildingType,
+  isFarmHouseType,
+  isIndustrialShedType,
+  isPlotType,
+  isWarehouseGodownType,
+} from '../../data/propertyTypes';
 import {
   buildListingFullAddress,
   estimateBookingAmount,
@@ -30,6 +37,10 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   const bookingAmount = estimateBookingAmount(totalPrice);
   const isPlot = isPlotType(listing.propertyType);
   const isCommercialUnit = isCommercialUnitType(listing.propertyType);
+  const isWarehouse = isWarehouseGodownType(listing.propertyType);
+  const isIndustrialBuilding = isIndustrialBuildingType(listing.propertyType);
+  const isIndustrialShed = isIndustrialShedType(listing.propertyType);
+  const isFarmHouse = isFarmHouseType(listing.propertyType);
   const floorLabel = formatListingFloor(listing.floor, listing.totalFloors);
 
   rows.push({
@@ -139,8 +150,18 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
     if (listing.propertyNumber) {
       rows.push({ label: 'Property Number', value: listing.propertyNumber });
     }
+    if (listing.plotLength != null && listing.plotLength > 0) {
+      rows.push({ label: 'Plot Length', value: `${listing.plotLength}` });
+    }
+    if (listing.plotWidth != null && listing.plotWidth > 0) {
+      rows.push({ label: 'Plot Breadth', value: `${listing.plotWidth}` });
+    }
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
     if (listing.cornerPlot) rows.push({ label: 'Corner Plot', value: 'Yes' });
-    if (listing.boundaryWall) rows.push({ label: 'Boundary Wall', value: 'Yes' });
+    if (listing.boundaryWall === true) rows.push({ label: 'Boundary Wall', value: 'Yes' });
+    else if (listing.boundaryWall === false) rows.push({ label: 'Boundary Wall', value: 'No' });
     if (listing.plotOpenSides) {
       rows.push({
         label: 'Open Sides',
@@ -186,6 +207,63 @@ function buildDetailRows(listing: PropertyListing): DetailRow[] {
   if (listing.propertyType === 'Builder Floor Apartment') {
     if (listing.floorsAllowed) {
       rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+  }
+
+  if (isWarehouse) {
+    if (listing.landZone) rows.push({ label: 'Land Zone', value: listing.landZone });
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+    if (listing.plotOpenSides) {
+      rows.push({
+        label: 'Open Sides',
+        value: `${listing.plotOpenSides} side${listing.plotOpenSides === '1' ? '' : 's'}`,
+      });
+    }
+    if (listing.plotRoadWidthMeters) {
+      rows.push({
+        label: 'Width of facing road',
+        value: `${listing.plotRoadWidthMeters} metres`,
+      });
+    }
+  }
+
+  if (isIndustrialBuilding) {
+    if (listing.landZone) rows.push({ label: 'Land Zone', value: listing.landZone });
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+  }
+
+  if (isIndustrialShed) {
+    if (listing.landZone) rows.push({ label: 'Land Zone', value: listing.landZone });
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+    if (listing.plotOpenSides) {
+      rows.push({
+        label: 'Open Sides',
+        value: `${listing.plotOpenSides} side${listing.plotOpenSides === '1' ? '' : 's'}`,
+      });
+    }
+  }
+
+  if (isFarmHouse) {
+    if (listing.floorsAllowed) {
+      rows.push({ label: 'Floors Allowed', value: listing.floorsAllowed });
+    }
+    if (listing.plotOpenSides) {
+      rows.push({
+        label: 'Open Sides',
+        value: `${listing.plotOpenSides} side${listing.plotOpenSides === '1' ? '' : 's'}`,
+      });
+    }
+    if (listing.plotRoadWidthMeters) {
+      rows.push({
+        label: 'Width of facing road',
+        value: `${listing.plotRoadWidthMeters} metres`,
+      });
     }
   }
 

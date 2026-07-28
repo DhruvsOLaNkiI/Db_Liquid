@@ -15,6 +15,12 @@ import {
   isBuilderFloorType,
   isPenthouseType,
   isCommercialShowroomType,
+  isWarehouseGodownType,
+  isIndustrialLandType,
+  isIndustrialBuildingType,
+  isIndustrialShedType,
+  isAgriculturalLandType,
+  isFarmHouseType,
 } from '../data/propertyTypes';
 import { formatPrice, getTotalPrice } from '../types/listing';
 import {
@@ -108,8 +114,28 @@ export function EditListingPage() {
   const isBuilderFloor = isBuilderFloorType(listing.propertyType);
   const isPenthouse = isPenthouseType(listing.propertyType);
   const isCommercialShowroom = isCommercialShowroomType(listing.propertyType);
-  const showFloorFields = !isPlot && !isCommercialUnit && !isBuilderFloor && !isPenthouse;
-  const totalPrice = getTotalPrice(form.pricePerSqFt, isPlot ? Number(form.landSqFt) : Number(form.builtUpArea));
+  const isWarehouseGodown = isWarehouseGodownType(listing.propertyType);
+  const isIndustrialLand = isIndustrialLandType(listing.propertyType);
+  const isIndustrialBuilding = isIndustrialBuildingType(listing.propertyType);
+  const isIndustrialShed = isIndustrialShedType(listing.propertyType);
+  const isAgriculturalLand = isAgriculturalLandType(listing.propertyType);
+  const isFarmHouse = isFarmHouseType(listing.propertyType);
+  const isIndustrialUnit = isWarehouseGodown || isIndustrialBuilding || isIndustrialShed;
+  const showFloorFields =
+    !isPlot &&
+    !isCommercialUnit &&
+    !isBuilderFloor &&
+    !isPenthouse &&
+    !isIndustrialUnit &&
+    !isFarmHouse;
+  const totalPrice = getTotalPrice(
+    form.pricePerSqFt,
+    isPlot
+      ? Number(form.landSqFt)
+      : isIndustrialUnit || isFarmHouse
+        ? Number(form.superArea || form.builtUpArea)
+        : Number(form.builtUpArea),
+  );
 
   const patchForm = (patch: Partial<ListingEditFormState>) => {
     setForm((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -222,6 +248,12 @@ export function EditListingPage() {
                 isBuilderFloor={isBuilderFloor}
                 isPenthouse={isPenthouse}
                 isCommercialShowroom={isCommercialShowroom}
+                isWarehouseGodown={isWarehouseGodown}
+                isIndustrialLand={isIndustrialLand}
+                isIndustrialBuilding={isIndustrialBuilding}
+                isIndustrialShed={isIndustrialShed}
+                isAgriculturalLand={isAgriculturalLand}
+                isFarmHouse={isFarmHouse}
                 bedrooms={form.bedrooms}
                 washrooms={form.washrooms}
                 balconies={form.balconies}
@@ -231,6 +263,8 @@ export function EditListingPage() {
                 builtUpArea={form.builtUpArea}
                 landSqFt={form.landSqFt}
                 propertyNumber={form.propertyNumber}
+                plotWidth={form.plotWidth}
+                plotLength={form.plotLength}
                 floorsAllowed={form.floorsAllowed}
                 carpetArea={form.carpetArea}
                 superArea={form.superArea}
@@ -283,6 +317,8 @@ export function EditListingPage() {
                 onBuiltUpAreaChange={(v) => patchForm({ builtUpArea: v })}
                 onLandSqFtChange={(v) => patchForm({ landSqFt: v })}
                 onPropertyNumberChange={(v) => patchForm({ propertyNumber: v })}
+                onPlotWidthChange={(v) => patchForm({ plotWidth: v })}
+                onPlotLengthChange={(v) => patchForm({ plotLength: v })}
                 onFloorsAllowedChange={(v) => patchForm({ floorsAllowed: v })}
                 onCarpetAreaChange={(v) => patchForm({ carpetArea: v })}
                 onSuperAreaChange={(v) => patchForm({ superArea: v })}

@@ -83,6 +83,30 @@ export function isCommercialOfficeType(type: string) {
   return type === 'Commercial Office Space' || type === 'Office in IT Park/ SEZ';
 }
 
+export function isWarehouseGodownType(type: string) {
+  return type === 'Warehouse/ Godown';
+}
+
+export function isIndustrialLandType(type: string) {
+  return type === 'Industrial Land';
+}
+
+export function isIndustrialBuildingType(type: string) {
+  return type === 'Industrial Building';
+}
+
+export function isIndustrialShedType(type: string) {
+  return type === 'Industrial Shed';
+}
+
+export function isAgriculturalLandType(type: string) {
+  return type === 'Agricultural Land';
+}
+
+export function isFarmHouseType(type: string) {
+  return type === 'Farm House';
+}
+
 /** Shop, showroom, and office — shared commercial unit details form. */
 export function isCommercialUnitType(type: string) {
   return isCommercialShopType(type) || isCommercialOfficeType(type);
