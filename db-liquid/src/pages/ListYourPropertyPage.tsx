@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Home, IndianRupee, Building2 } from 'lucide-react';
 import { Header } from '../components/Header';
 import { SellerLocalityStep } from '../components/listing/SellerLocalityStep';
+import { ListingFormShell } from '../components/listing/ListingFormShell';
 import { SellerPhotosStep } from '../components/listing/SellerPhotosStep';
 import { SellerPropertyDetailsStep } from '../components/listing/SellerPropertyDetailsStep';
 import {
@@ -827,35 +828,37 @@ export function ListYourPropertyPage() {
   return (
     <div className="min-h-screen selection:bg-orange-100 selection:text-orange-900 dark-theme-page">
       <Header />
-      <main className="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl mx-auto">
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Step {step + 1} of {STEPS.length}
-              </span>
-              <span className="text-xs font-medium text-[#FF7A00]">{STEPS[step]}</span>
-            </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#FF7A00] rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-2 gap-1">
-              {STEPS.map((label, i) => (
-                <span
-                  key={label}
-                  className={`text-[10px] font-medium hidden sm:block ${
-                    i <= step ? 'text-[#FF7A00]' : 'text-gray-500'
-                  }`}
-                >
-                  {label}
+      <main className="pt-16 pb-16 px-4 sm:px-6 lg:px-8">
+        <ListingFormShell
+          progress={
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Step {step + 1} of {STEPS.length}
                 </span>
-              ))}
+                <span className="text-xs font-medium text-[#FF7A00]">{STEPS[step]}</span>
+              </div>
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#FF7A00] rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 gap-1">
+                {STEPS.map((label, i) => (
+                  <span
+                    key={label}
+                    className={`text-[10px] font-medium hidden sm:block ${
+                      i <= step ? 'text-[#FF7A00]' : 'text-gray-500'
+                    }`}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-
+          }
+        >
           <div className="min-h-[320px]">
             {step === 0 && (
               <div>
@@ -1202,7 +1205,7 @@ export function ListYourPropertyPage() {
               Skip this step
             </button>
           )}
-        </div>
+        </ListingFormShell>
       </main>
     </div>
   );

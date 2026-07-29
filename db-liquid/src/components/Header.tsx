@@ -48,7 +48,7 @@ export function Header() {
           Admin
         </Link>
       )}
-      <Link to="/home#ecosystem" className="nav-link">DB Asset / DB Expo</Link>
+      <Link to="/corporate" className="nav-link">Corporate</Link>
     </>
   );
 
@@ -57,11 +57,10 @@ export function Header() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-14 lg:h-[60px] gap-4 lg:gap-8">
           <Link to="/" className="flex items-center shrink-0 min-w-[120px]">
-            <img
-              src="/db-liquid-logo.png"
-              alt="DB Liquid"
-              className="h-9 lg:h-10 w-auto object-contain"
-            />
+            <span className="brand-logo text-xl lg:text-2xl">
+              <span className="text-white">Digital</span>
+              <span className="text-[#FF7A00]">Broker</span>
+            </span>
           </Link>
 
           <nav className="hidden lg:flex flex-1 items-center justify-center gap-4 xl:gap-8">
@@ -160,7 +159,13 @@ export function Header() {
               Admin
             </Link>
           )}
-          <Link to="/home#ecosystem" className="block text-sm font-medium text-white/90 py-1" onClick={() => setIsMenuOpen(false)}>DB Asset / DB Expo</Link>
+          <Link
+            to="/corporate"
+            className="block text-sm font-medium text-white/90 py-1"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Corporate
+          </Link>
           <div className="pt-3 border-t border-white/10 flex flex-col gap-3">
             {isAuthenticated && user ? (
               <>

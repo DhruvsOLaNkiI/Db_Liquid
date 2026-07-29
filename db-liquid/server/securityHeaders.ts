@@ -25,14 +25,15 @@ export function applySecurityHeaders(app: Express) {
         directives: {
           defaultSrc: ["'self'"],
           baseUri: ["'self'"],
-          fontSrc: ["'self'", 'data:'],
+          fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],
+          frameSrc: ["'self'", 'https://corporate.digitalbroker.in'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', ...extraImageSources()],
           mediaSrc: ["'self'", 'blob:', ...extraImageSources()],
           objectSrc: ["'none'"],
           scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           connectSrc: [
             "'self'",
             ...extraImageSources(),

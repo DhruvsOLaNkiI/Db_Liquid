@@ -5,6 +5,7 @@ import { ListingsProvider } from './context/ListingsContext';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AdminRoute } from './components/AdminRoute';
 import { HomePageSkeleton } from './components/HomePageSkeleton';
+import { CorporateRedirectPage } from './pages/CorporateRedirectPage';
 
 // Eager: only what login/signup need for a fast first paint
 import { LoginPage } from './pages/LoginPage';
@@ -97,6 +98,7 @@ export default function App() {
               />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/faq" element={<FAQPage />} />
+              <Route path="/corporate" element={<CorporateRedirectPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/profile" element={<ProfilePage />} />

@@ -8,6 +8,9 @@ import type { Express, NextFunction, Request, Response } from 'express';
  * Env:
  *   APP_URL=https://app.example.com
  *   CORS_ORIGINS=https://app.example.com,https://staging.example.com
+ *
+ * Also allows Origin that matches this request's Host (Vite adds crossorigin to
+ * /assets/*.js|css, so browsers send Origin even for same-site loads).
  */
 function allowedOrigins(): string[] {
   const fromList = (process.env.CORS_ORIGINS || '')
@@ -28,17 +31,29 @@ function allowedOrigins(): string[] {
   return [...set];
 }
 
+function isSameOriginRequest(req: Request, origin: string): boolean {
+  try {
+    const originHost = new URL(origin).host;
+    const requestHost = (req.get('x-forwarded-host') || req.get('host') || '')
+      .split(',')[0]
+      ?.trim();
+    return Boolean(requestHost) && originHost === requestHost;
+  } catch {
+    return false;
+  }
+}
+
 export function applyCors(app: Express) {
   const origins = allowedOrigins();
 
-  app.use(
+  app.use((req: Request, res: Response, next: NextFunction) => {
     cors({
       origin(origin, callback) {
         if (!origin) {
           callback(null, true);
           return;
         }
-        if (origins.includes(origin)) {
+        if (origins.includes(origin) || isSameOriginRequest(req, origin)) {
           callback(null, true);
           return;
         }
@@ -47,8 +62,8 @@ export function applyCors(app: Express) {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Authorization'],
-    }),
-  );
+    })(req, res, next);
+  });
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof Error && err.message.startsWith('Origin not allowed by CORS')) {

@@ -8,10 +8,10 @@ export function Footer() {
           
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-accent text-white flex items-center justify-center rounded-lg font-display font-bold">
-                DB
-              </div>
-              <span className="font-display font-bold text-xl tracking-tight text-white">Liquid</span>
+              <span className="brand-logo text-xl">
+                <span className="text-white">Digital</span>
+                <span className="text-[#FF7A00]">Broker</span>
+              </span>
             </div>
             <p className="text-white/60 mb-6 max-w-sm">
               The smart way to buy & sell properties through competitive bidding. Part of the trusted DB Ecosystem.
