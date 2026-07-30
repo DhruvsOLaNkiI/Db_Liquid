@@ -77,17 +77,17 @@ export function PropertyImageSlider({ media, images, alt, className = '' }: Prop
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous media"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-gray-800 shadow-md flex items-center justify-center hover:bg-white transition-colors z-10"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-white transition-colors z-10 text-black"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={22} strokeWidth={2.5} className="text-black" />
             </button>
             <button
               type="button"
               onClick={() => go(1)}
               aria-label="Next media"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-gray-800 shadow-md flex items-center justify-center hover:bg-white transition-colors z-10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-white transition-colors z-10 text-black"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={22} strokeWidth={2.5} className="text-black" />
             </button>
 
             <span className="absolute top-3 right-3 text-[11px] font-medium bg-black/45 text-white px-2 py-0.5 rounded-full backdrop-blur-sm z-10">
