@@ -151,9 +151,10 @@ function SearchBanner() {
         </div>
         <Link
           to="/list-your-property"
-          className="hidden sm:inline-flex mb-1 items-center px-6 py-2 bg-[#FF7A00] text-white text-xs font-bold rounded-full hover:bg-[#E66E00] transition-colors shadow-sm"
+          className="inline-flex mb-1 items-center px-3 sm:px-6 py-1.5 sm:py-2 bg-[#FF7A00] text-white text-[11px] sm:text-xs font-bold rounded-full hover:bg-[#E66E00] transition-colors shadow-sm whitespace-nowrap"
         >
-          Post Your Property For Free
+          <span className="sm:hidden">Post Property</span>
+          <span className="hidden sm:inline">Post Your Property For Free</span>
         </Link>
       </div>
 

@@ -133,9 +133,15 @@ export function Header() {
             )}
           </div>
 
+          <Link
+            to="/list-your-property"
+            className="md:hidden ml-auto inline-flex items-center px-3 py-1.5 bg-[#FF7A00] text-white text-[11px] font-bold rounded-full hover:bg-[#E66E00] transition-colors whitespace-nowrap"
+          >
+            Post Property
+          </Link>
           <button
             type="button"
-            className="md:hidden p-2 text-white/90 hover:text-white ml-auto"
+            className="md:hidden p-2 text-white/90 hover:text-white"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -165,6 +171,13 @@ export function Header() {
             onClick={() => setIsMenuOpen(false)}
           >
             Corporate
+          </Link>
+          <Link
+            to="/list-your-property"
+            className="block text-sm font-semibold text-[#FF7A00] py-1"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Post Property
           </Link>
           <div className="pt-3 border-t border-white/10 flex flex-col gap-3">
             {isAuthenticated && user ? (
