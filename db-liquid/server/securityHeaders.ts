@@ -29,10 +29,19 @@ export function applySecurityHeaders(app: Express) {
           formAction: ["'self'"],
           frameAncestors: ["'none'"],
           frameSrc: ["'self'", 'https://corporate.digitalbroker.in'],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', ...extraImageSources()],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://images.unsplash.com',
+            'https://www.google-analytics.com',
+            'https://www.googletagmanager.com',
+            ...extraImageSources(),
+          ],
           mediaSrc: ["'self'", 'blob:', ...extraImageSources()],
           objectSrc: ["'none'"],
-          scriptSrc: ["'self'"],
+          // unsafe-inline needed for GA gtag bootstrap snippet in index.html
+          scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com'],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           connectSrc: [
             "'self'",
@@ -40,6 +49,11 @@ export function applySecurityHeaders(app: Express) {
             // MON-001 — browser SDK posts errors to Sentry ingest
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
+            'https://www.google-analytics.com',
+            'https://analytics.google.com',
+            'https://www.googletagmanager.com',
+            'https://*.google-analytics.com',
+            'https://*.analytics.google.com',
           ],
           upgradeInsecureRequests: enableHsts ? [] : null,
         },

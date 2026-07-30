@@ -6,6 +6,7 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { AdminRoute } from './components/AdminRoute';
 import { HomePageSkeleton } from './components/HomePageSkeleton';
 import { CorporateRedirectPage } from './pages/CorporateRedirectPage';
+import { GoogleAnalytics } from './components/GoogleAnalytics';
 
 // Eager: only what login/signup need for a fast first paint
 import { LoginPage } from './pages/LoginPage';
@@ -68,6 +69,7 @@ export default function App() {
       <BrowserRouter>
         <ListingsProvider>
           <ScrollToTop />
+          <GoogleAnalytics />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route
