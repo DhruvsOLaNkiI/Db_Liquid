@@ -10,7 +10,7 @@ type PosterSlotProps = {
 export function ListingPosterSlot({ src, alt, className = '' }: PosterSlotProps) {
   return (
     <aside
-      className={`rounded-3xl overflow-hidden bg-transparent ${className}`}
+      className={`rounded-3xl overflow-hidden bg-transparent w-full max-w-[420px] xl:max-w-[480px] ${className}`}
       aria-label={alt}
     >
       <img
@@ -35,15 +35,15 @@ type ShellProps = {
  */
 export function ListingFormShell({ progress, children }: ShellProps) {
   return (
-    <div className="mx-auto w-full max-w-[1400px]">
+    <div className="mx-auto w-full max-w-[1800px]">
       {/* Progress sticks below the fixed navbar with a frosted blur so it pops above content */}
-      <div className="sticky top-16 z-40 mx-auto w-full max-w-[440px] xl:max-w-[460px] mb-5 rounded-2xl px-3 py-3 bg-white/10 backdrop-blur-xl border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+      <div className="sticky top-16 z-40 mx-auto w-full max-w-[560px] xl:max-w-[620px] mb-5 rounded-2xl px-3 py-3 bg-white/10 backdrop-blur-xl border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
         {progress}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,440px)_320px] xl:grid-cols-[380px_minmax(0,460px)_380px] lg:justify-center lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,620px)_minmax(0,1fr)] lg:items-start">
         <ListingPosterSlot
-          className="hidden lg:block sticky top-16 self-start"
+          className="hidden lg:block sticky top-16 justify-self-start self-start"
           src="/Banner%20Side%20panal%20step.jpg"
           alt="How it works — steps"
         />
@@ -60,12 +60,14 @@ export function ListingFormShell({ progress, children }: ShellProps) {
             />
           </div>
 
-          {children}
+          <div className="rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.35)] px-5 py-6 sm:px-6 sm:py-8">
+            {children}
+          </div>
         </div>
 
         <ListingPosterSlot
-          className="hidden lg:block sticky top-16 self-start"
-          src="/Banner%20Side%20panal.jpg"
+          className="hidden lg:block sticky top-16 justify-self-end self-start"
+          src="/Banner-Side-panel-right.jpg"
           alt="Tips on selling a property online"
         />
       </div>
