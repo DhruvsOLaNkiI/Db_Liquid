@@ -252,13 +252,13 @@ export function SellerDashboardPage() {
                           <div className="rounded-xl bg-gray-50 px-3.5 py-3 border border-gray-100">
                             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium mb-1 flex items-center gap-1">
                               <Clock size={12} />
-                              Time left
+                              Bidding
                             </p>
                             <p className="text-base font-bold text-gray-900 truncate">
                               {getTimeRemaining(listing)}
                             </p>
                             <p className="text-xs text-gray-500 truncate hidden sm:block">
-                              {status === 'closed' ? 'Bidding ended' : 'Until close'}
+                              {status === 'accepted' ? 'Deal in progress' : 'Open until accepted'}
                             </p>
                           </div>
                         </div>

@@ -29,13 +29,9 @@ type UserRecord = {
   creditHistory?: unknown[];
 };
 
-function shouldClose(listing: ListingRecord, nowMs: number) {
-  if (listing.acceptedBidId) return false;
-  if (listing.auctionClosedAt) return false;
-  if (!listing.biddingEndsAt) return false;
-  const endsAt = new Date(listing.biddingEndsAt).getTime();
-  if (!Number.isFinite(endsAt)) return false;
-  return endsAt <= nowMs;
+function shouldClose(_listing: ListingRecord, _nowMs: number) {
+  // Time-based auction close disabled — listings stay open until a bid is accepted.
+  return false;
 }
 
 /**

@@ -177,13 +177,13 @@ export function ProfileListingCard({
             <div className="rounded-xl bg-gray-50 px-3 py-2.5 border border-gray-100">
               <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
                 <Clock size={10} />
-                Time left
+                Bidding
               </p>
               <p className="text-sm sm:text-base font-bold text-gray-900 truncate">
                 {getTimeRemaining(listing)}
               </p>
               <p className="text-[10px] text-gray-500 truncate hidden sm:block">
-                {status === 'closed' ? 'Bidding ended' : 'Until close'}
+                {status === 'accepted' ? 'Deal in progress' : 'Open until accepted'}
               </p>
             </div>
           </div>

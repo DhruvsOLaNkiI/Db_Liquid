@@ -73,10 +73,9 @@ function getHighestBidTotal(listing: ListingRecord) {
 }
 
 function isBiddingOpen(listing: ListingRecord) {
+  // Bidding stays open until the seller accepts a bid (no time limit).
   if (listing.acceptedBidId) return false;
-  if (listing.auctionClosedAt) return false;
-  if (!listing.biddingEndsAt) return true;
-  return new Date(listing.biddingEndsAt).getTime() > Date.now();
+  return true;
 }
 
 function appendCreditHistory(user: UserRecord, entry: Record<string, unknown>) {

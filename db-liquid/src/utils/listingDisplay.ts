@@ -122,13 +122,8 @@ export function perSqFtFromTotal(total: number, areaSqFt: number) {
 }
 
 export function getTimeRemainingDetailed(listing: PropertyListing) {
-  const diff = new Date(listing.biddingEndsAt).getTime() - Date.now();
-  if (diff <= 0) return 'Auction closed';
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const label = days === 1 ? 'Day' : 'Days';
-  return `${days} ${label} ${String(hours).padStart(2, '0')} Hours Remaining`;
+  if (listing.acceptedBidId) return 'Bid accepted';
+  return 'No time limit';
 }
 
 export const VERIFICATION_FIELDS = [

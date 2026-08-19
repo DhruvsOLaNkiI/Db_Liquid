@@ -4,30 +4,31 @@ import { useState } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 
+/** Seller steps — match listing poster / How It Works creative */
 const sellerSteps = [
   {
     icon: ClipboardList,
-    title: 'List Your Property',
+    title: 'Post Your Free Property Ad',
     description:
-      'Enter property details, upload photos, set your price per square foot, and choose your 7-day bidding period.',
+      'Describe your property accurately and upload high-quality photos and videos.',
   },
   {
     icon: Gavel,
-    title: 'Receive Competitive Bids',
+    title: 'Let Buyers Bid on Your Listing',
     description:
-      'Multiple buyers compete for your property in a transparent bidding process with real-time updates.',
-  },
-  {
-    icon: CheckCircle2,
-    title: 'Choose Your Winner',
-    description:
-      'Select the best bid based on your preferences. Receive ₹75,000 token amount immediately and connect with the buyer.',
+      'View all bids on your dashboard and choose the offer that suits you best.',
   },
   {
     icon: MessageCircle,
-    title: 'Close the Deal',
+    title: 'Connect with the Buyer',
     description:
-      'Direct communication with the buyer to complete documentation and registration securely.',
+      'After a successful match, communicate with the buyer through the chat window and finalise the terms.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Finalise the Deal',
+    description:
+      'Click on Proceed to instantly generate the Agreement to Sale (ATS) and MOU.',
   },
 ];
 
@@ -74,8 +75,9 @@ export function HowItWorksPage() {
               How It Works
             </h1>
             <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              A simple, transparent process whether you're looking to sell your property or find
-              your dream home.
+              {activeTab === 'sellers'
+                ? 'Simple steps to connect, negotiate & close the best property deals.'
+                : "A simple, transparent process to find your dream home."}
             </p>
           </div>
 
@@ -129,7 +131,9 @@ export function HowItWorksPage() {
                 Ready to {activeTab === 'sellers' ? 'Sell?' : 'Buy?'}
               </h2>
               <p className="text-white/65 max-w-md mx-auto">
-                Join thousands of verified users on DB Liquid today.
+                {activeTab === 'sellers'
+                  ? 'List it. Connect it. Close it.'
+                  : 'Join thousands of verified users on DB Liquid today.'}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -137,7 +141,7 @@ export function HowItWorksPage() {
                 to={activeTab === 'sellers' ? '/list-your-property' : '/browse-property'}
                 className="px-8 py-4 bg-accent text-white rounded-full font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
               >
-                {activeTab === 'sellers' ? 'List Your Property' : 'Browse Properties'}
+                {activeTab === 'sellers' ? 'Post Your Free Property Ad' : 'Browse Properties'}
               </Link>
               <Link
                 to="/browse-property"

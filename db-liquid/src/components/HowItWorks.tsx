@@ -4,40 +4,48 @@ import { useState } from 'react';
 const steps = {
   sellers: [
     {
-      title: "List Your Property",
-      description: "Enter property details, upload photos, set your price per square foot, and choose your 7-day bidding period.",
+      title: 'Post Your Free Property Ad',
+      description:
+        'Describe your property accurately and upload high-quality photos and videos.',
     },
     {
-      title: "Receive Competitive Bids",
-      description: "Multiple buyers compete for your property in a transparent bidding process with real-time updates.",
+      title: 'Let Buyers Bid on Your Listing',
+      description:
+        'View all bids on your dashboard and choose the offer that suits you best.',
     },
     {
-      title: "Choose Your Winner",
-      description: "Select the best bid based on your preferences. Receive ₹75,000 token amount immediately and connect with the buyer.",
+      title: 'Connect with the Buyer',
+      description:
+        'After a successful match, communicate with the buyer through the chat window and finalise the terms.',
     },
     {
-      title: "Close the Deal",
-      description: "Direct communication with the buyer to complete documentation and registration securely.",
-    }
+      title: 'Finalise the Deal',
+      description:
+        'Click on Proceed to instantly generate the Agreement to Sale (ATS) and MOU.',
+    },
   ],
   buyers: [
     {
-      title: "Browse Properties",
-      description: "Explore verified listings across locations. View detailed property information, pricing, and filter by budget.",
+      title: 'Browse Properties',
+      description:
+        'Explore verified listings across locations. View detailed property information, pricing, and filter by budget.',
     },
     {
-      title: "Place Your Bid",
-      description: "Participate in competitive bidding during the 7-day window. Track bids in real-time.",
+      title: 'Place Your Bid',
+      description:
+        'Participate in competitive bidding during the 7-day window. Track bids in real-time.',
     },
     {
-      title: "Win & Connect",
-      description: "If accepted, pay a ₹1,00,000 token amount to instantly access seller details (₹75K goes directly to seller).",
+      title: 'Win & Connect',
+      description:
+        'If accepted, pay a ₹1,00,000 token amount to instantly access seller details (₹75K goes directly to seller).',
     },
     {
-      title: "Complete Purchase",
-      description: "Directly negotiate and complete the legal documentation for a secure property transfer.",
-    }
-  ]
+      title: 'Complete Purchase',
+      description:
+        'Directly negotiate and complete the legal documentation for a secure property transfer.',
+    },
+  ],
 };
 
 export function HowItWorks() {
@@ -48,7 +56,9 @@ export function HowItWorks() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight text-white">How It Works</h2>
-          <p className="text-white/70 text-lg">A simple, transparent process whether you're looking to sell your property or find your dream home.</p>
+          <p className="text-white/70 text-lg">
+            Simple steps to connect, negotiate & close the best property deals.
+          </p>
         </div>
 
         <div className="flex justify-center mb-12">
@@ -97,12 +107,16 @@ export function HowItWorks() {
                 <h3 className="text-2xl font-bold mb-2">
                   Ready to {activeTab === 'sellers' ? 'Sell?' : 'Buy?'}
                 </h3>
-                <p className="text-gray-600">Join thousands of verified users on DB Liquid today.</p>
+                <p className="text-gray-600">
+                  {activeTab === 'sellers'
+                    ? 'List it. Connect it. Close it.'
+                    : 'Join thousands of verified users on DB Liquid today.'}
+                </p>
               </div>
               
               <div className="space-y-4">
                 <button className="w-full py-4 bg-primary text-white rounded-xl font-medium hover:bg-blue-950 transition-colors">
-                  {activeTab === 'sellers' ? 'List Your Property' : 'Browse Properties'}
+                  {activeTab === 'sellers' ? 'Post Your Free Property Ad' : 'Browse Properties'}
                 </button>
                 <button className="w-full py-4 bg-white border border-gray-200 text-gray-900 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                   Learn More

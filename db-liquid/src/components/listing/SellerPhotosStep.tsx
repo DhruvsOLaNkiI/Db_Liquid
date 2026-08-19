@@ -73,7 +73,9 @@ export function SellerPhotosStep({
             id: randomId(),
             fileName: uploaded.fileName,
             mimeType: uploaded.mimeType,
-            dataUrl: uploaded.url,
+            // Local blob preview so the grid always shows the photo even if CSP
+            // blocks the short-lived R2/S3 signed URL.
+            dataUrl: readFileAsObjectUrl(file),
             storageKey: uploaded.storageKey,
             uploadedAt: new Date().toISOString(),
           });
@@ -128,7 +130,7 @@ export function SellerPhotosStep({
           id: randomId(),
           fileName: uploaded.fileName,
           mimeType: uploaded.mimeType,
-          dataUrl: uploaded.url,
+          dataUrl: readFileAsObjectUrl(file),
           storageKey: uploaded.storageKey,
           uploadedAt: new Date().toISOString(),
         },

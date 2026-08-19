@@ -500,22 +500,14 @@ export function getFastBidPresets(listing: PropertyListing): FastBidPreset[] {
 }
 
 export function isBiddingOpen(listing: PropertyListing) {
+  // Bidding stays open until the seller accepts a bid (no time limit).
   if (listing.acceptedBidId) return false;
-  if (listing.auctionClosedAt) return false;
-  return new Date(listing.biddingEndsAt) > new Date();
+  return true;
 }
 
 export function getTimeRemaining(listing: PropertyListing) {
-  const diff = new Date(listing.biddingEndsAt).getTime() - Date.now();
-  if (diff <= 0) return 'Closed';
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (days > 0) return `${days}d ${hours}h ${mins}m`;
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}m`;
+  if (listing.acceptedBidId) return 'Accepted';
+  return 'No time limit';
 }
 
 export function getBidCount(listing: PropertyListing) {
